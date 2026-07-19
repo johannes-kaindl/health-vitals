@@ -5,12 +5,22 @@ function makeEl(): any {
     style: {},
     children: [] as any[],
     empty() { el.children = []; },
-    createEl() { return makeEl(); },
-    createDiv() { return makeEl(); },
+    createEl(tag?: string, o?: any) {
+      const child = makeEl();
+      child.tag = tag;
+      if (o && o.cls) child.cls = o.cls;
+      if (o && o.text) { child.text = o.text; child.textContent = o.text; }
+      el.children.push(child);
+      return child;
+    },
+    createDiv(o?: any) { return el.createEl("div", o); },
+    createSpan(o?: any) { return el.createEl("span", o); },
     replaceChildren() { el.children = []; },
     setText() {},
     addClass() {},
     removeClass() {},
+    toggleClass(_cls: string, _value: boolean) {},
+    setAttribute(_name: string, _value: string) {},
     addEventListener() {},
     removeEventListener() {},
     instanceOf(_type: any) { return true; }, // template stub: permissive so guards pass; refine per plugin
@@ -80,6 +90,7 @@ export function setCssStyles(el: any, styles: Record<string, string>): void {
 export class WorkspaceLeaf { view: any; }
 export class ItemView {
   containerEl: any = makeEl();
+  contentEl: any = makeEl();
   leaf: any;
   constructor(leaf?: any) { this.leaf = leaf; }
   getViewType(): string { return ""; }
