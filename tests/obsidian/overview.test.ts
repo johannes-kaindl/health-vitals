@@ -33,4 +33,12 @@ describe("renderOverview", () => {
     renderOverview(el, cache, view);
     expect(countClass(el, "ah-tile")).toBe(2);
   });
+
+  it("zeigt Hinweis, wenn der Cache keine Metriken hat", () => {
+    const el = fakeEl();
+    const view: any = { openDetail() {}, refreshOverview() {}, host: { getFavorites: () => [], toggleFavorite: async () => {} } };
+    const emptyCache = { ...cache, metrics: {} };
+    renderOverview(el, emptyCache, view);
+    expect(countClass(el, "ah-detail-hint")).toBe(1);
+  });
 });

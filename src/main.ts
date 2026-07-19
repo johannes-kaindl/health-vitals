@@ -1,7 +1,6 @@
 import { FileSystemAdapter, Notice, Plugin, WorkspaceLeaf } from "obsidian";
 import { join } from "node:path";
-import { readdir, writeFile } from "node:fs/promises";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { aggregateStream } from "./core/pipeline";
 import type { HealthCache } from "./core/types";
 import { openImportSource, pickImportFile } from "./obsidian/health-source";

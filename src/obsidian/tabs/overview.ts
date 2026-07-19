@@ -25,6 +25,10 @@ export function renderOverview(el: HTMLElement, cache: HealthCache, view: Dashbo
     const grid = details.createDiv({ cls: "ah-tile-grid" });
     for (const t of section.tiles) renderTile(grid, t, cache, view, false);
   }
+
+  if (vm.favorites.length === 0 && vm.sections.length === 0) {
+    el.createDiv({ cls: "ah-detail-hint", text: "Keine Metriken im Import." });
+  }
 }
 
 function renderTile(grid: HTMLElement, t: TileVM, _cache: HealthCache, view: DashboardView, isFav: boolean): void {
@@ -40,7 +44,9 @@ function renderTile(grid: HTMLElement, t: TileVM, _cache: HealthCache, view: Das
   star.setAttribute("aria-label", isFav ? "Aus Favoriten entfernen" : "Zu Favoriten");
   star.addEventListener("click", (ev: MouseEvent) => {
     ev.stopPropagation();
-    void view.host.toggleFavorite(t.id).then(() => view.refreshOverview());
+    void view.host.toggleFavorite(t.id)
+      .then(() => view.refreshOverview())
+      .catch((e) => console.error("Apple Health: Favorit speichern fehlgeschlagen", e));
   });
 
   tile.createDiv({ cls: "ah-tile-value", text: t.valueText });
