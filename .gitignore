@@ -7,3 +7,5 @@ data.json
 import/
 # styles.css bleibt TRACKED (Release-Asset)
 node_modules/
+# macOS-Clutter
+.DS_Store
