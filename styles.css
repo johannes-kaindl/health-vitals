@@ -1,0 +1,48 @@
+/* Apple Health — Dashboard. Nur Theme-Variablen, Präfix ah-. */
+.ah-dashboard { padding: var(--size-4-2); }
+
+.ah-tabbar { display: flex; gap: var(--size-4-2); border-bottom: 1px solid var(--background-modifier-border); margin-bottom: var(--size-4-3); }
+.ah-tab { display: flex; align-items: center; gap: var(--size-4-1); padding: var(--size-4-2) var(--size-4-3); cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; }
+.ah-tab.is-active { color: var(--text-normal); border-bottom-color: var(--interactive-accent); }
+.ah-tab:hover { background: var(--background-modifier-hover); }
+
+.ah-panel.is-hidden { display: none; }
+
+.ah-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--size-4-2); }
+.ah-tile { background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); padding: var(--size-4-2); cursor: pointer; }
+.ah-tile:hover { background: var(--background-modifier-hover); }
+.ah-tile-head { display: flex; justify-content: space-between; align-items: center; }
+.ah-tile-name { font-size: var(--font-ui-small); color: var(--text-muted); }
+.ah-tile-star { cursor: pointer; color: var(--text-faint); }
+.ah-tile-value { font-size: var(--font-ui-large); font-weight: var(--font-bold); color: var(--text-normal); margin: var(--size-4-1) 0; }
+.ah-tile-spark svg { width: 100%; height: 36px; display: block; }
+
+.ah-cat { margin-top: var(--size-4-3); }
+.ah-cat-summary { cursor: pointer; color: var(--text-normal); font-weight: var(--font-semibold); padding: var(--size-4-1) 0; }
+.ah-fav-section h3, .ah-cat + h3 { color: var(--text-normal); }
+
+.ah-range-bar { display: flex; gap: var(--size-4-1); margin: var(--size-4-2) 0; }
+.ah-range-btn { color: var(--text-muted); }
+.ah-range-btn.is-active { color: var(--text-on-accent); background: var(--interactive-accent); }
+
+.ah-detail-head { display: flex; align-items: baseline; gap: var(--size-4-2); }
+.ah-detail-range { color: var(--text-faint); font-size: var(--font-ui-small); }
+.ah-detail-chart svg { width: 100%; height: auto; display: block; }
+.ah-detail-hint { color: var(--text-muted); padding: var(--size-4-4); text-align: center; }
+
+.ah-chart-line { stroke: var(--interactive-accent); stroke-width: 2; fill: none; }
+.ah-chart-band { fill: var(--interactive-accent); opacity: 0.15; }
+.ah-chart-bar { fill: var(--interactive-accent); }
+.ah-chart-grid { stroke: var(--background-modifier-border); stroke-width: 1; }
+
+.ah-stat-row { display: flex; gap: var(--size-4-4); margin-top: var(--size-4-3); flex-wrap: wrap; }
+.ah-stat-cell { display: flex; flex-direction: column; }
+.ah-stat-label { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.ah-stat-value { font-size: var(--font-ui-medium); color: var(--text-normal); }
+
+.ah-workout-list { display: flex; flex-direction: column; }
+.ah-workout-row { display: flex; justify-content: space-between; gap: var(--size-4-2); padding: var(--size-4-1) 0; border-bottom: 1px solid var(--background-modifier-border); }
+.ah-workout-type { color: var(--text-normal); }
+.ah-workout-date, .ah-workout-dur { color: var(--text-muted); }
+
+.ah-empty { text-align: center; padding: var(--size-4-6); color: var(--text-muted); }

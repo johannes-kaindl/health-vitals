@@ -1,0 +1,75 @@
+import type { DayBucket, MeasureBucket, Policy, SumBucket, DurationBucket } from "./types";
+
+export type Granularity = "day" | "week" | "month";
+export type RangeKey = "1M" | "3M" | "1J" | "all";
+export interface RollupPoint { key: string; value: number; min?: number; max?: number; }
+export interface ResolvedRange { from: string; to: string; granularity: Granularity; }
+
+function minusMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1 - months, 1)); // 1. des Zielmonats
+  const lastDay = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+  dt.setUTCDate(Math.min(d, lastDay)); // Tag auf letzten gültigen Tag des Zielmonats klemmen
+  return dt.toISOString().slice(0, 10);
+}
+
+export function resolveRange(range: RangeKey, dateRange: { from: string; to: string }): ResolvedRange {
+  const to = dateRange.to;
+  switch (range) {
+    case "1M": return { from: minusMonths(to, 1), to, granularity: "day" };
+    case "3M": return { from: minusMonths(to, 3), to, granularity: "day" };
+    case "1J": return { from: minusMonths(to, 12), to, granularity: "week" };
+    case "all": return { from: dateRange.from, to, granularity: "month" };
+  }
+}
+
+function isoWeekKey(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const day = (dt.getUTCDay() + 6) % 7; // Mo=0
+  dt.setUTCDate(dt.getUTCDate() - day + 3); // Donnerstag der Woche
+  const firstThu = new Date(Date.UTC(dt.getUTCFullYear(), 0, 4));
+  const firstThuDay = (firstThu.getUTCDay() + 6) % 7;
+  const week = 1 + Math.round(((dt.getTime() - firstThu.getTime()) / 86400000 - 3 + firstThuDay) / 7);
+  return `${dt.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function bucketKey(day: string, g: Granularity): string {
+  if (g === "day") return day;
+  if (g === "month") return day.slice(0, 7);
+  return isoWeekKey(day);
+}
+
+interface Acc { sum: number; wSum: number; count: number; min: number; max: number; }
+
+export function rollupDaily(daily: Record<string, DayBucket>, policy: Policy, r: ResolvedRange): RollupPoint[] {
+  const buckets = new Map<string, Acc>();
+  for (const day of Object.keys(daily)) {
+    if (day < r.from || day > r.to) continue;
+    const key = bucketKey(day, r.granularity);
+    let acc = buckets.get(key);
+    if (!acc) { acc = { sum: 0, wSum: 0, count: 0, min: Infinity, max: -Infinity }; buckets.set(key, acc); }
+    const b = daily[day];
+    if (policy === "sum") {
+      acc.sum += (b as SumBucket).sum;
+    } else if (policy === "duration") {
+      acc.sum += (b as DurationBucket).minutes;
+    } else {
+      const mb = b as MeasureBucket;
+      acc.wSum += mb.avg * mb.count;
+      acc.count += mb.count;
+      acc.min = Math.min(acc.min, mb.min);
+      acc.max = Math.max(acc.max, mb.max);
+    }
+  }
+  const out: RollupPoint[] = [];
+  for (const [key, acc] of buckets) {
+    if (policy === "measure") {
+      out.push({ key, value: acc.count ? acc.wSum / acc.count : 0, min: acc.min, max: acc.max });
+    } else {
+      out.push({ key, value: acc.sum });
+    }
+  }
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
