@@ -30,6 +30,7 @@ function readZip(absPath: string): AsyncIterable<string> {
   let done = false;
   let error: unknown = null;
   let rs: ReadStream | null = null;
+  let matched = false;
 
   const wake = (): void => { if (resolveNext) { const r = resolveNext; resolveNext = null; r(); } };
   const push = (s: string): void => {
@@ -42,6 +43,7 @@ function readZip(absPath: string): AsyncIterable<string> {
 
   const unzip = new Unzip((file) => {
     if (!isExportEntry(file.name)) return; // andere Einträge (GPX) ignorieren, nicht starten
+    matched = true;
     file.ondata = (err, data, final): void => {
       if (err) { fail(err); return; }
       if (data && data.length) push(decoder.decode(data, { stream: !final }));
@@ -53,7 +55,12 @@ function readZip(absPath: string): AsyncIterable<string> {
 
   rs = createReadStream(absPath);
   rs.on("data", (c) => { try { unzip.push(new Uint8Array(c as Buffer), false); } catch (e) { fail(e); } });
-  rs.on("end", () => { try { unzip.push(new Uint8Array(0), true); } catch (e) { fail(e); } });
+  rs.on("end", () => {
+    try {
+      unzip.push(new Uint8Array(0), true);
+      if (!matched && !done) fail(new Error("Export.xml nicht im Zip gefunden"));
+    } catch (e) { fail(e); }
+  });
   rs.on("error", fail);
 
   return {

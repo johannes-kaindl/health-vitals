@@ -23,14 +23,16 @@ export function eventFromTag(tag: StartTag): HealthEvent | null {
   const a = tag.attrs;
   if (tag.name === "Record") {
     if (!a.type || !a.startDate) return null;
-    const num = a.value !== undefined ? Number(a.value) : NaN;
+    const value = a.value === undefined || a.value.trim() === ""
+      ? null
+      : (Number.isFinite(Number(a.value)) ? Number(a.value) : null);
     return {
       kind: "record",
       type: a.type,
       unit: a.unit ?? "",
       startDate: a.startDate,
       endDate: a.endDate ?? a.startDate,
-      value: Number.isFinite(num) ? num : null,
+      value,
     };
   }
   if (tag.name === "Workout") {

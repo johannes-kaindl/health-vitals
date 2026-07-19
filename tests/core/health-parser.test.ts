@@ -26,6 +26,13 @@ describe("health-parser", () => {
     expect(cat.value).toBeNull();
   });
 
+  it("value=null bei leerem value-String (nicht 0)", () => {
+    const empty = eventFromTag(tag("Record", {
+      type: "T", startDate: "2022-11-25 08:00:00 +0200", value: "",
+    })) as RecordEvent;
+    expect(empty.value).toBeNull();
+  });
+
   it("skippt Record ohne type oder startDate", () => {
     expect(eventFromTag(tag("Record", { type: "T" }))).toBeNull();
     expect(eventFromTag(tag("Record", { startDate: "2022-11-25 08:00:00 +0200" }))).toBeNull();
