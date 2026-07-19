@@ -1,5 +1,7 @@
 import type { HealthCache } from "../../core/types";
 import { summarizeWorkouts } from "../../core/workout-summary";
+import { workoutTypeName } from "../../core/workout-catalog";
+import { formatDuration } from "../../core/format";
 import { buildChartGeometry } from "../../core/chart-geometry";
 import type { RollupPoint } from "../../core/rollup";
 import { renderChart } from "../chart-render";
@@ -24,8 +26,8 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
   const list = el.createDiv({ cls: "ah-workout-list" });
   for (const w of summary.recent) {
     const row = list.createDiv({ cls: "ah-workout-row" });
-    row.createSpan({ cls: "ah-workout-type", text: w.type });
+    row.createSpan({ cls: "ah-workout-type", text: workoutTypeName(w.type) });
     row.createSpan({ cls: "ah-workout-date", text: w.date });
-    row.createSpan({ cls: "ah-workout-dur", text: `${w.durationMin} min` });
+    row.createSpan({ cls: "ah-workout-dur", text: formatDuration(w.durationMin) });
   }
 }

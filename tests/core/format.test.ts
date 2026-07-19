@@ -1,4 +1,18 @@
-import { formatValue } from "../../src/core/format";
+import { formatValue, formatDuration } from "../../src/core/format";
+
+describe("formatDuration", () => {
+  it("unter 60 Minuten: gerundete Minuten", () => {
+    expect(formatDuration(38.42231736580531)).toBe("38 min");
+    expect(formatDuration(7.006)).toBe("7 min");
+  });
+  it("ab 60 Minuten: Stunden + Minuten", () => {
+    expect(formatDuration(95.5)).toBe("1h 36m"); // 96 min
+    expect(formatDuration(60)).toBe("1h 0m");
+  });
+  it("sehr kurze Dauer rundet nicht auf 0", () => {
+    expect(formatDuration(0.4)).toBe("< 1 min");
+  });
+});
 
 describe("formatValue", () => {
   it("de-DE Tausenderpunkt + Einheit angehängt", () => {
