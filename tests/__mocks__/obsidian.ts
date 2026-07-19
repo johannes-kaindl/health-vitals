@@ -14,6 +14,14 @@ function makeEl(): any {
     addEventListener() {},
     removeEventListener() {},
     instanceOf(_type: any) { return true; }, // template stub: permissive so guards pass; refine per plugin
+    createSvg(tag: string, o?: any) {
+      const child = makeEl();
+      child.tag = tag;
+      child.attrs = (o && o.attr) || {};
+      child.cls = (o && o.cls) || "";
+      el.children.push(child);
+      return child;
+    },
   };
   return el;
 }
@@ -67,4 +75,27 @@ export async function requestUrl(_opts: any): Promise<{ status: number; text: st
 
 export function setCssStyles(el: any, styles: Record<string, string>): void {
   Object.assign(el.style, styles);
+}
+
+export class WorkspaceLeaf { view: any; }
+export class ItemView {
+  containerEl: any = makeEl();
+  leaf: any;
+  constructor(leaf?: any) { this.leaf = leaf; }
+  getViewType(): string { return ""; }
+  getDisplayText(): string { return ""; }
+  getIcon(): string { return ""; }
+  async onOpen(): Promise<void> {}
+  async onClose(): Promise<void> {}
+}
+export function setIcon(_el: any, _name: string): void {}
+export class ButtonComponent {
+  buttonEl: any = makeEl();
+  constructor(_el?: any) {}
+  setButtonText() { return this; }
+  setCta() { return this; }
+  setWarning() { return this; }
+  setIcon() { return this; }
+  setTooltip() { return this; }
+  onClick(_cb: any) { return this; }
 }
