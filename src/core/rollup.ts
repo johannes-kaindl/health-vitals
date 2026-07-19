@@ -7,7 +7,9 @@ export interface ResolvedRange { from: string; to: string; granularity: Granular
 
 function minusMonths(iso: string, months: number): string {
   const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1 - months, d));
+  const dt = new Date(Date.UTC(y, m - 1 - months, 1)); // 1. des Zielmonats
+  const lastDay = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+  dt.setUTCDate(Math.min(d, lastDay)); // Tag auf letzten gültigen Tag des Zielmonats klemmen
   return dt.toISOString().slice(0, 10);
 }
 

@@ -11,6 +11,12 @@ describe("resolveRange", () => {
     expect(resolveRange("1J", dr)).toEqual({ from: "2025-07-18", to: "2026-07-18", granularity: "week" });
     expect(resolveRange("all", dr)).toEqual({ from: "2017-07-08", to: "2026-07-18", granularity: "month" });
   });
+  it("klemmt den Tag am Monatsende (kein Überlauf)", () => {
+    // 2026-03-31 minus 1 Monat: Februar 2026 hat 28 Tage → 2026-02-28, NICHT 2026-03-03
+    expect(resolveRange("1M", { from: "2000-01-01", to: "2026-03-31" }).from).toBe("2026-02-28");
+    // minus 12 Monate bleibt tag-gültig (März hat 31 Tage)
+    expect(resolveRange("1J", { from: "2000-01-01", to: "2026-03-31" }).from).toBe("2025-03-31");
+  });
 });
 
 describe("rollupDaily", () => {
