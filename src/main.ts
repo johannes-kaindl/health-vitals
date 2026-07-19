@@ -48,9 +48,14 @@ export default class AppleHealthPlugin extends Plugin {
       );
       await writeFile(join(pluginDir, CACHE_FILE), JSON.stringify(cache), "utf8");
       const types = Object.keys(cache.metrics).length;
-      new Notice(`Apple Health: fertig — ${cache.recordCount.toLocaleString()} Records, ${types} Metriken, ${cache.workouts.length} Workouts.`);
+      const range = cache.dateRange ? `${cache.dateRange.from}–${cache.dateRange.to}` : "—";
+      // Duration 0 = bleibt bis zum Klick stehen — die Zusammenfassung soll lesbar bleiben.
+      new Notice(
+        `Apple Health: fertig ✓ — ${cache.recordCount.toLocaleString()} Records · ${types} Metriken · ${cache.workouts.length} Workouts · Zeitraum ${range} (Klick schließt)`,
+        0,
+      );
     } catch (e) {
-      new Notice(`Apple Health: Import fehlgeschlagen — ${e instanceof Error ? e.message : String(e)}`);
+      new Notice(`Apple Health: Import fehlgeschlagen — ${e instanceof Error ? e.message : String(e)}`, 0);
     }
   }
 }
