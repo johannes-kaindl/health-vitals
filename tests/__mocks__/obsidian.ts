@@ -47,7 +47,12 @@ export class Plugin {
   registerExtensions() {}
   addSettingTab() {}
   registerEvent() {}
+  addRibbonIcon(_i: string, _t: string, _cb: any) { return makeEl(); }
+  async loadData(): Promise<any> { return null; }
+  async saveData(_d: any): Promise<void> {}
 }
+
+export class FileSystemAdapter { getBasePath() { return "/fake"; } }
 
 export class PluginSettingTab {
   containerEl: any = makeEl();
