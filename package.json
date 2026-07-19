@@ -15,7 +15,12 @@
     "version-bump": "node scripts/version-bump.mjs",
     "release": "node scripts/release.mjs"
   },
-  "keywords": ["obsidian", "obsidian-plugin", "apple-health", "health-data"],
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "apple-health",
+    "health-data"
+  ],
   "author": "Johannes Kaindl",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
@@ -27,5 +32,8 @@
     "typescript": "^5.5",
     "typescript-eslint": "^8",
     "vitest": "^2"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
   }
 }
