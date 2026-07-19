@@ -65,7 +65,7 @@ function readZip(absPath: string): AsyncIterable<string> {
           yield s;
           continue;
         }
-        if (error) throw error;
+        if (error) throw error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Unknown error');
         if (done) return;
         await new Promise<void>((res) => { resolveNext = res; });
       }
