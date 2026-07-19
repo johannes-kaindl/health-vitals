@@ -1,6 +1,6 @@
 import { createReadStream, type ReadStream } from "node:fs";
 import { basename } from "node:path";
-import { Unzip, AsyncUnzipInflate } from "fflate";
+import { Unzip, UnzipInflate } from "fflate";
 
 /** Jüngste .zip/.xml aus einer Dateinamensliste (lexikografisch letzte). */
 export function pickImportFile(names: string[]): string | null {
@@ -51,7 +51,11 @@ function readZip(absPath: string): AsyncIterable<string> {
     };
     file.start();
   });
-  unzip.register(AsyncUnzipInflate);
+  // Synchroner Inflate (NICHT AsyncUnzipInflate): fflates Async-Variante spawnt einen
+  // Web-Worker, den Obsidians Electron-Renderer-V8 nicht erlaubt ("Failed to construct
+  // 'Worker'"). Sync dekomprimiert auf dem Main-Thread — unser fs-Stream pusht ohnehin
+  // chunk-weise, Speicher bleibt beschränkt.
+  unzip.register(UnzipInflate);
 
   rs = createReadStream(absPath);
   rs.on("data", (c) => { try { unzip.push(new Uint8Array(c as Buffer), false); } catch (e) { fail(e); } });
