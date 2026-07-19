@@ -14,7 +14,7 @@ in Electron, HealthKit ist native iOS/macOS API. User legt XML in `import/` ab.
 
 - **`import/`** — User kopiert Health-XML-Export hierher. **Gitignored** (personenbezogene Daten).
 - **Streaming XML-Parser** — Health-Exports können ~2 GB groß sein → SAX/streaming, kein DOM-Parsing.
-- **Cache in `data.json`** — Geparste Records werden im Plugin-Speicher gecacht für schnelles Querying. **Gitignored.**
+- **Cache in `health-cache.json`** (separate Datei im Plugin-Dir, **lazy** beim Öffnen des Dashboards geladen — nicht in `data.json`, das würde bei jedem Start blockieren). Geparste Tages-Aggregate. **Gitignored.**
 - **Reiner Kern / Obsidian-Schicht** Trennung (PROF-OBS-03/04): Parser-Logik ohne obsidian-Import, in Node testbar.
 
 `isDesktopOnly: true` — XML-Import nur auf Desktop sinnvoll.

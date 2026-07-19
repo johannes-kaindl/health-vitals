@@ -6,6 +6,7 @@ const prod = process.argv.includes("--production");
 const ctx = await esbuild.context({
   entryPoints: ["src/main.ts"],
   bundle: true,
+  platform: "node",
   external: ["obsidian", "electron"],
   format: "cjs",
   target: "es2022",
