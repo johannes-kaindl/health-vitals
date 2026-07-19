@@ -39,12 +39,17 @@ describe("buildDetailVM", () => {
     expect(vm.stats.some((r) => r.label === "Summe")).toBe(true);
   });
 
-  it("empty=true, wenn die Metrik im Range keine Daten hat", () => {
+  it("empty=true bei unbekannter Metrik, sonst false", () => {
     const vm = buildDetailVM(cache(), "HKQuantityTypeIdentifierStepCount", "1M", dims);
     // Range 1M endet 2026-01-31, from 2025-12-31 → Daten liegen drin → nicht empty.
     // Unbekannte Metrik hingegen → empty:
     const none = buildDetailVM(cache(), "HKQuantityTypeIdentifierUnknownXYZ", "all", dims);
     expect(none.empty).toBe(true);
     expect(vm.empty).toBe(false);
+  });
+
+  it("empty=true bei fehlendem dateRange", () => {
+    const vm = buildDetailVM({ ...cache(), dateRange: null }, "HKQuantityTypeIdentifierStepCount", "all", dims);
+    expect(vm.empty).toBe(true);
   });
 });
