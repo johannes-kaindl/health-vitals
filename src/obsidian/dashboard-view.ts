@@ -1,6 +1,5 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent } from "obsidian";
+import { ItemView, WorkspaceLeaf, ButtonComponent, setIcon } from "obsidian";
 import type { HealthCache } from "../core/types";
-import type { RangeKey } from "../core/rollup";
 import { renderOverview } from "./tabs/overview";
 import { renderDetail, type DetailState } from "./tabs/detail";
 import { renderWorkouts } from "./tabs/workouts";
@@ -57,6 +56,8 @@ export class DashboardView extends ItemView {
       const btn = head.createDiv({ cls: "ah-tab" });
       btn.setAttribute("role", "tab");
       btn.setAttribute("aria-label", t.label);
+      const icon = btn.createSpan({ cls: "ah-tab-icon" });
+      setIcon(icon, t.icon);
       btn.createSpan({ cls: "ah-tab-label", text: t.label });
       btn.addEventListener("click", () => { this.switchTab(t.id); this.renderActive(); });
       this.tabButtons.set(t.id, btn);
