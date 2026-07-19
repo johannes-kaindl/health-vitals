@@ -44,4 +44,23 @@ describe("xml-tokenizer", () => {
       expect(JSON.stringify(collect(DOC, size))).toBe(whole);
     }
   });
+
+  it("überspringt XML-Kommentare vollständig (auch mit > im Kommentar)", () => {
+    const withComment = `<Record type="A" value="1"/><!-- a comment with > inside -->
+<Record type="B" value="2"/>`;
+    const tags = collect(withComment);
+    const names = tags.map((t) => t.name);
+    expect(names).toEqual(["Record", "Record"]);
+    expect(tags[0].attrs.type).toBe("A");
+    expect(tags[1].attrs.type).toBe("B");
+  });
+
+  it("ist chunk-grenzen-robust bei Kommentaren", () => {
+    const withComment = `<Record type="A" value="1"/><!-- a comment with > inside -->
+<Record type="B" value="2"/>`;
+    const whole = JSON.stringify(collect(withComment));
+    for (const size of [1, 2, 3, 5, 7]) {
+      expect(JSON.stringify(collect(withComment, size))).toBe(whole);
+    }
+  });
 });
