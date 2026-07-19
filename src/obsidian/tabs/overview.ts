@@ -17,11 +17,21 @@ export function renderOverview(el: HTMLElement, cache: HealthCache, view: Dashbo
     for (const t of vm.favorites) renderTile(grid, t, cache, view, true);
   }
 
+  // Aufklapp-Zustand aus dem View: überlebt Re-Render (z.B. Favoriten-Toggle).
+  // Beim allerersten Render einmalig die erste Kategorie aufklappen (Default).
+  const expanded = view.expandedCategories();
+  view.seedExpandedOnce(() => { if (vm.sections.length > 0) expanded.add(vm.sections[0].category); });
+
   for (const section of vm.sections) {
     const details = el.createEl("details", { cls: "ah-cat" });
-    if (!vm.favorites.length && section === vm.sections[0]) details.setAttribute("open", "");
+    if (expanded.has(section.category)) details.setAttribute("open", "");
     const summary = details.createEl("summary", { text: `${section.category} (${section.tiles.length})` });
     summary.addClass("ah-cat-summary");
+    // Nutzer-Auf-/Zuklappen in den gehaltenen Zustand spiegeln.
+    details.addEventListener("toggle", () => {
+      if (details.open) expanded.add(section.category);
+      else expanded.delete(section.category);
+    });
     const grid = details.createDiv({ cls: "ah-tile-grid" });
     for (const t of section.tiles) renderTile(grid, t, cache, view, false);
   }
