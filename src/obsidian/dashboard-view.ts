@@ -21,7 +21,7 @@ const TABS: Array<{ id: TabId; label: string; icon: string }> = [
 ];
 
 export class DashboardView extends ItemView {
-  private host: DashboardHost;
+  readonly host: DashboardHost;
   private cache: HealthCache | null = null;
   private active: TabId = "overview";
   private detail: DetailState = { metricId: null, range: "3M" };
@@ -42,6 +42,8 @@ export class DashboardView extends ItemView {
     this.switchTab("detail");
     this.renderActive();
   }
+
+  refreshOverview(): void { if (this.active === "overview") this.renderActive(); }
 
   async onOpen(): Promise<void> {
     this.cache = await this.host.loadCache();
