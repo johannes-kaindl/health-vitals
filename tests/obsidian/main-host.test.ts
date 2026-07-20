@@ -58,7 +58,7 @@ describe("AppleHealthPlugin cache I/O", () => {
     await p.writeCache(cache);
 
     expect(writes).toHaveLength(1);
-    expect(writes[0]!.path).toBe(".my-config/plugins/apple-health/health-cache.json");
-    expect(JSON.parse(writes[0]!.data)).toEqual(cache);
+    expect(writes[0].path).toBe(".my-config/plugins/apple-health/health-cache.json");
+    expect(JSON.parse(writes[0].data)).toEqual(cache);
   });
 });

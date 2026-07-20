@@ -110,7 +110,10 @@ describe("ImportController", () => {
 
   it("verwirft einen abort(), der während des Schreibens eintrifft — der Import schließt korrekt mit done ab", async () => {
     const host = hostSpy();
-    const realWrite = host.writeCache;
+    // .bind(host): host.writeCache erfüllt die Interface-Methodensignatur (die `this`
+    // nutzen dürfte), auch wenn die konkrete Testimplementierung eine `this`-freie Arrow
+    // Function ist — @typescript-eslint/unbound-method kann das nicht unterscheiden.
+    const realWrite = host.writeCache.bind(host);
     let ctrl!: ImportController;
     host.writeCache = (c) => {
       // Simuliert: Der Nutzer klickt "Abbrechen", während writeCache() bereits läuft.

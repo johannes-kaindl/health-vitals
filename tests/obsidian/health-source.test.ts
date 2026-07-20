@@ -31,7 +31,10 @@ function chunkedByteStream(bytes: Uint8Array, chunkSize: number): ReadableStream
  * Mehrbyte-UTF-8-Zeichen über zwei `reader.read()`-Aufrufe zerschnitten.
  */
 function fileWithChunkedStream(bytes: Uint8Array, name: string, chunkSize: number): File {
-  const file = new File([bytes], name);
+  // new Uint8Array(bytes) statt bytes direkt: TS 5.7+ generic Uint8Array<ArrayBufferLike>
+  // (via @types/node) ist nicht direkt BlobPart-kompatibel (erwartet ArrayBuffer, nicht
+  // ArrayBufferLike/SharedArrayBuffer) — die Kopie liefert einen konkreten ArrayBuffer.
+  const file = new File([new Uint8Array(bytes)], name);
   Object.defineProperty(file, "stream", { value: () => chunkedByteStream(bytes, chunkSize) });
   return file;
 }
