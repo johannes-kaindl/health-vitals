@@ -1,9 +1,8 @@
-import { FileSystemAdapter, Notice, Plugin, WorkspaceLeaf } from "obsidian";
-import { join } from "node:path";
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { aggregateStream } from "./core/pipeline";
+import { Notice, Plugin, WorkspaceLeaf, normalizePath } from "obsidian";
 import type { HealthCache } from "./core/types";
-import { openImportSource, pickImportFile } from "./obsidian/health-source";
+import type { ImportState } from "./core/import-state";
+import { ImportController } from "./obsidian/import-controller";
+import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "./obsidian/dashboard-view";
 
 const CACHE_FILE = "health-cache.json";
@@ -19,8 +18,11 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
 
     this.registerView(VIEW_TYPE_DASHBOARD, (leaf) => new DashboardView(leaf, this));
 
-    this.addCommand({ id: "import", name: "Import ausführen", callback: () => { void this.runImport(); } });
-    this.addCommand({ id: "open-dashboard", name: "Dashboard öffnen", callback: () => { void this.activateView(); } });
+    this.addCommand({
+      id: "open-dashboard",
+      name: "Dashboard öffnen",
+      callback: () => { void this.activateView(); },
+    });
     this.addRibbonIcon("heart-pulse", "Apple Health Dashboard", () => { void this.activateView(); });
   }
 
@@ -30,6 +32,17 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   async loadPluginData(): Promise<void> {
     const loaded = (await this.loadData()) as Partial<PluginData> | null;
     this.data = { ...DEFAULT_DATA, ...(loaded ?? {}) };
+  }
+
+  /**
+   * Pfad des Caches im eigenen Plugin-Ordner. Über vault.configDir statt eines
+   * hartkodierten ".obsidian/..." — der Ordner ist konfigurierbar
+   * (obsidianmd/hardcoded-config-path).
+   */
+  private cachePath(): string {
+    return normalizePath(
+      `${this.app.vault.configDir}/plugins/${this.manifest.id}/${CACHE_FILE}`,
+    );
   }
 
   // --- DashboardHost ---
@@ -43,18 +56,30 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   }
 
   async loadCache(): Promise<HealthCache | null> {
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) return null;
-    const path = join(adapter.getBasePath(), this.manifest.dir ?? "", CACHE_FILE);
     try {
-      const raw = await readFile(path, "utf8");
+      const raw = await this.app.vault.adapter.read(this.cachePath());
       return JSON.parse(raw) as HealthCache;
     } catch {
       return null;
     }
   }
 
-  runImport(): void { void this.runImportInternal(); }
+  async writeCache(cache: HealthCache): Promise<void> {
+    await this.app.vault.adapter.write(this.cachePath(), JSON.stringify(cache));
+  }
+
+  createImportController(onState: (s: ImportState) => void): ImportController {
+    return new ImportController(this, (state) => {
+      onState(state);
+      if (state.status === "failed") {
+        new Notice(`Apple Health: Import fehlgeschlagen — ${state.message}`, 0);
+      }
+    });
+  }
+
+  pickExport(): Promise<File | null> {
+    return pickHealthExport(activeDocument);
+  }
 
   private async activateView(): Promise<void> {
     const { workspace } = this.app;
@@ -64,40 +89,5 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
       await leaf.setViewState({ type: VIEW_TYPE_DASHBOARD, active: true });
     }
     await workspace.revealLeaf(leaf);
-  }
-
-  private async runImportInternal(): Promise<void> {
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) {
-      new Notice("Apple Health: nur auf dem Desktop verfügbar.");
-      return;
-    }
-    const pluginDir = join(adapter.getBasePath(), this.manifest.dir ?? "");
-    const importDir = join(pluginDir, "import");
-
-    let names: string[];
-    try { names = await readdir(importDir); }
-    catch { new Notice("Apple Health: Ordner 'import/' nicht gefunden."); return; }
-
-    const file = pickImportFile(names);
-    if (!file) { new Notice("Apple Health: keine .zip/.xml in 'import/' gefunden."); return; }
-
-    new Notice(`Apple Health: Import von ${file} gestartet …`);
-    try {
-      const cache = await aggregateStream(
-        openImportSource(join(importDir, file)),
-        { sourceFile: file, importedAt: new Date().toISOString() },
-        (records) => new Notice(`Apple Health: ${records.toLocaleString()} Records …`),
-      );
-      await writeFile(join(pluginDir, CACHE_FILE), JSON.stringify(cache), "utf8");
-      const types = Object.keys(cache.metrics).length;
-      const range = cache.dateRange ? `${cache.dateRange.from}–${cache.dateRange.to}` : "—";
-      new Notice(
-        `Apple Health: fertig ✓ — ${cache.recordCount.toLocaleString()} Records · ${types} Metriken · ${cache.workouts.length} Workouts · Zeitraum ${range} (Klick schließt)`,
-        0,
-      );
-    } catch (e) {
-      new Notice(`Apple Health: Import fehlgeschlagen — ${e instanceof Error ? e.message : String(e)}`, 0);
-    }
   }
 }

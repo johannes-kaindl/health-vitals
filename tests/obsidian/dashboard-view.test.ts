@@ -1,12 +1,16 @@
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "../../src/obsidian/dashboard-view";
 import type { HealthCache } from "../../src/core/types";
+import type { ImportState } from "../../src/core/import-state";
+import type { ImportController } from "../../src/obsidian/import-controller";
 
-function host(cache: HealthCache | null): DashboardHost {
+function host(cache: HealthCache | null, overrides: Partial<DashboardHost> = {}): DashboardHost {
   return {
     loadCache: async () => cache,
     getFavorites: () => [],
     toggleFavorite: async () => {},
-    runImport: () => {},
+    createImportController: (_onState: (s: ImportState) => void) => ({}) as ImportController,
+    pickExport: async () => null,
+    ...overrides,
   };
 }
 const emptyCache: HealthCache = {
@@ -21,11 +25,14 @@ describe("DashboardView", () => {
     expect(v.getDisplayText().length).toBeGreaterThan(0);
   });
 
-  it("onOpen ohne Cache rendert Empty-State-CTA (ruft runImport nicht von selbst)", async () => {
-    let imported = false;
-    const v = new DashboardView({} as any, { ...host(null), runImport: () => { imported = true; } });
+  it("onOpen ohne Cache rendert Import-Screen-CTA (fordert den Export nicht von selbst an)", async () => {
+    let picked = false;
+    const v = new DashboardView(
+      {} as any,
+      host(null, { pickExport: async () => { picked = true; return null; } }),
+    );
     await v.onOpen();
-    expect(imported).toBe(false); // CTA nur vorhanden, nicht auto-getriggert
+    expect(picked).toBe(false); // CTA nur vorhanden, nicht auto-getriggert
   });
 
   it("onOpen mit Cache wirft nicht", async () => {
