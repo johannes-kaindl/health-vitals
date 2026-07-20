@@ -47,6 +47,10 @@
 
 .ah-empty { text-align: center; padding: var(--size-4-6); color: var(--text-muted); }
 
+/* Verstecktes <input type="file"> aus file-picker.ts — lebt außerhalb der Plugin-DOM
+   (doc.body), daher hier statt scoped unter .ah-dashboard. */
+.ah-file-picker-input { display: none; }
+
 /* --- Import-Screen ---------------------------------------------------- */
 .ah-import .ah-import-file {
   font-family: var(--font-monospace);

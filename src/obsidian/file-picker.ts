@@ -11,7 +11,7 @@ export function pickHealthExport(doc: Document): Promise<File | null> {
     const input = doc.createElement("input");
     input.type = "file";
     input.accept = ".zip,.xml";
-    input.style.display = "none";
+    input.addClass("ah-file-picker-input");
     doc.body.appendChild(input);
 
     const cleanup = (): void => { input.remove(); };

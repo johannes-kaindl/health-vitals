@@ -14,6 +14,15 @@ export function openImportSource(file: File): AsyncIterable<string> {
   return file.name.endsWith(".zip") ? readZip(file) : readXml(file);
 }
 
+/**
+ * Stellt sicher, dass wirklich ein Error-Objekt geworfen wird (@typescript-eslint/only-throw-error).
+ * fflates ondata-Callback liefert `err` als `unknown` — hier landen also potenziell
+ * Nicht-Error-Werte, die sonst unverändert durchgereicht würden.
+ */
+function toError(failure: unknown): Error {
+  return failure instanceof Error ? failure : new Error(String(failure));
+}
+
 async function* readXml(file: File): AsyncIterable<string> {
   const decoder = new TextDecoder("utf-8");
   const reader = file.stream().getReader();
@@ -58,11 +67,11 @@ async function* readZip(file: File): AsyncIterable<string> {
       const { done, value } = await reader.read();
       if (done) break;
       unzip.push(value, false);
-      if (failure) throw failure;
+      if (failure) throw toError(failure);
       if (pending.length) { const out = pending; pending = []; yield* out; }
     }
     unzip.push(new Uint8Array(0), true);
-    if (failure) throw failure;
+    if (failure) throw toError(failure);
     if (pending.length) yield* pending;
     if (!matched) throw new Error("Export.xml nicht im Zip gefunden");
   } finally {
