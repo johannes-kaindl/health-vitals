@@ -34,10 +34,10 @@ Metrik plus eine Workout-Liste.
 
 Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
 den du im Dateidialog auswählst. Das ist nötig, weil ein Apple-Health-Export
-mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Es wird
-ausschließlich die von dir gewählte Datei gelesen — nichts wird geschrieben,
-verschoben oder irgendwohin gesendet. Die ausgewerteten Daten bleiben als
-`health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
+mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Diese
+Export-Datei selbst wird ausschließlich gelesen — nichts davon wird
+geschrieben, verschoben oder irgendwohin gesendet. Die daraus ausgewerteten
+Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
 
 ## Dashboard
 
@@ -78,8 +78,10 @@ Gesundheitsdaten sind besonders sensibel. Deshalb:
 
 - **Alles bleibt lokal.** Das Plugin sendet nichts nach außen, es gibt keine
   Netzwerkaufrufe.
-- `import/` und `health-cache.json` sind **gitignored** — sie landen nie
-  versehentlich in einem Repo.
+- `health-cache.json` ist **gitignored** — es landet nie versehentlich in
+  einem Repo. Es gibt keinen `import/`-Ordner mehr; der Export wird direkt
+  aus dem Dateidialog gelesen, ohne dass etwas ins Plugin-Verzeichnis
+  kopiert wird.
 - `isDesktopOnly: true` — der Import großer XML-Dateien ist nur auf dem Desktop
   sinnvoll.
 

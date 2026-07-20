@@ -6,13 +6,16 @@
 
 **Projekt:** `apple-health` — Obsidian-Plugin, das **Apple Health XML-Exports** (Health-App → Export)
 parscht und im Vault durchsuchbar/visualisierbar macht. **Kein HealthKit-Zugriff** — Obsidian läuft
-in Electron, HealthKit ist native iOS/macOS API. User legt XML in `import/` ab.
+in Electron, HealthKit ist native iOS/macOS API. User wählt die Export-Datei (`Export.zip` oder
+`Export.xml`) im Dashboard über einen nativen Dateidialog aus.
 
 **Autor:** Johannes Kaindl.
 
 ## Architecture
 
-- **`import/`** — User kopiert Health-XML-Export hierher. **Gitignored** (personenbezogene Daten).
+- **Datei-Picker** — Dashboard-Button „Export auswählen" öffnet einen nativen Dateidialog; die
+  gewählte Datei wird per `file.stream()` gelesen. Ihr Pfad wird nicht gespeichert, nichts wird ins
+  Vault oder Plugin-Verzeichnis kopiert.
 - **Streaming XML-Parser** — Health-Exports können ~2 GB groß sein → SAX/streaming, kein DOM-Parsing.
 - **Cache in `health-cache.json`** (separate Datei im Plugin-Dir, **lazy** beim Öffnen des Dashboards geladen — nicht in `data.json`, das würde bei jedem Start blockieren). Geparste Tages-Aggregate. **Gitignored.**
 - **Reiner Kern / Obsidian-Schicht** Trennung (PROF-OBS-03/04): Parser-Logik ohne obsidian-Import, in Node testbar.
@@ -39,7 +42,7 @@ npm run typecheck    # tsc --noEmit
 
 - **Apple Health XML** ist undocumented, hierarchisch, extrem redundant — Parser muss robust gegen
   Schema-Änderungen zwischen Health-App-Versionen sein.
-- **`import/` niemals committen** — enthält personenbezogene Gesundheitsdaten.
+- **`health-cache.json` niemals committen** — enthält personenbezogene Gesundheitsdaten.
 - **Große Dateien:** Streaming-Parser ist mandatory; DOM-basierte Parser craschen bei >1 GB.
 
 ## Dach-Kontext
