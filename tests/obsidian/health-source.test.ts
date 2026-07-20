@@ -1,52 +1,94 @@
 import { zipSync, strToU8 } from "fflate";
-import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { pickImportFile, isExportEntry, openImportSource } from "../../src/obsidian/health-source";
+import { isExportEntry, openImportSource } from "../../src/obsidian/health-source";
 
-describe("health-source Helper", () => {
-  it("pickImportFile wählt die jüngste .zip/.xml", () => {
-    expect(pickImportFile(["2025-01-01_Health.zip", "2026-07-17_Health.zip", "notes.md"]))
-      .toBe("2026-07-17_Health.zip");
-    expect(pickImportFile(["export.xml"])).toBe("export.xml");
-    expect(pickImportFile(["readme.md", "data.json"])).toBeNull();
-    expect(pickImportFile([])).toBeNull();
+const XML = '<HealthData><Record type="HKQuantityTypeIdentifierStepCount" '
+  + 'startDate="2026-07-01 08:00:00 +0200" value="100"/></HealthData>';
+
+async function collect(src: AsyncIterable<string>): Promise<string> {
+  let out = "";
+  for await (const chunk of src) out += chunk;
+  return out;
+}
+
+/** ReadableStream, die `bytes` in festen (winzigen) Häppchen ausliefert. */
+function chunkedByteStream(bytes: Uint8Array, chunkSize: number): ReadableStream<Uint8Array> {
+  let i = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (i >= bytes.length) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(bytes.slice(i, i + chunkSize));
+      i += chunkSize;
+    },
   });
+}
 
-  it("isExportEntry matcht nur den Export.xml-Basename", () => {
-    expect(isExportEntry("apple_health_export/Export.xml")).toBe(true);
+/**
+ * File, dessen stream() nicht der Laufzeit überlassen wird, sondern gezielt
+ * in `chunkSize`-Byte-Häppchen liefert — bei chunkSize 1 wird garantiert jedes
+ * Mehrbyte-UTF-8-Zeichen über zwei `reader.read()`-Aufrufe zerschnitten.
+ */
+function fileWithChunkedStream(bytes: Uint8Array, name: string, chunkSize: number): File {
+  // new Uint8Array(bytes) statt bytes direkt: TS 5.7+ generic Uint8Array<ArrayBufferLike>
+  // (via @types/node) ist nicht direkt BlobPart-kompatibel (erwartet ArrayBuffer, nicht
+  // ArrayBufferLike/SharedArrayBuffer) — die Kopie liefert einen konkreten ArrayBuffer.
+  const file = new File([new Uint8Array(bytes)], name);
+  Object.defineProperty(file, "stream", { value: () => chunkedByteStream(bytes, chunkSize) });
+  return file;
+}
+
+describe("isExportEntry", () => {
+  it("erkennt Export.xml in jedem Unterordner, ohne node:path", () => {
     expect(isExportEntry("Export.xml")).toBe(true);
-    expect(isExportEntry("apple_health_export/workout-routes/route.gpx")).toBe(false);
+    expect(isExportEntry("apple_health_export/Export.xml")).toBe(true);
+    expect(isExportEntry("a/b/c/Export.xml")).toBe(true);
+    expect(isExportEntry("apple_health_export/export.xml")).toBe(false);
+    expect(isExportEntry("workout-routes/route.gpx")).toBe(false);
+    expect(isExportEntry("NotExport.xml")).toBe(false);
   });
 });
 
-describe("readZip via openImportSource", () => {
-  let dir: string;
-
-  afterEach(() => {
-    if (dir) { try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } }
+describe("openImportSource", () => {
+  it("liest eine plain .xml über den File-Stream", async () => {
+    const file = new File([XML], "Export.xml", { type: "text/xml" });
+    expect(await collect(openImportSource(file))).toBe(XML);
   });
 
-  it("lehnt ein Zip ohne Export.xml-Eintrag ab, statt zu hängen", async () => {
-    dir = mkdtempSync(join(tmpdir(), "ah-"));
-    const zipPath = join(dir, "bad.zip");
-    writeFileSync(zipPath, zipSync({ "apple_health_export/other.txt": strToU8("nope") }));
-
-    await expect((async () => {
-      for await (const _chunk of openImportSource(zipPath)) {
-        /* drain */
-      }
-    })()).rejects.toThrow(/Export\.xml/);
+  it("entpackt Export.xml aus einer .zip und ignoriert andere Einträge", async () => {
+    const zipped = zipSync({
+      "apple_health_export/Export.xml": strToU8(XML),
+      "apple_health_export/workout-routes/route.gpx": strToU8("<gpx/>"),
+    });
+    const file = new File([zipped], "export.zip", { type: "application/zip" });
+    expect(await collect(openImportSource(file))).toBe(XML);
   });
 
-  it("dekodiert eine Export.xml aus dem Zip zum Original-String", async () => {
-    dir = mkdtempSync(join(tmpdir(), "ah-"));
-    const zipPath = join(dir, "good.zip");
-    const xml = "<HealthData><Record type=\"T\" startDate=\"2022-11-25 08:00:00 +0200\"/></HealthData>";
-    writeFileSync(zipPath, zipSync({ "apple_health_export/Export.xml": strToU8(xml) }));
+  it("meldet eine Zip ohne Export.xml als Fehler", async () => {
+    const zipped = zipSync({ "readme.txt": strToU8("nichts hier") });
+    const file = new File([zipped], "export.zip");
+    await expect(collect(openImportSource(file))).rejects.toThrow(/Export\.xml/);
+  });
 
-    let out = "";
-    for await (const chunk of openImportSource(zipPath)) out += chunk;
-    expect(out).toBe(xml);
+  it("dekodiert UTF-8 korrekt über Chunk-Grenzen hinweg", async () => {
+    // Mehrbyte-Zeichen (2/3/4-Byte-UTF-8), die bei 1-Byte-Chunks garantiert
+    // mitten im Zeichen geschnitten werden. file.stream() liefert diese
+    // kleine XML sonst als einzelnen Chunk aus — daher die erzwungene Chunkung.
+    const xml = `<HealthData><Record device="Größenmessgerät äöü 中文 🎉" /></HealthData>`;
+    const bytes = new TextEncoder().encode(xml);
+    const file = fileWithChunkedStream(bytes, "Export.xml", 1);
+    expect(await collect(openImportSource(file))).toBe(xml);
+  });
+
+  it("dekodiert UTF-8 in der Zip korrekt über Chunk-Grenzen hinweg", async () => {
+    // Gleiche Erzwingung wie oben, aber auf den komprimierten Bytes: 1-Byte-
+    // Häppchen an unzip.push() lassen fflates Inflate die Ausgabe ebenfalls in
+    // winzigen (teils 1-Byte-)Stücken an entry.ondata liefern, was Mehrbyte-
+    // Zeichen über zwei ondata-Aufrufe zerschneidet.
+    const xml = `<HealthData><Record device="Größenmessgerät äöü 中文 🎉" /></HealthData>`;
+    const zipped = zipSync({ "Export.xml": strToU8(xml) });
+    const file = fileWithChunkedStream(zipped, "export.zip", 1);
+    expect(await collect(openImportSource(file))).toBe(xml);
   });
 });

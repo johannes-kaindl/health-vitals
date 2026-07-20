@@ -2,6 +2,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { createCodebergRelease } from "./codeberg-release.mjs";
 
+// Minimaler Fake einer fetch-init: nur das genutzte Feld, statt `any` (das würde unter
+// type-checked Linting @typescript-eslint/no-unsafe-member-access auf jedem `.method`
+// auslösen — `Pick<RequestInit, "method">` ist genauso knapp und bleibt typsicher.
+type FakeInit = Pick<RequestInit, "method">;
+
 // Minimaler Fake einer fetch-Response.
 function res(ok: boolean, body: unknown = {}, status = ok ? 200 : 404) {
   return {
@@ -15,7 +20,7 @@ function res(ok: boolean, body: unknown = {}, status = ok ? 200 : 404) {
 describe("createCodebergRelease", () => {
   it("legt ein Release an, wenn keins existiert, und lädt Assets hoch", async () => {
     const calls: { url: string; method: string }[] = [];
-    const fetch = vi.fn(async (url: string, init: any = {}) => {
+    const fetch = vi.fn(async (url: string, init: FakeInit = {}) => {
       calls.push({ url, method: init.method ?? "GET" });
       if (url.endsWith("/repos/o/r") && init.method === "PATCH") return res(true);
       if (url.includes("/releases/tags/")) return res(false); // existiert nicht
@@ -36,7 +41,7 @@ describe("createCodebergRelease", () => {
 
   it("nutzt ein bestehendes Release und überschreibt ein gleichnamiges Asset (clobber)", async () => {
     const deletes: string[] = [];
-    const fetch = vi.fn(async (url: string, init: any = {}) => {
+    const fetch = vi.fn(async (url: string, init: FakeInit = {}) => {
       if (url.endsWith("/repos/o/r") && init.method === "PATCH") return res(true);
       if (url.includes("/releases/tags/")) return res(true, { id: 9, html_url: "h2", assets: [{ id: 5, name: "main.js" }] });
       if (init.method === "DELETE") { deletes.push(url); return res(true); }
@@ -54,7 +59,7 @@ describe("createCodebergRelease", () => {
   });
 
   it("wirft, wenn das Anlegen fehlschlägt", async () => {
-    const fetch = vi.fn(async (url: string, init: any = {}) => {
+    const fetch = vi.fn(async (url: string, init: FakeInit = {}) => {
       if (url.endsWith("/repos/o/r") && init.method === "PATCH") return res(true);
       if (url.includes("/releases/tags/")) return res(false);
       if (url.endsWith("/releases") && init.method === "POST") return res(false, "boom", 500);

@@ -1,5 +1,8 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type { HealthCache } from "../core/types";
+import { IDLE, type ImportState } from "../core/import-state";
+import type { ImportController } from "./import-controller";
+import { renderImport } from "./tabs/import";
 import { renderOverview } from "./tabs/overview";
 import { renderDetail, type DetailState } from "./tabs/detail";
 import { renderWorkouts } from "./tabs/workouts";
@@ -10,7 +13,8 @@ export interface DashboardHost {
   loadCache(): Promise<HealthCache | null>;
   getFavorites(): string[];
   toggleFavorite(id: string): Promise<void>;
-  runImport(): void;
+  createImportController(onState: (s: ImportState) => void): ImportController;
+  pickExport(): Promise<File | null>;
 }
 
 export type TabId = "overview" | "detail" | "workouts";
@@ -31,6 +35,8 @@ export class DashboardView extends ItemView {
   // Re-Render (z.B. nach Favoriten-Toggle) überlebt (Mount-once-Invariante).
   private expandedCats = new Set<string>();
   private overviewSeeded = false;
+  private importState: ImportState = IDLE;
+  private importCtrl: ImportController | null = null;
 
   constructor(leaf: WorkspaceLeaf, host: DashboardHost) {
     super(leaf);
@@ -61,11 +67,17 @@ export class DashboardView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.cache = await this.host.loadCache();
+    this.renderRoot();
+  }
+
+  private renderRoot(): void {
     const root = this.contentEl;
     root.empty();
     root.addClass("ah-dashboard");
+    this.panels.clear();
+    this.tabButtons.clear();
 
-    if (!this.cache) { this.renderEmptyState(root); return; }
+    if (!this.cache) { this.renderImportScreen(root); return; }
 
     const head = root.createDiv({ cls: "ah-tabbar" });
     for (const t of TABS) {
@@ -88,11 +100,51 @@ export class DashboardView extends ItemView {
     this.renderActive();
   }
 
-  private renderEmptyState(root: HTMLElement): void {
-    const box = root.createDiv({ cls: "ah-empty" });
-    box.createEl("h3", { text: "Noch kein Import" });
-    box.createEl("p", { text: "Es wurde noch keine health-cache.json gefunden. Führe zuerst den Import aus." });
-    new ButtonComponent(box).setButtonText("Import ausführen").setCta().onClick(() => this.host.runImport());
+  private renderImportScreen(root: HTMLElement): void {
+    const host = root.createDiv({ cls: "ah-import-host" });
+    renderImport(host, this.importState, {
+      choose: () => { void this.startImport(); },
+      abort: () => { this.importCtrl?.abort(); },
+    });
+  }
+
+  private async startImport(): Promise<void> {
+    const file = await this.host.pickExport();
+    if (!file) return; // Nutzer hat den Dialog geschlossen
+
+    // `ctrl` wird in der Closure statt `this.importCtrl` verglichen: Ein abgebrochener
+    // (oder sonst noch laufender) vorheriger Controller kann nach dem Start eines neuen
+    // Imports noch einen letzten Zustand emittieren (z.B. das finale "aborted" aus
+    // seinem catch-Block). Ohne diesen Wächter würde dieser verspätete Callback den
+    // bereits laufenden neuen Import-Zustand überschreiben.
+    const ctrl: ImportController = this.host.createImportController((state) => {
+      if (ctrl !== this.importCtrl) return;
+      this.importState = state;
+      // Während des Laufs nur den Import-Screen neu zeichnen, nicht das ganze Root.
+      // Kein Re-Render-Throttle hier, bewusst: `onProgress` (pipeline.ts) feuert jetzt
+      // im Zeittakt von yieldToUi (~4x/s), statt wie zuvor an 250k-Record-Meilensteinen
+      // (PROGRESS_EVERY, ersatzlos gestrichen). renderImport() baut dabei nur die
+      // fünf Elemente von ".ah-import-host" neu auf (el.empty() + rebuild), nicht das
+      // gesamte Dashboard-Root — vier solche Rebuilds pro Sekunde sind unproblematisch.
+      // Sollte die Update-Frequenz künftig steigen (kleineres yieldEveryMs) oder der
+      // Import-Screen wachsen, ist ein Throttle hier der richtige nächste Schritt.
+      const hostEl = this.contentEl.querySelector<HTMLElement>(".ah-import-host");
+      if (hostEl) {
+        renderImport(hostEl, state, {
+          choose: () => { void this.startImport(); },
+          abort: () => { this.importCtrl?.abort(); },
+        });
+      }
+    });
+    this.importCtrl = ctrl;
+
+    await this.importCtrl.start(file);
+
+    if (this.importState.status === "done") {
+      this.cache = await this.host.loadCache();
+      this.active = "overview";
+      this.renderRoot();
+    }
   }
 
   private switchTab(id: TabId): void {
@@ -116,5 +168,12 @@ export class DashboardView extends ItemView {
     }
   }
 
-  async onClose(): Promise<void> { this.contentEl.empty(); }
+  async onClose(): Promise<void> {
+    // Ohne das würde ein laufender Import gegen ein losgelöstes DOM weiterparsen.
+    // Bei einem Wiedereröffnen der View sähe der Nutzer wieder den leeren Import-Screen
+    // (der neue View-Instanz liest den Cache, den der erste Lauf noch nicht geschrieben
+    // hat) und könnte einen zweiten, parallelen Import auf denselben Cache-Pfad starten.
+    this.importCtrl?.abort();
+    this.contentEl.empty();
+  }
 }

@@ -5,7 +5,8 @@ main.js.map
 data.json
 # Geparster Cache — personenbezogen, lazy geladen, NIE committen
 health-cache.json
-# Import-Daten — personenbezogene Gesundheitsdaten, NIE committen
+# Legacy: alter Import-Ordner (Workflow existiert nicht mehr), aber lokal können
+# noch Reste liegen — Sicherheitsnetz gegen versehentliches Commit personenbezogener Daten.
 import/
 # styles.css bleibt TRACKED (Release-Asset)
 node_modules/
