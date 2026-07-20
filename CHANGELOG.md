@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-20
+
 ### Added
 
 - First public release. Import your Apple Health export and explore it inside
