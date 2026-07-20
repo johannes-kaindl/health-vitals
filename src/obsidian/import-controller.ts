@@ -47,10 +47,21 @@ export class ImportController {
           },
           // Gibt den Renderer periodisch frei, damit Fortschritt sichtbar bleibt
           // und der Abbrechen-Button überhaupt Klicks verarbeiten kann.
+          // `activeWindow` ist im node-Testenvironment undefiniert (Obsidian-Global,
+          // kein DOM-Standard) — ein Test, der diesen Zweig erreicht (Fixture groß
+          // genug für > yieldEveryMs), braucht einen `activeWindow`-Alias aus einer
+          // vitest-Setup-Datei. Ohne die bricht er mit "activeWindow is not defined"
+          // ab statt mit einer aussagekräftigen Assertion.
           yieldToUi: () => new Promise<void>((r) => { activeWindow.setTimeout(r, 0); }),
         },
       );
 
+      // aggregateStream prüft `signal.aborted` selbst nach der Schleife und wirft in
+      // dem Fall ImportAbortedError, statt normal zurückzukehren (siehe pipeline.ts) —
+      // dieser Guard ist über den echten Code-Pfad heute daher unerreichbar. Er bleibt
+      // als Verteidigung gegen eine künftige Änderung an aggregateStream (z. B. ein
+      // await zwischen dem letzten Signal-Check und dem return), die diesen Fall doch
+      // erreichbar machen würde. Bewusst nicht entfernt.
       if (signal.aborted) return;
       this.emit(phaseChanged(this.current, "writing"));
       await this.host.writeCache(cache);

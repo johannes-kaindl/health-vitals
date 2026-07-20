@@ -10,6 +10,32 @@ function hostSpy(): ImportControllerHost & { written: HealthCache[] } {
   return { written, writeCache: (c) => { written.push(c); return Promise.resolve(); } };
 }
 
+/**
+ * File, dessen stream() hängt, bis `failNow()` aufgerufen wird — dann scheitert
+ * der Stream mit einem echten (Nicht-Abbruch-)Fehler. Simuliert den Folgefehler,
+ * den ein Stream-Teardown nach einem Abbruch typischerweise noch wirft. `pulled`
+ * löst erst auf, wenn reader.read() tatsächlich hängt, damit der Test abort()
+ * nicht vor dem ersten Lesezugriff auslöst (siehe health-source.test.ts für die
+ * gleiche File-mit-kontrolliertem-stream()-Technik).
+ */
+function fileWithStreamThatFailsOnDemand(
+  name: string,
+): { file: File; pulled: Promise<void>; failNow: (e: Error) => void } {
+  let ctrl!: ReadableStreamDefaultController<Uint8Array>;
+  let markPulled!: () => void;
+  const pulled = new Promise<void>((resolve) => { markPulled = resolve; });
+  const stream = new ReadableStream<Uint8Array>({
+    start(c) { ctrl = c; },
+    pull() {
+      markPulled();
+      return new Promise<void>(() => {}); // hängt, bis failNow() den Stream fehlschlagen lässt
+    },
+  });
+  const file = new File([], name);
+  Object.defineProperty(file, "stream", { value: () => stream });
+  return { file, pulled, failNow: (e) => ctrl.error(e) };
+}
+
 describe("ImportController", () => {
   it("läuft durch, schreibt den Cache und endet in done", async () => {
     const host = hostSpy();
@@ -31,6 +57,21 @@ describe("ImportController", () => {
     // Sofort abbrechen: start() prüft das Signal, bevor der Stream läuft.
     const running = ctrl.start(new File([XML], "Export.xml"));
     ctrl.abort();
+    await running;
+
+    expect(ctrl.state).toEqual({ status: "aborted" });
+    expect(host.written).toHaveLength(0);
+  });
+
+  it("überschreibt aborted nicht mit failed, wenn der Stream-Teardown nach dem Abbruch noch einen echten Fehler wirft", async () => {
+    const host = hostSpy();
+    const ctrl = new ImportController(host, () => {});
+    const { file, pulled, failNow } = fileWithStreamThatFailsOnDemand("Export.xml");
+
+    const running = ctrl.start(file);
+    await pulled; // reader.read() hängt jetzt tatsächlich
+    ctrl.abort();
+    failNow(new Error("Stream während Abbruch zerstört"));
     await running;
 
     expect(ctrl.state).toEqual({ status: "aborted" });
