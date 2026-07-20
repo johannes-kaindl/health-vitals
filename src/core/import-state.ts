@@ -1,0 +1,40 @@
+/** Phasen eines Import-Laufs. `unzipping` entfällt bei einer direkt gewählten .xml. */
+export type ImportPhase = "unzipping" | "parsing" | "writing";
+
+export type ImportState =
+  | { status: "idle" }
+  | { status: "running"; phase: ImportPhase; records: number; fileName: string }
+  | { status: "done"; records: number }
+  | { status: "aborted" }
+  | { status: "failed"; message: string };
+
+export const IDLE: ImportState = { status: "idle" };
+
+export function started(fileName: string): ImportState {
+  return { status: "running", phase: "unzipping", records: 0, fileName };
+}
+
+export function progressed(prev: ImportState, records: number): ImportState {
+  return prev.status === "running" ? { ...prev, records } : prev;
+}
+
+export function phaseChanged(prev: ImportState, phase: ImportPhase): ImportState {
+  return prev.status === "running" ? { ...prev, phase } : prev;
+}
+
+export function finished(records: number): ImportState {
+  return { status: "done", records };
+}
+
+export function aborted(prev: ImportState): ImportState {
+  return prev.status === "running" ? { status: "aborted" } : prev;
+}
+
+/**
+ * Ein Abbruch reißt den Stream ab und erzeugt dabei fast immer noch einen Folgefehler.
+ * Der darf den Abbruch nicht überschreiben, sonst meldet die UI ein Scheitern, wo der
+ * Nutzer selbst gestoppt hat.
+ */
+export function failed(prev: ImportState, message: string): ImportState {
+  return prev.status === "aborted" ? prev : { status: "failed", message };
+}
