@@ -64,7 +64,15 @@ export default tseslint.config(
     // Typinfo, nur den Syntaxbaum).
     files: ["manifest.json"],
     languageOptions: { parser: tseslint.parser },
-    rules: { "obsidianmd/validate-manifest": "warn" },
+    // "error", nicht "warn": Beide Regeln feuern ausschliesslich auf echte Store-
+    // Submission-Blocker (siehe validateManifest.js) - eine Warnung, bei der
+    // `npm run lint` trotzdem mit Exit-Code 0 durchlaeuft, reproduziert genau das
+    // Problem, das Task 9 beheben sollte (ein Store-Blocker erreichte den Obsidian-Bot
+    // ungesehen). Verifiziert per absichtlich kaputtem manifest.json: mit "warn" lief
+    // `npm run lint` trotz 4 Verstoessen (fehlendes minAppVersion, fehlendes author,
+    // "obsidian" im name, fehlender Punkt am Ende der description) mit Exit-Code 0
+    // durch; mit "error" bricht derselbe Lauf mit Exit-Code 1 ab.
+    rules: { "obsidianmd/validate-manifest": "error" },
   },
   {
     // validate-license braucht Zeilen-Tokens (AST_TOKEN_TYPES.Line) ueber die komplette
@@ -74,7 +82,8 @@ export default tseslint.config(
       parser: PlainTextParser,
       parserOptions: { extraFileExtensions: [""] },
     },
-    rules: { "obsidianmd/validate-license": "warn" },
+    // "error" aus demselben Grund wie bei validate-manifest oben.
+    rules: { "obsidianmd/validate-license": "error" },
   },
   {
     files: ["src/**/*.ts"],
