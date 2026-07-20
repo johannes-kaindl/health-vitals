@@ -56,7 +56,7 @@ function renderTile(grid: HTMLElement, t: TileVM, _cache: HealthCache, view: Das
     ev.stopPropagation();
     void view.host.toggleFavorite(t.id)
       .then(() => view.refreshOverview())
-      .catch((e) => console.error("Apple Health: Favorit speichern fehlgeschlagen", e));
+      .catch((e) => console.error("Health Vitals: Favorit speichern fehlgeschlagen", e));
   });
 
   tile.createDiv({ cls: "ah-tile-value", text: t.valueText });

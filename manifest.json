@@ -1,6 +1,6 @@
 {
-  "id": "apple-health",
-  "name": "Apple Health",
+  "id": "health-vitals",
+  "name": "Health Vitals",
   "version": "0.1.0",
   "minAppVersion": "1.8.0",
   "description": "Import Apple Health exports and explore your health data in charts and tables.",

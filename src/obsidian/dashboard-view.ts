@@ -44,7 +44,7 @@ export class DashboardView extends ItemView {
   }
 
   getViewType(): string { return VIEW_TYPE_DASHBOARD; }
-  getDisplayText(): string { return "Apple Health"; }
+  getDisplayText(): string { return "Health Vitals"; }
   getIcon(): string { return "heart-pulse"; }
 
   openDetail(metricId: string): void {

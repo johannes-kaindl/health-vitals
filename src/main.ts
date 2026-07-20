@@ -23,7 +23,7 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
       name: "Dashboard öffnen",
       callback: () => { void this.activateView(); },
     });
-    this.addRibbonIcon("heart-pulse", "Apple Health Dashboard", () => { void this.activateView(); });
+    this.addRibbonIcon("heart-pulse", "Health Vitals Dashboard", () => { void this.activateView(); });
   }
 
   onunload(): void {}
