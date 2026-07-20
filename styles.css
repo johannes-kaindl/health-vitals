@@ -46,3 +46,18 @@
 .ah-workout-date, .ah-workout-dur { color: var(--text-muted); }
 
 .ah-empty { text-align: center; padding: var(--size-4-6); color: var(--text-muted); }
+
+/* --- Import-Screen ---------------------------------------------------- */
+.ah-import .ah-import-file {
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+}
+.ah-import .ah-import-phase { color: var(--text-muted); }
+.ah-import .ah-import-count {
+  font-size: var(--font-ui-large);
+  font-variant-numeric: tabular-nums;
+}
+.ah-import .ah-import-error {
+  color: var(--text-error);
+  max-width: 40em;
+}
