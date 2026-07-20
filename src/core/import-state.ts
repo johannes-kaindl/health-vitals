@@ -10,8 +10,8 @@ export type ImportState =
 
 export const IDLE: ImportState = { status: "idle" };
 
-export function started(fileName: string): ImportState {
-  return { status: "running", phase: "unzipping", records: 0, fileName };
+export function started(fileName: string, phase: ImportPhase): ImportState {
+  return { status: "running", phase, records: 0, fileName };
 }
 
 export function progressed(prev: ImportState, records: number): ImportState {

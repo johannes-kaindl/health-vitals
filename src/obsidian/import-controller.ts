@@ -42,7 +42,9 @@ export class ImportController {
   async start(file: File): Promise<void> {
     this.controller = new AbortController();
     const signal = this.controller.signal;
-    this.emit(started(file.name));
+    // Nur eine direkt gewählte .zip durchläuft eine Entpack-Phase — eine .xml geht
+    // sofort ins Parsen (siehe Spec: "phase ist eine von drei: unzipping (nur bei .zip)").
+    this.emit(started(file.name, file.name.endsWith(".zip") ? "unzipping" : "parsing"));
 
     // Bricht der Nutzer ab, muss die UI das sofort sehen — nicht erst, wenn der
     // Stream den nächsten Chunk erreicht.

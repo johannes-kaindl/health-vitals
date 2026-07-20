@@ -51,6 +51,19 @@ describe("ImportController", () => {
     expect(states.at(-1)).toEqual({ status: "done", records: 1 });
   });
 
+  // Eine direkt gewählte .xml durchläuft nie eine Entpack-Phase — der erste emittierte
+  // Zustand muss daher sofort "parsing" sein, nicht das für .zip geltende "unzipping"
+  // (siehe Spec: "phase ist eine von drei: unzipping (nur bei .zip)").
+  it("startet eine .xml direkt in der Phase parsing, nicht unzipping", async () => {
+    const host = hostSpy();
+    const states: ImportState[] = [];
+    const ctrl = new ImportController(host, (s) => states.push(s));
+
+    await ctrl.start(new File([XML], "Export.xml"));
+
+    expect(states[0]).toMatchObject({ status: "running", phase: "parsing" });
+  });
+
   it("schreibt keinen Cache, wenn abgebrochen wurde", async () => {
     const host = hostSpy();
     const ctrl = new ImportController(host, () => {});
