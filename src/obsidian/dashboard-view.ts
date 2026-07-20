@@ -112,9 +112,22 @@ export class DashboardView extends ItemView {
     const file = await this.host.pickExport();
     if (!file) return; // Nutzer hat den Dialog geschlossen
 
-    this.importCtrl = this.host.createImportController((state) => {
+    // `ctrl` wird in der Closure statt `this.importCtrl` verglichen: Ein abgebrochener
+    // (oder sonst noch laufender) vorheriger Controller kann nach dem Start eines neuen
+    // Imports noch einen letzten Zustand emittieren (z.B. das finale "aborted" aus
+    // seinem catch-Block). Ohne diesen Wächter würde dieser verspätete Callback den
+    // bereits laufenden neuen Import-Zustand überschreiben.
+    const ctrl: ImportController = this.host.createImportController((state) => {
+      if (ctrl !== this.importCtrl) return;
       this.importState = state;
       // Während des Laufs nur den Import-Screen neu zeichnen, nicht das ganze Root.
+      // Kein Re-Render-Throttle hier, bewusst: `onProgress` (pipeline.ts) feuert jetzt
+      // im Zeittakt von yieldToUi (~4x/s), statt wie zuvor an 250k-Record-Meilensteinen
+      // (PROGRESS_EVERY, ersatzlos gestrichen). renderImport() baut dabei nur die
+      // fünf Elemente von ".ah-import-host" neu auf (el.empty() + rebuild), nicht das
+      // gesamte Dashboard-Root — vier solche Rebuilds pro Sekunde sind unproblematisch.
+      // Sollte die Update-Frequenz künftig steigen (kleineres yieldEveryMs) oder der
+      // Import-Screen wachsen, ist ein Throttle hier der richtige nächste Schritt.
       const hostEl = this.contentEl.querySelector<HTMLElement>(".ah-import-host");
       if (hostEl) {
         renderImport(hostEl, state, {
@@ -123,6 +136,7 @@ export class DashboardView extends ItemView {
         });
       }
     });
+    this.importCtrl = ctrl;
 
     await this.importCtrl.start(file);
 
@@ -154,5 +168,12 @@ export class DashboardView extends ItemView {
     }
   }
 
-  async onClose(): Promise<void> { this.contentEl.empty(); }
+  async onClose(): Promise<void> {
+    // Ohne das würde ein laufender Import gegen ein losgelöstes DOM weiterparsen.
+    // Bei einem Wiedereröffnen der View sähe der Nutzer wieder den leeren Import-Screen
+    // (der neue View-Instanz liest den Cache, den der erste Lauf noch nicht geschrieben
+    // hat) und könnte einen zweiten, parallelen Import auf denselben Cache-Pfad starten.
+    this.importCtrl?.abort();
+    this.contentEl.empty();
+  }
 }

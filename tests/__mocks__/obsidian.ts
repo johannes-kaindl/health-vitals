@@ -24,6 +24,22 @@ function makeEl(): any {
     addEventListener() {},
     removeEventListener() {},
     instanceOf(_type: any) { return true; }, // template stub: permissive so guards pass; refine per plugin
+    // Minimal: unterstuetzt nur einfache ".classname"-Selektoren (Klassenname per
+    // `cls`-String, ggf. mit mehreren Leerzeichen-getrennten Klassen), rekursiv ueber
+    // die Kinder. Reicht fuer die einzigen Aufrufer im Plugin (dashboard-view.ts sucht
+    // ".ah-import-host").
+    querySelector(sel: string): any {
+      const want = sel.startsWith(".") ? sel.slice(1) : sel;
+      const search = (node: any): any => {
+        for (const child of node.children) {
+          if (typeof child.cls === "string" && child.cls.split(/\s+/).includes(want)) return child;
+          const found = search(child);
+          if (found) return found;
+        }
+        return null;
+      };
+      return search(el);
+    },
     createSvg(tag: string, o?: any) {
       const child = makeEl();
       child.tag = tag;
