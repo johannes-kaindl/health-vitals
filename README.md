@@ -18,17 +18,26 @@ nur kompakte Tages-Aggregate ab — der Cache aus 5,7 Mio Records ist ~2,7 MB.
 
 1. In der **Health-App** (iPhone): Profil → *Alle Gesundheitsdaten exportieren*
    → die entstehende `Export.zip` auf den Rechner bringen.
-2. Die `.zip` (oder eine entpackte `Export.xml`) in den Ordner `import/` **im
-   Plugin-Verzeichnis** legen:
-   `<vault>/.obsidian/plugins/apple-health/import/`
-3. In Obsidian: Command-Palette → **„Apple Health: Import ausführen"**.
+2. In Obsidian: Ribbon-Icon **Apple Health Dashboard** (oder Command-Palette →
+   **„Apple Health: Dashboard öffnen"**).
+3. Im Dashboard **„Export auswählen"** klicken und die `Export.zip` (oder eine
+   entpackte `Export.xml`) im Dateidialog wählen.
 
-Der Lauf dauert bei großen Exports einige Minuten und meldet den Fortschritt per
-Notice. Am Ende steht eine Zusammenfassung (Records, Metriken, Workouts,
-Zeitraum), die bis zum Klick stehen bleibt.
+Der Lauf dauert bei großen Exports einige Minuten. Fortschritt, Phase und ein
+Abbrechen-Button stehen währenddessen im Dashboard; danach öffnet sich die
+Übersicht automatisch.
 
 Ergebnis ist `health-cache.json` im Plugin-Verzeichnis: Tages-Aggregate je
 Metrik plus eine Workout-Liste.
+
+### Zugriff außerhalb des Vaults
+
+Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
+den du im Dateidialog auswählst. Das ist nötig, weil ein Apple-Health-Export
+mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Es wird
+ausschließlich die von dir gewählte Datei gelesen — nichts wird geschrieben,
+verschoben oder irgendwohin gesendet. Die ausgewerteten Daten bleiben als
+`health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
 
 ## Dashboard
 
@@ -100,5 +109,6 @@ Obsidian-Schicht brauchen zusätzlich einen manuellen Test in echtem Obsidian.
 
 ## Lizenz
 
-AGPL-3.0-or-later (siehe `license`-Feld in `package.json`; eine `LICENSE`-Datei
-fehlt bislang und sollte noch ergänzt werden).
+Copyright © 2026 Johannes Kaindl
+
+Lizenziert unter der [GNU AGPL v3.0 oder später](LICENSE).

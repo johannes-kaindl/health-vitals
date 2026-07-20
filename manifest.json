@@ -3,9 +3,8 @@
   "name": "Apple Health",
   "version": "0.1.0",
   "minAppVersion": "1.8.0",
-  "description": "Parse Apple Health XML exports for querying and visualization in Obsidian",
+  "description": "Import Apple Health exports and explore your health data in charts and tables.",
   "author": "Johannes Kaindl",
   "authorUrl": "https://jkaindl.de",
-  "fundingUrl": "",
   "isDesktopOnly": true
 }
