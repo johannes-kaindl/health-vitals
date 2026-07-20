@@ -24,8 +24,6 @@ export interface AggregateOptions {
   yieldEveryMs?: number;
 }
 
-const PROGRESS_EVERY = 250_000;
-
 export async function aggregateStream(
   chunks: AsyncIterable<string> | Iterable<string>,
   meta: AggregateMeta,
@@ -41,10 +39,7 @@ export async function aggregateStream(
     const e = eventFromTag(tag);
     if (!e) return;
     agg.add(e);
-    if (e.kind === "record") {
-      seen++;
-      if (onProgress && seen % PROGRESS_EVERY === 0) onProgress(seen);
-    }
+    if (e.kind === "record") seen++;
   };
 
   if (signal?.aborted) throw new ImportAbortedError();
@@ -53,8 +48,17 @@ export async function aggregateStream(
     if (signal?.aborted) throw new ImportAbortedError();
     tok.feed(chunk, handle);
 
+    // Ein Update pro Yield-Runde (~4/s bei yieldEveryMs=250) statt der früheren
+    // 250k-Record-Meilensteine: In einer Live-Anzeige ist eine 10+ Sekunden
+    // eingefrorene Zahl auf einer langsamen Maschine nicht von einem hängenden
+    // Renderer zu unterscheiden — genau das, was die Live-Anzeige verhindern soll.
+    // Ein zusätzlicher record-basierter Meilenstein daneben würde dieses Problem für
+    // den einzigen echten Aufrufer (ImportController, der onProgress und yieldToUi
+    // immer zusammen setzt) nicht lösen und nur zwei konkurrierende Update-Quellen
+    // schaffen — deshalb ersatzlos gestrichen statt parallel weitergeführt.
     if (yieldToUi && Date.now() - lastYield >= yieldEveryMs) {
       lastYield = Date.now();
+      onProgress?.(seen);
       await yieldToUi();
       if (signal?.aborted) throw new ImportAbortedError();
     }

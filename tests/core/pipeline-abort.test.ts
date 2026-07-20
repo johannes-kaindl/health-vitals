@@ -93,6 +93,45 @@ describe("aggregateStream — Abbruch", () => {
     expect(yields).toBeLessThan(CHUNK_COUNT);
   });
 
+  // Regression für die alte 250k-Record-Schwelle: onProgress muss auf demselben
+  // Zeittakt wie yieldToUi feuern (~4x/s bei 250ms), nicht erst nach hunderttausenden
+  // Records — sonst friert die Live-Anzeige auf einer langsamen Maschine für
+  // mehrere Sekunden ein, was von einem hängenden Renderer nicht zu unterscheiden ist.
+  it("meldet Fortschritt im Zeittakt, nicht erst an Record-Meilensteinen", async () => {
+    const record = '<Record type="HKQuantityTypeIdentifierStepCount" '
+      + 'startDate="2026-07-01 08:00:00 +0200" value="100"/>';
+    const CHUNK_COUNT = 100;
+    const STEP_MS = 10;
+    const YIELD_EVERY_MS = 100;
+
+    let now = 0;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    async function* chunks(): AsyncIterable<string> {
+      for (let i = 0; i < CHUNK_COUNT; i++) {
+        now += STEP_MS;
+        yield record;
+      }
+    }
+
+    const progressCalls: number[] = [];
+    try {
+      await aggregateStream(chunks(), META, {
+        onProgress: (records) => { progressCalls.push(records); },
+        yieldToUi: () => Promise.resolve(),
+        yieldEveryMs: YIELD_EVERY_MS,
+      });
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    // 100 Chunks à 10ms Schritt, 100ms Schwelle → 10 Zeit-Fenster, weit unter den
+    // 250 000 Records, die die alte Meilenstein-Logik gefordert hätte (hier: nur 100
+    // Records insgesamt — mit der alten Logik also 0 Aufrufe).
+    expect(progressCalls.length).toBe(10);
+    expect(progressCalls.length).toBeGreaterThan(0);
+  });
+
   it("läuft ohne Optionen unverändert durch", async () => {
     const xml = '<HealthData><Record type="HKQuantityTypeIdentifierStepCount" '
       + 'startDate="2026-07-01 08:00:00 +0200" value="100"/></HealthData>';
