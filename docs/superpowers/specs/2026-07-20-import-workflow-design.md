@@ -56,8 +56,14 @@ durch den lokalen Lint-Lauf gemessen statt vermutet.
 
 ## Getroffene Entscheidungen (Brainstorming 2026-07-20)
 
-1. **i18n-Layer** statt Englisch-Umstellung oder Warning-Unterdrückung. Muss **vor** den neuen
-   Import-Texten liegen, sonst werden sie zweimal geschrieben.
+1. **i18n verschoben auf Slice 3b (nach der Einreichung).** Ursprünglich als kleiner additiver
+   Layer *vor* der Import-UX eingeplant — bei der Planung als Fehleinschätzung erkannt: Deutsch
+   steckt nicht nur in UI-Strings, sondern **strukturell im Kern** (35 Metriknamen, ~25
+   Workout-Typen, `type Category = "Aktivität" | …` und `RangeKey`-Wert `"1J"` sind
+   Typ-Identifier). Echtes i18n heißt ~60 Übersetzungen plus zwei Typ-Refactors quer durch den
+   Kern — der größere Teil des Slices, und laut Recherche **kein Einreichungs-Blocker**.
+   Daher: eigener Slice, eigener Plan, eigenes Review. Preis: die neuen Import-Strings werden
+   dort mitübersetzt.
 2. **Datei-Picker im Dashboard** als Einstieg — trifft den Erst-Start-Moment dort, wo der Nutzer
    ohnehin landet. Kein Kopieren, kein verstecktes Verzeichnis.
 3. **Fortschritt im Dashboard-Tab** (Zähler, Phase, Abbrechen) statt Notice-Stapel.
@@ -73,8 +79,6 @@ durch den lokalen Lint-Lauf gemessen statt vermutet.
 
 ### `src/core/` — rein, kein `obsidian`-Import, in Node testbar
 
-- **`strings.ts`** — `Record<Lang, Record<Key, string>>` für `de`/`en` plus `t(key, lang)`.
-  Locale wird von außen hereingereicht, nicht selbst ermittelt.
 - **`import-state.ts`** — Zustandsautomat des Imports:
   `idle → running(records, phase) → done(cache) | aborted | failed(error)`.
   `phase` ist eine von drei: `unzipping` (nur bei `.zip`), `parsing`, `writing`.
@@ -145,13 +149,12 @@ Entscheidung 3** und ist als solcher zu verbuchen, nicht wegzudiskutieren.
 4. **README-Disclosure** (Pflicht): ausdrücklich benennen, dass eine Datei außerhalb des Vaults
    gelesen wird und warum (ein 2,6-GB-Export gehört nicht in den Vault).
 5. Lint-Gate auf `manifest.json`/`LICENSE` ausweiten — `eslint src` läuft heute daran vorbei.
-   Config gegen `recommendedWithLocalesEn` prüfen, passend zum i18n-Modul.
+   Config bleibt bei `obsidianmd.configs.recommended`; die Variante `recommendedWithLocalesEn`
+   setzt ein Locale-Modul voraus und wird erst in Slice 3b relevant.
 6. Voller Lint-Lauf als Einreichungs-Beleg (derselbe Regelsatz wie der Bot).
 
 ## Tests
 
-- **`strings`** — Vollständigkeit: jeder Key existiert in `de` **und** `en`. Der Test, der i18n
-  davor bewahrt, still zu verrotten.
 - **`pipeline`** — Abbruch mitten im Stream wirft `ImportAbortedError`; kein Cache-Write danach.
 - **`import-state`** — alle Übergänge, inkl. „Fehler nach Abbruch wird ignoriert".
 - **`health-source`** — `openImportSource` gegen ein `File`-Double (zip und plain xml).
@@ -161,12 +164,16 @@ Entscheidung 3** und ist als solcher zu verbuchen, nicht wegzudiskutieren.
 
 ## Reihenfolge (verbindlich)
 
-**A (i18n) → B (Import-UX) → C (Store-Konformität).**
-A vor B, weil sonst jeder Import-, Fehler- und Fortschrittstext zweimal geschrieben wird.
-C ist unabhängig und überwiegend mechanisch.
+**B (Import-UX) → C (Store-Konformität).**
+C ist unabhängig und überwiegend mechanisch, gehört aber in denselben Slice, weil beides zusammen
+die Einreichung freigibt. Neue UI-Texte werden vorerst **deutsch** geschrieben, wie der Bestand.
 
 ## Out of Scope (Folge-Slices)
 
+- **i18n (Slice 3b, direkt nach der Einreichung):** `strings.ts` mit `de`/`en` + `t()`,
+  Übersetzung von `metric-catalog` (35) und `workout-catalog` (~25), Umstellung von
+  `type Category` und `RangeKey` `"1J"` auf sprachneutrale Identifier, `view-model`-Labels,
+  Locale-Ermittlung via `getLanguage()`. Vollständigkeitstest über beide Sprachtabellen.
 - Detail-Balken mit Wochenanfang-/Montags-Betonung, Achsen-Labels, Werte-Tabelle
   (Smoke-Feedback Slice 2) — nach der Einreichung.
 - Perf-Memoization der Übersicht; Stern-Kachel tastaturbedienbar (`role`/`tabindex`).
