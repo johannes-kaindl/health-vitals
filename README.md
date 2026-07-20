@@ -1,4 +1,4 @@
-# Apple Health
+# Health Vitals
 
 Obsidian-Plugin, das **Apple-Health-Exports** einliest und die Daten im Vault
 durchsuchbar und visualisierbar macht.
@@ -18,8 +18,8 @@ nur kompakte Tages-Aggregate ab — der Cache aus 5,7 Mio Records ist ~2,7 MB.
 
 1. In der **Health-App** (iPhone): Profil → *Alle Gesundheitsdaten exportieren*
    → die entstehende `Export.zip` auf den Rechner bringen.
-2. In Obsidian: Ribbon-Icon **Apple Health Dashboard** (oder Command-Palette →
-   **„Apple Health: Dashboard öffnen"**).
+2. In Obsidian: Ribbon-Icon **Health Vitals Dashboard** (oder Command-Palette →
+   **„Health Vitals: Dashboard öffnen"**).
 3. Im Dashboard **„Export auswählen"** klicken und die `Export.zip` (oder eine
    entpackte `Export.xml`) im Dateidialog wählen.
 
@@ -41,7 +41,7 @@ Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
 
 ## Dashboard
 
-Command-Palette → **„Apple Health: Dashboard öffnen"** (oder das Ribbon-Icon).
+Command-Palette → **„Health Vitals: Dashboard öffnen"** (oder das Ribbon-Icon).
 Das Dashboard lädt `health-cache.json` **lazy** beim Öffnen — der Vault-Start
 bleibt unbelastet. Drei Tabs:
 
@@ -113,4 +113,4 @@ Obsidian-Schicht brauchen zusätzlich einen manuellen Test in echtem Obsidian.
 
 Copyright © 2026 Johannes Kaindl
 
-Lizenziert unter der [GNU AGPL v3.0 oder später](LICENSE).
+Lizenziert unter der [GNU AGPL v3.0 oder später](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE).
