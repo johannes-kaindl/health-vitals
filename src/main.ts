@@ -1,4 +1,4 @@
-import { Notice, Plugin, WorkspaceLeaf, normalizePath } from "obsidian";
+import { Plugin, WorkspaceLeaf, normalizePath } from "obsidian";
 import type { HealthCache } from "./core/types";
 import type { ImportState } from "./core/import-state";
 import { ImportController } from "./obsidian/import-controller";
@@ -71,12 +71,11 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   }
 
   createImportController(onState: (s: ImportState) => void): ImportController {
-    return new ImportController(this, (state) => {
-      onState(state);
-      if (state.status === "failed") {
-        new Notice(`Apple Health: Import fehlgeschlagen — ${state.message}`, 0);
-      }
-    });
+    // Kein zusätzliches Notice bei "failed": Der Fehler erscheint bereits im
+    // Import-Screen selbst — die Spec verlangt ausdrücklich "nicht als wegklickbare
+    // Notice". Fix 3 (onClose bricht den Import ab) macht das frühere Argument, die
+    // View könnte beim Fehlschlag bereits geschlossen sein, weitgehend hinfällig.
+    return new ImportController(this, onState);
   }
 
   pickExport(): Promise<File | null> {
