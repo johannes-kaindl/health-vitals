@@ -22,8 +22,13 @@ export function phaseChanged(prev: ImportState, phase: ImportPhase): ImportState
   return prev.status === "running" ? { ...prev, phase } : prev;
 }
 
-export function finished(records: number): ImportState {
-  return { status: "done", records };
+/**
+ * Symmetrisch zu `failed()`: Ein Abbruch, der während des abschließenden Schreibens
+ * eintrifft, darf nicht nachträglich mit "done" überschrieben werden — sonst meldet
+ * die UI einen Erfolg, den der Nutzer bereits abgebrochen gesehen hat.
+ */
+export function finished(prev: ImportState, records: number): ImportState {
+  return prev.status === "aborted" ? prev : { status: "done", records };
 }
 
 export function aborted(prev: ImportState): ImportState {

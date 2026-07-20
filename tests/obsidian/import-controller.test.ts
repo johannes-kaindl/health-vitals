@@ -96,4 +96,51 @@ describe("ImportController", () => {
 
     expect(ctrl.state).toEqual({ status: "failed", message: "Platte voll" });
   });
+
+  /*
+   * Schreiben ist der Punkt ohne Umkehr: Der Cache ist zu diesem Zeitpunkt ein
+   * vollständiges, korrektes Ergebnis, das gerade auf die Platte fließt. Ein abort(),
+   * das währenddessen eintrifft, muss wirkungslos bleiben — sonst hätte man entweder
+   * einen verwaisten Cache auf der Platte, während die UI "abgebrochen" meldet, oder
+   * müsste eine gerade geschriebene Datei wieder löschen. Die beiden folgenden Tests
+   * pinnen das jeweils an einer eigenen Stelle: einmal den Endzustand nach Abschluss
+   * (Regression in `abort()` selbst), einmal den Zustand unmittelbar während des
+   * Schreibens (Regression, die den Abbruch doch synchron durchschlagen ließe).
+   */
+
+  it("verwirft einen abort(), der während des Schreibens eintrifft — der Import schließt korrekt mit done ab", async () => {
+    const host = hostSpy();
+    const realWrite = host.writeCache;
+    let ctrl!: ImportController;
+    host.writeCache = (c) => {
+      // Simuliert: Der Nutzer klickt "Abbrechen", während writeCache() bereits läuft.
+      ctrl.abort();
+      return realWrite(c);
+    };
+    const states: ImportState[] = [];
+    ctrl = new ImportController(host, (s) => states.push(s));
+
+    await ctrl.start(new File([XML], "Export.xml"));
+
+    expect(ctrl.state).toEqual({ status: "done", records: 1 });
+    expect(host.written).toHaveLength(1);
+    expect(states.some((s) => s.status === "aborted")).toBe(false);
+  });
+
+  it("abort() während des Schreibens kippt den Zustand nicht von running/writing weg", async () => {
+    const host = hostSpy();
+    let stateDuringWrite: ImportState | undefined;
+    let ctrl!: ImportController;
+    host.writeCache = (c) => {
+      ctrl.abort();
+      stateDuringWrite = ctrl.state;
+      return Promise.resolve().then(() => { host.written.push(c); });
+    };
+    ctrl = new ImportController(host, () => {});
+
+    await ctrl.start(new File([XML], "Export.xml"));
+
+    expect(stateDuringWrite?.status).toBe("running");
+    expect(stateDuringWrite).toMatchObject({ status: "running", phase: "writing" });
+  });
 });

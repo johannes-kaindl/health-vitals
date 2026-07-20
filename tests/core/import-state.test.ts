@@ -27,7 +27,7 @@ describe("import-state", () => {
   });
 
   it("schließt mit Erfolg, Abbruch oder Fehler ab", () => {
-    expect(finished(5_719_032)).toEqual({ status: "done", records: 5_719_032 });
+    expect(finished(started("Export.zip"), 5_719_032)).toEqual({ status: "done", records: 5_719_032 });
     expect(aborted(started("Export.zip"))).toEqual({ status: "aborted" });
     expect(failed(started("Export.zip"), "kaputt")).toEqual({ status: "failed", message: "kaputt" });
   });
@@ -42,5 +42,13 @@ describe("import-state", () => {
 
   it("bricht aus dem Leerlauf heraus nicht ab", () => {
     expect(aborted(IDLE)).toEqual(IDLE);
+  });
+
+  // Symmetrisch zu failed(): Wird während des abschließenden Schreibens abgebrochen,
+  // darf ein danach ankommendes finished() den Abbruch-Zustand nicht überschreiben —
+  // sonst meldet die UI einen Erfolg, den der Nutzer bereits abgebrochen gesehen hat.
+  it("lässt einen Erfolg nach dem Abbruch den Abbruch nicht überschreiben", () => {
+    const abortedState = aborted(started("Export.zip"));
+    expect(finished(abortedState, 5_719_032)).toEqual({ status: "aborted" });
   });
 });

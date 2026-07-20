@@ -25,7 +25,19 @@ export class ImportController {
 
   get state(): ImportState { return this.current; }
 
-  abort(): void { this.controller?.abort(); }
+  /**
+   * Schreiben ist der Punkt ohne Umkehr: Das Parsen ist abgeschlossen, der Cache ist
+   * ein vollständiges, korrektes Ergebnis, das gerade auf die Platte fließt — es gibt
+   * nichts Halbfertiges mehr zu verwerfen. Einen Abbruch hier zu akzeptieren würde
+   * entweder einen verwaisten Cache auf der Platte hinterlassen, während die UI
+   * "abgebrochen" meldet, oder erfordern, eine gerade geschriebene Datei wieder zu
+   * löschen. Der Abbruch wird daher verworfen — das hält Platten-Zustand und
+   * gemeldeten Zustand konsistent, und genau das ist es, was dem Nutzer wichtig ist.
+   */
+  abort(): void {
+    if (this.current.status === "running" && this.current.phase === "writing") return;
+    this.controller?.abort();
+  }
 
   async start(file: File): Promise<void> {
     this.controller = new AbortController();
@@ -65,7 +77,7 @@ export class ImportController {
       if (signal.aborted) return;
       this.emit(phaseChanged(this.current, "writing"));
       await this.host.writeCache(cache);
-      this.emit(finished(cache.recordCount));
+      this.emit(finished(this.current, cache.recordCount));
     } catch (e) {
       if (e instanceof ImportAbortedError || signal.aborted) {
         this.emit(aborted(this.current));
