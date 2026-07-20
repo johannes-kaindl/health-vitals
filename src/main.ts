@@ -35,14 +35,16 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   }
 
   /**
-   * Pfad des Caches im eigenen Plugin-Ordner. Über vault.configDir statt eines
-   * hartkodierten ".obsidian/..." — der Ordner ist konfigurierbar
-   * (obsidianmd/hardcoded-config-path).
+   * Pfad des Caches im eigenen Plugin-Ordner. `manifest.dir` ist der von Obsidian
+   * selbst ermittelte, vault-relative Pfad zum tatsächlichen Plugin-Ordner — der
+   * fällt bei manuellen Installationen (git clone in einen anders benannten Ordner,
+   * manche BRAT-Setups) nicht zwangsläufig mit `plugins/${manifest.id}` zusammen.
+   * Der Fallback greift nur, falls `manifest.dir` einmal fehlen sollte, und baut über
+   * vault.configDir statt eines hartkodierten ".obsidian/..." (obsidianmd/hardcoded-config-path).
    */
   private cachePath(): string {
-    return normalizePath(
-      `${this.app.vault.configDir}/plugins/${this.manifest.id}/${CACHE_FILE}`,
-    );
+    const dir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+    return normalizePath(`${dir}/${CACHE_FILE}`);
   }
 
   // --- DashboardHost ---
