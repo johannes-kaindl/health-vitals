@@ -10,6 +10,32 @@ async function collect(src: AsyncIterable<string>): Promise<string> {
   return out;
 }
 
+/** ReadableStream, die `bytes` in festen (winzigen) Häppchen ausliefert. */
+function chunkedByteStream(bytes: Uint8Array, chunkSize: number): ReadableStream<Uint8Array> {
+  let i = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (i >= bytes.length) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(bytes.slice(i, i + chunkSize));
+      i += chunkSize;
+    },
+  });
+}
+
+/**
+ * File, dessen stream() nicht der Laufzeit überlassen wird, sondern gezielt
+ * in `chunkSize`-Byte-Häppchen liefert — bei chunkSize 1 wird garantiert jedes
+ * Mehrbyte-UTF-8-Zeichen über zwei `reader.read()`-Aufrufe zerschnitten.
+ */
+function fileWithChunkedStream(bytes: Uint8Array, name: string, chunkSize: number): File {
+  const file = new File([bytes], name);
+  Object.defineProperty(file, "stream", { value: () => chunkedByteStream(bytes, chunkSize) });
+  return file;
+}
+
 describe("isExportEntry", () => {
   it("erkennt Export.xml in jedem Unterordner, ohne node:path", () => {
     expect(isExportEntry("Export.xml")).toBe(true);
@@ -43,9 +69,23 @@ describe("openImportSource", () => {
   });
 
   it("dekodiert UTF-8 korrekt über Chunk-Grenzen hinweg", async () => {
-    // Mehrbyte-Zeichen, die bei ungünstiger Chunkung zerschnitten würden.
-    const xml = `<HealthData><Record device="Größenmessgerät äöü" /></HealthData>`;
-    const file = new File([xml], "Export.xml");
+    // Mehrbyte-Zeichen (2/3/4-Byte-UTF-8), die bei 1-Byte-Chunks garantiert
+    // mitten im Zeichen geschnitten werden. file.stream() liefert diese
+    // kleine XML sonst als einzelnen Chunk aus — daher die erzwungene Chunkung.
+    const xml = `<HealthData><Record device="Größenmessgerät äöü 中文 🎉" /></HealthData>`;
+    const bytes = new TextEncoder().encode(xml);
+    const file = fileWithChunkedStream(bytes, "Export.xml", 1);
+    expect(await collect(openImportSource(file))).toBe(xml);
+  });
+
+  it("dekodiert UTF-8 in der Zip korrekt über Chunk-Grenzen hinweg", async () => {
+    // Gleiche Erzwingung wie oben, aber auf den komprimierten Bytes: 1-Byte-
+    // Häppchen an unzip.push() lassen fflates Inflate die Ausgabe ebenfalls in
+    // winzigen (teils 1-Byte-)Stücken an entry.ondata liefern, was Mehrbyte-
+    // Zeichen über zwei ondata-Aufrufe zerschneidet.
+    const xml = `<HealthData><Record device="Größenmessgerät äöü 中文 🎉" /></HealthData>`;
+    const zipped = zipSync({ "Export.xml": strToU8(xml) });
+    const file = fileWithChunkedStream(zipped, "export.zip", 1);
     expect(await collect(openImportSource(file))).toBe(xml);
   });
 });
