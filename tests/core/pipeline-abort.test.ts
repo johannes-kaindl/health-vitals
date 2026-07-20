@@ -132,6 +132,44 @@ describe("aggregateStream — Abbruch", () => {
     expect(progressCalls.length).toBeGreaterThan(0);
   });
 
+  // Regression für die implizite Kopplung: onProgress hing an der yieldToUi-Zeitschranke
+  // (`if (yieldToUi && ...)`), sodass ein Aufrufer ohne yieldToUi (z. B. ein künftiger
+  // CLI/Batch-Pfad, der nur Fortschritt loggen will) gar keine Aufrufe bekam — nicht
+  // einmal am Ende. onProgress braucht eine eigene, von yieldToUi unabhängige Zeitschranke.
+  it("meldet Fortschritt im Zeittakt auch ohne yieldToUi", async () => {
+    const record = '<Record type="HKQuantityTypeIdentifierStepCount" '
+      + 'startDate="2026-07-01 08:00:00 +0200" value="100"/>';
+    const CHUNK_COUNT = 100;
+    const STEP_MS = 10;
+    const YIELD_EVERY_MS = 100;
+
+    let now = 0;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    async function* chunks(): AsyncIterable<string> {
+      for (let i = 0; i < CHUNK_COUNT; i++) {
+        now += STEP_MS;
+        yield record;
+      }
+    }
+
+    const progressCalls: number[] = [];
+    try {
+      const cache = await aggregateStream(chunks(), META, {
+        onProgress: (records) => { progressCalls.push(records); },
+        yieldEveryMs: YIELD_EVERY_MS,
+        // bewusst kein yieldToUi — genau der Fall, der vorher null Aufrufe lieferte
+      });
+      expect(cache.recordCount).toBe(CHUNK_COUNT);
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    // Gleiche Rechnung wie im kombinierten Fall: 10 Zeitfenster à 100ms bei 10ms/Chunk.
+    expect(progressCalls.length).toBe(10);
+    expect(progressCalls.length).toBeGreaterThan(0);
+  });
+
   it("läuft ohne Optionen unverändert durch", async () => {
     const xml = '<HealthData><Record type="HKQuantityTypeIdentifierStepCount" '
       + 'startDate="2026-07-01 08:00:00 +0200" value="100"/></HealthData>';
