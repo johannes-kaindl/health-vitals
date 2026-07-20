@@ -5,16 +5,37 @@ import type { HealthCache } from "./types";
 
 export interface AggregateMeta { sourceFile: string; importedAt: string; }
 
+/** Signalisiert den vom Nutzer ausgelösten Abbruch — kein Fehlerfall. */
+export class ImportAbortedError extends Error {
+  constructor() {
+    super("Import aborted");
+    this.name = "ImportAbortedError";
+  }
+}
+
+export interface AggregateOptions {
+  onProgress?: (records: number) => void;
+  signal?: AbortSignal;
+  /**
+   * Wird periodisch awaited, damit der aufrufende Renderer zeichnen und Klicks
+   * verarbeiten kann. Der Kern kennt keine Timer — der Aufrufer reicht sie herein.
+   */
+  yieldToUi?: () => Promise<void>;
+  yieldEveryMs?: number;
+}
+
 const PROGRESS_EVERY = 250_000;
 
 export async function aggregateStream(
   chunks: AsyncIterable<string> | Iterable<string>,
   meta: AggregateMeta,
-  onProgress?: (records: number) => void,
+  opts: AggregateOptions = {},
 ): Promise<HealthCache> {
+  const { onProgress, signal, yieldToUi, yieldEveryMs = 250 } = opts;
   const tok = new XmlTokenizer();
   const agg = new Aggregator();
   let seen = 0;
+  let lastYield = Date.now();
 
   const handle = (tag: StartTag): void => {
     const e = eventFromTag(tag);
@@ -26,9 +47,20 @@ export async function aggregateStream(
     }
   };
 
+  if (signal?.aborted) throw new ImportAbortedError();
+
   for await (const chunk of chunks as AsyncIterable<string>) {
+    if (signal?.aborted) throw new ImportAbortedError();
     tok.feed(chunk, handle);
+
+    if (yieldToUi && Date.now() - lastYield >= yieldEveryMs) {
+      lastYield = Date.now();
+      await yieldToUi();
+      if (signal?.aborted) throw new ImportAbortedError();
+    }
   }
+
+  if (signal?.aborted) throw new ImportAbortedError();
   tok.end();
   return agg.finalize(meta);
 }
