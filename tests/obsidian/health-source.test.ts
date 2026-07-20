@@ -1,52 +1,51 @@
 import { zipSync, strToU8 } from "fflate";
-import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { pickImportFile, isExportEntry, openImportSource } from "../../src/obsidian/health-source";
+import { isExportEntry, openImportSource } from "../../src/obsidian/health-source";
 
-describe("health-source Helper", () => {
-  it("pickImportFile wählt die jüngste .zip/.xml", () => {
-    expect(pickImportFile(["2025-01-01_Health.zip", "2026-07-17_Health.zip", "notes.md"]))
-      .toBe("2026-07-17_Health.zip");
-    expect(pickImportFile(["export.xml"])).toBe("export.xml");
-    expect(pickImportFile(["readme.md", "data.json"])).toBeNull();
-    expect(pickImportFile([])).toBeNull();
-  });
+const XML = '<HealthData><Record type="HKQuantityTypeIdentifierStepCount" '
+  + 'startDate="2026-07-01 08:00:00 +0200" value="100"/></HealthData>';
 
-  it("isExportEntry matcht nur den Export.xml-Basename", () => {
-    expect(isExportEntry("apple_health_export/Export.xml")).toBe(true);
+async function collect(src: AsyncIterable<string>): Promise<string> {
+  let out = "";
+  for await (const chunk of src) out += chunk;
+  return out;
+}
+
+describe("isExportEntry", () => {
+  it("erkennt Export.xml in jedem Unterordner, ohne node:path", () => {
     expect(isExportEntry("Export.xml")).toBe(true);
-    expect(isExportEntry("apple_health_export/workout-routes/route.gpx")).toBe(false);
+    expect(isExportEntry("apple_health_export/Export.xml")).toBe(true);
+    expect(isExportEntry("a/b/c/Export.xml")).toBe(true);
+    expect(isExportEntry("apple_health_export/export.xml")).toBe(false);
+    expect(isExportEntry("workout-routes/route.gpx")).toBe(false);
+    expect(isExportEntry("NotExport.xml")).toBe(false);
   });
 });
 
-describe("readZip via openImportSource", () => {
-  let dir: string;
-
-  afterEach(() => {
-    if (dir) { try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } }
+describe("openImportSource", () => {
+  it("liest eine plain .xml über den File-Stream", async () => {
+    const file = new File([XML], "Export.xml", { type: "text/xml" });
+    expect(await collect(openImportSource(file))).toBe(XML);
   });
 
-  it("lehnt ein Zip ohne Export.xml-Eintrag ab, statt zu hängen", async () => {
-    dir = mkdtempSync(join(tmpdir(), "ah-"));
-    const zipPath = join(dir, "bad.zip");
-    writeFileSync(zipPath, zipSync({ "apple_health_export/other.txt": strToU8("nope") }));
-
-    await expect((async () => {
-      for await (const _chunk of openImportSource(zipPath)) {
-        /* drain */
-      }
-    })()).rejects.toThrow(/Export\.xml/);
+  it("entpackt Export.xml aus einer .zip und ignoriert andere Einträge", async () => {
+    const zipped = zipSync({
+      "apple_health_export/Export.xml": strToU8(XML),
+      "apple_health_export/workout-routes/route.gpx": strToU8("<gpx/>"),
+    });
+    const file = new File([zipped], "export.zip", { type: "application/zip" });
+    expect(await collect(openImportSource(file))).toBe(XML);
   });
 
-  it("dekodiert eine Export.xml aus dem Zip zum Original-String", async () => {
-    dir = mkdtempSync(join(tmpdir(), "ah-"));
-    const zipPath = join(dir, "good.zip");
-    const xml = "<HealthData><Record type=\"T\" startDate=\"2022-11-25 08:00:00 +0200\"/></HealthData>";
-    writeFileSync(zipPath, zipSync({ "apple_health_export/Export.xml": strToU8(xml) }));
+  it("meldet eine Zip ohne Export.xml als Fehler", async () => {
+    const zipped = zipSync({ "readme.txt": strToU8("nichts hier") });
+    const file = new File([zipped], "export.zip");
+    await expect(collect(openImportSource(file))).rejects.toThrow(/Export\.xml/);
+  });
 
-    let out = "";
-    for await (const chunk of openImportSource(zipPath)) out += chunk;
-    expect(out).toBe(xml);
+  it("dekodiert UTF-8 korrekt über Chunk-Grenzen hinweg", async () => {
+    // Mehrbyte-Zeichen, die bei ungünstiger Chunkung zerschnitten würden.
+    const xml = `<HealthData><Record device="Größenmessgerät äöü" /></HealthData>`;
+    const file = new File([xml], "Export.xml");
+    expect(await collect(openImportSource(file))).toBe(xml);
   });
 });

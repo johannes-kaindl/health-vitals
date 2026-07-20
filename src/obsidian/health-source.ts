@@ -1,85 +1,71 @@
-import { createReadStream, type ReadStream } from "node:fs";
-import { basename } from "node:path";
 import { Unzip, UnzipInflate } from "fflate";
 
-/** Jüngste .zip/.xml aus einer Dateinamensliste (lexikografisch letzte). */
-export function pickImportFile(names: string[]): string | null {
-  const candidates = names.filter((n) => n.endsWith(".zip") || n.endsWith(".xml")).sort();
-  return candidates.length ? candidates[candidates.length - 1] : null;
-}
-
-/** True, wenn der Zip-Eintrag die Export.xml ist (egal in welchem Ordner). */
+/**
+ * True, wenn der Zip-Eintrag die Export.xml ist (egal in welchem Ordner).
+ * Bewusst ohne `node:path` — jeder verbliebene node:-Import würde die
+ * obsidianmd-Regel `no-nodejs-modules` weiter auslösen.
+ */
 export function isExportEntry(name: string): boolean {
-  return basename(name) === "Export.xml";
+  return name.slice(name.lastIndexOf("/") + 1) === "Export.xml";
 }
 
 /** UTF-8-Chunks des Export-XML — .zip wird streamend entpackt, .xml direkt gelesen. */
-export function openImportSource(absPath: string): AsyncIterable<string> {
-  return absPath.endsWith(".zip") ? readZip(absPath) : readXml(absPath);
+export function openImportSource(file: File): AsyncIterable<string> {
+  return file.name.endsWith(".zip") ? readZip(file) : readXml(file);
 }
 
-async function* readXml(absPath: string): AsyncIterable<string> {
-  const stream = createReadStream(absPath, { encoding: "utf8" });
-  for await (const chunk of stream) yield chunk as string;
-}
-
-function readZip(absPath: string): AsyncIterable<string> {
+async function* readXml(file: File): AsyncIterable<string> {
   const decoder = new TextDecoder("utf-8");
-  const queue: string[] = [];
-  let resolveNext: (() => void) | null = null;
-  let done = false;
-  let error: unknown = null;
-  let rs: ReadStream | null = null;
+  const reader = file.stream().getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      // stream: true hält Mehrbyte-Zeichen über Chunk-Grenzen hinweg zusammen.
+      yield decoder.decode(value, { stream: true });
+    }
+    const tail = decoder.decode();
+    if (tail) yield tail;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function* readZip(file: File): AsyncIterable<string> {
+  const decoder = new TextDecoder("utf-8");
+  let pending: string[] = [];
   let matched = false;
+  let failure: unknown = null;
 
-  const wake = (): void => { if (resolveNext) { const r = resolveNext; resolveNext = null; r(); } };
-  const push = (s: string): void => {
-    queue.push(s);
-    if (queue.length > 64 && rs && !rs.isPaused()) rs.pause(); // Backpressure
-    wake();
-  };
-  const finish = (): void => { done = true; rs?.destroy(); wake(); };
-  const fail = (e: unknown): void => { error = e; done = true; rs?.destroy(); wake(); };
-
-  const unzip = new Unzip((file) => {
-    if (!isExportEntry(file.name)) return; // andere Einträge (GPX) ignorieren, nicht starten
+  const unzip = new Unzip((entry) => {
+    if (!isExportEntry(entry.name)) return; // GPX u.a. gar nicht erst starten
     matched = true;
-    file.ondata = (err, data, final): void => {
-      if (err) { fail(err); return; }
-      if (data && data.length) push(decoder.decode(data, { stream: !final }));
-      if (final) finish();
+    entry.ondata = (err, data, final): void => {
+      if (err) { failure = err; return; }
+      if (data.length) pending.push(decoder.decode(data, { stream: !final }));
     };
-    file.start();
+    entry.start();
   });
   // Synchroner Inflate (NICHT AsyncUnzipInflate): fflates Async-Variante spawnt einen
-  // Web-Worker, den Obsidians Electron-Renderer-V8 nicht erlaubt ("Failed to construct
-  // 'Worker'"). Sync dekomprimiert auf dem Main-Thread — unser fs-Stream pusht ohnehin
-  // chunk-weise, Speicher bleibt beschränkt.
+  // Web-Worker, den Obsidians Electron-Renderer nicht erlaubt ("Failed to construct
+  // 'Worker'"). Backpressure entsteht hier natürlich — wir lesen den nächsten Chunk
+  // erst, wenn der Consumer die vorigen abgeholt hat.
   unzip.register(UnzipInflate);
 
-  rs = createReadStream(absPath);
-  rs.on("data", (c) => { try { unzip.push(new Uint8Array(c as Buffer), false); } catch (e) { fail(e); } });
-  rs.on("end", () => {
-    try {
-      unzip.push(new Uint8Array(0), true);
-      if (!matched && !done) fail(new Error("Export.xml nicht im Zip gefunden"));
-    } catch (e) { fail(e); }
-  });
-  rs.on("error", fail);
-
-  return {
-    async *[Symbol.asyncIterator]() {
-      while (true) {
-        if (queue.length) {
-          const s = queue.shift() as string;
-          if (queue.length < 16 && rs && rs.isPaused()) rs.resume();
-          yield s;
-          continue;
-        }
-        if (error) throw error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Unknown error');
-        if (done) return;
-        await new Promise<void>((res) => { resolveNext = res; });
-      }
-    },
-  };
+  const reader = file.stream().getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      unzip.push(value, false);
+      if (failure) throw failure;
+      if (pending.length) { const out = pending; pending = []; yield* out; }
+    }
+    unzip.push(new Uint8Array(0), true);
+    if (failure) throw failure;
+    if (pending.length) yield* pending;
+    if (!matched) throw new Error("Export.xml nicht im Zip gefunden");
+  } finally {
+    reader.releaseLock();
+  }
 }
