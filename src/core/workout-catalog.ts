@@ -1,30 +1,31 @@
-// Kuratierter deutscher Katalog der Apple-Health-Workout-Typen (HKWorkoutActivityType*).
-// Unbekannte → Fallback (Prefix strippen, CamelCase splitten).
+// Bekannte Apple-Health-Workout-Typen (HKWorkoutActivityType*). Die Anzeigenamen liegen
+// sprachabhängig in src/i18n/strings.ts unter "workout.<id>"; unbekannte → Fallback
+// (Prefix strippen, CamelCase splitten).
+import { t } from "../vendor/kit/i18n";
 
-const CATALOG: Record<string, string> = {
-  HKWorkoutActivityTypeCardioDance: "Cardio-Dance",
-  HKWorkoutActivityTypeCoreTraining: "Core-Training",
-  HKWorkoutActivityTypeCrossTraining: "Cross-Training",
-  HKWorkoutActivityTypeCycling: "Radfahren",
-  HKWorkoutActivityTypeElliptical: "Crosstrainer",
-  HKWorkoutActivityTypeFitnessGaming: "Fitness-Gaming",
-  HKWorkoutActivityTypeFunctionalStrengthTraining: "Funktionelles Krafttraining",
-  HKWorkoutActivityTypeHiking: "Wandern",
-  HKWorkoutActivityTypeMindAndBody: "Körper & Geist",
-  HKWorkoutActivityTypeOther: "Sonstiges",
-  HKWorkoutActivityTypePreparationAndRecovery: "Aufwärmen & Erholung",
-  HKWorkoutActivityTypeRunning: "Laufen",
-  HKWorkoutActivityTypeSwimming: "Schwimmen",
-  HKWorkoutActivityTypeTableTennis: "Tischtennis",
-  HKWorkoutActivityTypeTraditionalStrengthTraining: "Krafttraining",
-  HKWorkoutActivityTypeUnderwaterDiving: "Tauchen",
-  HKWorkoutActivityTypeWalking: "Gehen",
-  HKWorkoutActivityTypeYoga: "Yoga",
-};
+const KNOWN = new Set<string>([
+  "HKWorkoutActivityTypeCardioDance",
+  "HKWorkoutActivityTypeCoreTraining",
+  "HKWorkoutActivityTypeCrossTraining",
+  "HKWorkoutActivityTypeCycling",
+  "HKWorkoutActivityTypeElliptical",
+  "HKWorkoutActivityTypeFitnessGaming",
+  "HKWorkoutActivityTypeFunctionalStrengthTraining",
+  "HKWorkoutActivityTypeHiking",
+  "HKWorkoutActivityTypeMindAndBody",
+  "HKWorkoutActivityTypeOther",
+  "HKWorkoutActivityTypePreparationAndRecovery",
+  "HKWorkoutActivityTypeRunning",
+  "HKWorkoutActivityTypeSwimming",
+  "HKWorkoutActivityTypeTableTennis",
+  "HKWorkoutActivityTypeTraditionalStrengthTraining",
+  "HKWorkoutActivityTypeUnderwaterDiving",
+  "HKWorkoutActivityTypeWalking",
+  "HKWorkoutActivityTypeYoga",
+]);
 
 export function workoutTypeName(type: string): string {
-  const entry = CATALOG[type];
-  if (entry) return entry;
+  if (KNOWN.has(type)) return t("workout." + type);
   const stripped = type.replace(/^HKWorkoutActivityType/, "");
   return stripped.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim() || type;
 }
