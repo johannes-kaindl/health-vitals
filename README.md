@@ -14,7 +14,21 @@ Apples `Export.xml` ist schnell **mehrere Gigabyte** groß (im Testfall 2,6 GB m
 stürzen ab. Dieses Plugin parst **streamend** (SAX-artig, chunk-weise) und legt
 nur kompakte Tages-Aggregate ab — der Cache aus 5,7 Mio Records ist ~2,7 MB.
 
-## Import
+## Installation
+
+**Aus dem Community-Store (empfohlen):** In Obsidian → *Einstellungen* →
+*Community-Plugins* → *Durchsuchen* → nach **„Health Vitals"** suchen →
+*Installieren* → *Aktivieren*.
+
+**Manuell:** Von der [Releases-Seite](https://github.com/johannes-kaindl/health-vitals/releases)
+`main.js`, `manifest.json` und `styles.css` des neuesten Releases herunterladen und in den
+Ordner `<Vault>/.obsidian/plugins/health-vitals/` legen, dann in *Einstellungen* →
+*Community-Plugins* aktivieren.
+
+Das Plugin ist **Desktop-only** (`isDesktopOnly: true`) — der Import mehrere Gigabyte
+großer XML-Dateien ist nur auf dem Desktop sinnvoll.
+
+## Nutzung
 
 1. In der **Health-App** (iPhone): Profil → *Alle Gesundheitsdaten exportieren*
    → die entstehende `Export.zip` auf den Rechner bringen.

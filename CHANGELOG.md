@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Resolve community-store review-scanner warnings: use Obsidian's `createEl`
+  helper instead of `document.createElement` in the file picker, and
+  `window.setTimeout` instead of `activeWindow.setTimeout` for the import
+  yield.
+- README now has explicit **Installation** and **Usage** sections.
+
 ## [0.1.0] — 2026-07-20
 
 ### Added

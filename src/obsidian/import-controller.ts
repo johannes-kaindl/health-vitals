@@ -61,12 +61,12 @@ export class ImportController {
           },
           // Gibt den Renderer periodisch frei, damit Fortschritt sichtbar bleibt
           // und der Abbrechen-Button überhaupt Klicks verarbeiten kann.
-          // `activeWindow` ist im node-Testenvironment undefiniert (Obsidian-Global,
-          // kein DOM-Standard) — ein Test, der diesen Zweig erreicht (Fixture groß
-          // genug für > yieldEveryMs), braucht einen `activeWindow`-Alias aus einer
-          // vitest-Setup-Datei. Ohne die bricht er mit "activeWindow is not defined"
-          // ab statt mit einer aussagekräftigen Assertion.
-          yieldToUi: () => new Promise<void>((r) => { activeWindow.setTimeout(r, 0); }),
+          // `window.setTimeout` (nicht `activeWindow`) — der Store-Scanner verlangt
+          // `window` für Timer-Funktionen. `window` ist im node-Testenvironment
+          // undefiniert; ein Test, der diesen Zweig erreicht (Fixture groß genug für
+          // > yieldEveryMs), braucht einen `window`-Alias aus einer vitest-Setup-Datei.
+          // Heute erreicht kein Test den Pfad, daher ist keine nötig.
+          yieldToUi: () => new Promise<void>((r) => { window.setTimeout(r, 0); }),
         },
       );
 

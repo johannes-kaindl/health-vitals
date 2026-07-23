@@ -8,11 +8,12 @@
  */
 export function pickHealthExport(doc: Document): Promise<File | null> {
   return new Promise((resolve) => {
-    const input = doc.createElement("input");
-    input.type = "file";
-    input.accept = ".zip,.xml";
-    input.addClass("ah-file-picker-input");
-    doc.body.appendChild(input);
+    // Obsidian-`createEl` statt rohem document.createElement (Store-Konformität):
+    // erzeugt das Element und hängt es in einem Schritt an doc.body.
+    const input = doc.body.createEl("input", {
+      cls: "ah-file-picker-input",
+      attr: { type: "file", accept: ".zip,.xml" },
+    });
 
     const cleanup = (): void => { input.remove(); };
 
