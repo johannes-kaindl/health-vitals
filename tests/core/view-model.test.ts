@@ -28,6 +28,15 @@ describe("buildOverviewVM", () => {
     expect(allSection).toContain("Schritte");
     expect(allSection).not.toContain("Gewicht"); // Favorit erscheint nicht doppelt
   });
+
+  it("Sektionen tragen neutrale Kategorie-Keys + lokalisiertes Label", () => {
+    const vm = buildOverviewVM(cache(), [], { width: 60, height: 24, padding: 2 });
+    const activity = vm.sections.find((s) => s.category === "activity");
+    expect(activity).toBeDefined();
+    expect(activity!.categoryLabel).toBe("Aktivität"); // de aus globalem Setup
+    const body = vm.sections.find((s) => s.category === "body");
+    expect(body!.categoryLabel).toBe("Körper");
+  });
 });
 
 describe("buildDetailVM", () => {

@@ -65,7 +65,7 @@ describe("renderOverview", () => {
 
   it("öffnet genau die Kategorien aus dem gehaltenen Set (überlebt Re-Render)", () => {
     // Regression: früher klappten beim Favoriten-Toggle alle Sektionen zu.
-    const expanded = new Set<string>(["Körper"]);
+    const expanded = new Set<string>(["body"]);
     const view = makeView(expanded, true); // schon geseedet → kein Default-Open
     const el = fakeEl();
     renderOverview(el, cache, view);
@@ -99,8 +99,8 @@ describe("renderOverview", () => {
     renderOverview(el, cache, view);
     const koerper = findByTag(el, "details").find((d) => summaryText(d).startsWith("Körper"));
     koerper.open = true; koerper._fire("toggle");
-    expect(expanded.has("Körper")).toBe(true);
+    expect(expanded.has("body")).toBe(true);
     koerper.open = false; koerper._fire("toggle");
-    expect(expanded.has("Körper")).toBe(false);
+    expect(expanded.has("body")).toBe(false);
   });
 });

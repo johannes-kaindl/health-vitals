@@ -1,38 +1,40 @@
 import type { Policy } from "./aggregation-policy";
+import { t } from "../vendor/kit/i18n";
 
-export type Category = "Aktivität" | "Herz" | "Körper" | "Schlaf" | "Ernährung" | "Sonstige";
+export type Category = "activity" | "heart" | "body" | "sleep" | "nutrition" | "other";
 export type ChartKind = "line" | "bar";
 export interface MetricInfo { name: string; category: Category; chartKind: ChartKind; }
 
-interface CatalogEntry { name: string; category: Category; chartKind?: ChartKind; }
+interface CatalogEntry { category: Category; chartKind?: ChartKind; }
 
-// Kuratierter deutscher Katalog der häufigen Identifier. Unbekannte → Fallback (s.u.).
+// Kuratierter Katalog der häufigen Identifier: nur Struktur (Kategorie/ChartKind).
+// Die Anzeigenamen liegen sprachabhängig in src/i18n/strings.ts unter "metric.<id>".
 const CATALOG: Record<string, CatalogEntry> = {
-  HKQuantityTypeIdentifierStepCount: { name: "Schritte", category: "Aktivität" },
-  HKQuantityTypeIdentifierDistanceWalkingRunning: { name: "Gehstrecke", category: "Aktivität" },
-  HKQuantityTypeIdentifierDistanceCycling: { name: "Radstrecke", category: "Aktivität" },
-  HKQuantityTypeIdentifierFlightsClimbed: { name: "Etagen", category: "Aktivität" },
-  HKQuantityTypeIdentifierActiveEnergyBurned: { name: "Aktive Energie", category: "Aktivität" },
-  HKQuantityTypeIdentifierBasalEnergyBurned: { name: "Ruheenergie", category: "Aktivität" },
-  HKQuantityTypeIdentifierAppleExerciseTime: { name: "Bewegungsminuten", category: "Aktivität" },
-  HKQuantityTypeIdentifierAppleStandTime: { name: "Stehminuten", category: "Aktivität" },
-  HKQuantityTypeIdentifierHeartRate: { name: "Puls", category: "Herz" },
-  HKQuantityTypeIdentifierRestingHeartRate: { name: "Ruhepuls", category: "Herz" },
-  HKQuantityTypeIdentifierWalkingHeartRateAverage: { name: "Geh-Puls Ø", category: "Herz" },
-  HKQuantityTypeIdentifierHeartRateVariabilitySDNN: { name: "HRV", category: "Herz" },
-  HKQuantityTypeIdentifierOxygenSaturation: { name: "Sauerstoffsättigung", category: "Herz" },
-  HKQuantityTypeIdentifierBodyMass: { name: "Gewicht", category: "Körper" },
-  HKQuantityTypeIdentifierBodyMassIndex: { name: "BMI", category: "Körper" },
-  HKQuantityTypeIdentifierBodyFatPercentage: { name: "Körperfett", category: "Körper" },
-  HKQuantityTypeIdentifierHeight: { name: "Größe", category: "Körper" },
-  HKQuantityTypeIdentifierBodyTemperature: { name: "Körpertemperatur", category: "Körper" },
-  HKCategoryTypeIdentifierSleepAnalysis: { name: "Schlaf", category: "Schlaf" },
-  HKCategoryTypeIdentifierMindfulSession: { name: "Achtsamkeit", category: "Schlaf" },
-  HKQuantityTypeIdentifierDietaryWater: { name: "Wasser", category: "Ernährung" },
-  HKQuantityTypeIdentifierDietaryEnergyConsumed: { name: "Kalorien", category: "Ernährung" },
-  HKQuantityTypeIdentifierDietaryProtein: { name: "Protein", category: "Ernährung" },
-  HKQuantityTypeIdentifierDietaryCarbohydrates: { name: "Kohlenhydrate", category: "Ernährung" },
-  HKQuantityTypeIdentifierDietaryFatTotal: { name: "Fett", category: "Ernährung" },
+  HKQuantityTypeIdentifierStepCount: { category: "activity" },
+  HKQuantityTypeIdentifierDistanceWalkingRunning: { category: "activity" },
+  HKQuantityTypeIdentifierDistanceCycling: { category: "activity" },
+  HKQuantityTypeIdentifierFlightsClimbed: { category: "activity" },
+  HKQuantityTypeIdentifierActiveEnergyBurned: { category: "activity" },
+  HKQuantityTypeIdentifierBasalEnergyBurned: { category: "activity" },
+  HKQuantityTypeIdentifierAppleExerciseTime: { category: "activity" },
+  HKQuantityTypeIdentifierAppleStandTime: { category: "activity" },
+  HKQuantityTypeIdentifierHeartRate: { category: "heart" },
+  HKQuantityTypeIdentifierRestingHeartRate: { category: "heart" },
+  HKQuantityTypeIdentifierWalkingHeartRateAverage: { category: "heart" },
+  HKQuantityTypeIdentifierHeartRateVariabilitySDNN: { category: "heart" },
+  HKQuantityTypeIdentifierOxygenSaturation: { category: "heart" },
+  HKQuantityTypeIdentifierBodyMass: { category: "body" },
+  HKQuantityTypeIdentifierBodyMassIndex: { category: "body" },
+  HKQuantityTypeIdentifierBodyFatPercentage: { category: "body" },
+  HKQuantityTypeIdentifierHeight: { category: "body" },
+  HKQuantityTypeIdentifierBodyTemperature: { category: "body" },
+  HKCategoryTypeIdentifierSleepAnalysis: { category: "sleep" },
+  HKCategoryTypeIdentifierMindfulSession: { category: "sleep" },
+  HKQuantityTypeIdentifierDietaryWater: { category: "nutrition" },
+  HKQuantityTypeIdentifierDietaryEnergyConsumed: { category: "nutrition" },
+  HKQuantityTypeIdentifierDietaryProtein: { category: "nutrition" },
+  HKQuantityTypeIdentifierDietaryCarbohydrates: { category: "nutrition" },
+  HKQuantityTypeIdentifierDietaryFatTotal: { category: "nutrition" },
 };
 
 function chartFromPolicy(policy: Policy): ChartKind {
@@ -51,7 +53,7 @@ function fallbackName(id: string): string {
 export function describeMetric(id: string, policy: Policy): MetricInfo {
   const entry = CATALOG[id];
   if (entry) {
-    return { name: entry.name, category: entry.category, chartKind: entry.chartKind ?? chartFromPolicy(policy) };
+    return { name: t("metric." + id), category: entry.category, chartKind: entry.chartKind ?? chartFromPolicy(policy) };
   }
-  return { name: fallbackName(id), category: "Sonstige", chartKind: chartFromPolicy(policy) };
+  return { name: fallbackName(id), category: "other", chartKind: chartFromPolicy(policy) };
 }

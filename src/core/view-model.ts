@@ -4,16 +4,21 @@ import { resolveRange, rollupDaily, type RangeKey } from "./rollup";
 import { buildChartGeometry, type ChartDims, type ChartGeometry } from "./chart-geometry";
 import { computeStats } from "./series-stats";
 import { formatValue } from "./format";
+import { t } from "../vendor/kit/i18n";
+import { localeTag } from "../i18n/strings";
 
 export interface TileVM { id: string; name: string; category: Category; valueText: string; spark: ChartGeometry; }
-export interface OverviewVM { favorites: TileVM[]; sections: Array<{ category: Category; tiles: TileVM[] }>; }
+export interface OverviewVM {
+  favorites: TileVM[];
+  sections: Array<{ category: Category; categoryLabel: string; tiles: TileVM[] }>;
+}
 export interface StatRow { label: string; value: string; }
 export interface DetailVM {
   id: string; name: string; unit: string; empty: boolean;
   rangeLabel: string; chart: ChartGeometry; stats: StatRow[];
 }
 
-export const CATEGORY_ORDER: Category[] = ["Aktivität", "Herz", "Körper", "Schlaf", "Ernährung", "Sonstige"];
+export const CATEGORY_ORDER: Category[] = ["activity", "heart", "body", "sleep", "nutrition", "other"];
 
 function tileFor(cache: HealthCache, id: string, sparkDims: ChartDims): TileVM {
   const series = cache.metrics[id];
@@ -47,7 +52,8 @@ export function buildOverviewVM(cache: HealthCache, favorites: string[], sparkDi
     .filter((c) => byCat.has(c))
     .map((category) => ({
       category,
-      tiles: (byCat.get(category) as TileVM[]).sort((a, b) => a.name.localeCompare(b.name, "de")),
+      categoryLabel: t("category." + category),
+      tiles: (byCat.get(category) as TileVM[]).sort((a, b) => a.name.localeCompare(b.name, localeTag())),
     }));
   return { favorites: favTiles, sections };
 }
@@ -64,15 +70,15 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
   const s = computeStats(series.daily, series.policy, r);
   const stats: StatRow[] = series.policy === "measure"
     ? [
-        { label: "Ø", value: s.avg !== undefined ? formatValue(s.avg, series.unit) : "—" },
-        { label: "Min", value: s.min !== undefined ? formatValue(s.min, series.unit) : "—" },
-        { label: "Max", value: s.max !== undefined ? formatValue(s.max, series.unit) : "—" },
-        { label: "Zuletzt", value: s.last !== undefined ? formatValue(s.last, series.unit) : "—" },
+        { label: t("stat.avg"), value: s.avg !== undefined ? formatValue(s.avg, series.unit) : "—" },
+        { label: t("stat.min"), value: s.min !== undefined ? formatValue(s.min, series.unit) : "—" },
+        { label: t("stat.max"), value: s.max !== undefined ? formatValue(s.max, series.unit) : "—" },
+        { label: t("stat.last"), value: s.last !== undefined ? formatValue(s.last, series.unit) : "—" },
       ]
     : [
-        { label: "Ø/Tag", value: s.avgPerDay !== undefined ? formatValue(s.avgPerDay, series.unit) : "—" },
-        { label: "Max-Tag", value: s.maxDay !== undefined ? formatValue(s.maxDay, series.unit) : "—" },
-        { label: "Summe", value: s.total !== undefined ? formatValue(s.total, series.unit) : "—" },
+        { label: t("stat.avgPerDay"), value: s.avgPerDay !== undefined ? formatValue(s.avgPerDay, series.unit) : "—" },
+        { label: t("stat.maxDay"), value: s.maxDay !== undefined ? formatValue(s.maxDay, series.unit) : "—" },
+        { label: t("stat.total"), value: s.total !== undefined ? formatValue(s.total, series.unit) : "—" },
       ];
   const rangeLabel = points.length ? `${points[0].key} – ${points[points.length - 1].key}` : "";
   return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats };
