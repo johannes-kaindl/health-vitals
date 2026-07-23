@@ -1,6 +1,8 @@
+import { localeTag } from "../i18n/strings";
+
 export function formatValue(n: number, unit: string): string {
   const rounded = Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10;
-  const num = rounded.toLocaleString("de-DE");
+  const num = rounded.toLocaleString(localeTag());
   return unit ? `${num} ${unit}` : num;
 }
 

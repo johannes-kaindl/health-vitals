@@ -1,4 +1,5 @@
 import { formatValue, formatDuration } from "../../src/core/format";
+import { setLang } from "../../src/vendor/kit/i18n";
 
 describe("formatDuration", () => {
   it("unter 60 Minuten: gerundete Minuten", () => {
@@ -26,5 +27,10 @@ describe("formatValue", () => {
   });
   it("ohne Einheit nur die Zahl", () => {
     expect(formatValue(42, "")).toBe("42");
+  });
+  it("EN: Tausender-Komma statt Punkt", () => {
+    setLang("en");
+    expect(formatValue(8432, "count")).toBe("8,432 count");
+    expect(formatValue(78.53, "kg")).toBe("78.5 kg");
   });
 });
