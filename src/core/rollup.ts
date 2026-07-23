@@ -1,7 +1,7 @@
 import type { DayBucket, MeasureBucket, Policy, SumBucket, DurationBucket } from "./types";
 
 export type Granularity = "day" | "week" | "month";
-export type RangeKey = "1M" | "3M" | "1J" | "all";
+export type RangeKey = "1M" | "3M" | "1Y" | "all";
 export interface RollupPoint { key: string; value: number; min?: number; max?: number; }
 export interface ResolvedRange { from: string; to: string; granularity: Granularity; }
 
@@ -18,7 +18,7 @@ export function resolveRange(range: RangeKey, dateRange: { from: string; to: str
   switch (range) {
     case "1M": return { from: minusMonths(to, 1), to, granularity: "day" };
     case "3M": return { from: minusMonths(to, 3), to, granularity: "day" };
-    case "1J": return { from: minusMonths(to, 12), to, granularity: "week" };
+    case "1Y": return { from: minusMonths(to, 12), to, granularity: "week" };
     case "all": return { from: dateRange.from, to, granularity: "month" };
   }
 }

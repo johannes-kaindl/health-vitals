@@ -5,8 +5,8 @@ import { renderChart } from "../chart-render";
 
 export interface DetailState { metricId: string | null; range: RangeKey; }
 
-const RANGES: RangeKey[] = ["1M", "3M", "1J", "all"];
-const RANGE_LABEL: Record<RangeKey, string> = { "1M": "1M", "3M": "3M", "1J": "1J", all: "Alles" };
+const RANGES: RangeKey[] = ["1M", "3M", "1Y", "all"];
+const RANGE_LABEL: Record<RangeKey, string> = { "1M": "1M", "3M": "3M", "1Y": "1J", all: "Alles" };
 const CHART_DIMS = { width: 640, height: 260, padding: 24 };
 
 export function renderDetail(
