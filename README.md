@@ -44,6 +44,10 @@ Abbrechen-Button stehen währenddessen im Dashboard; danach öffnet sich die
 Ergebnis ist `health-cache.json` im Plugin-Verzeichnis: Tages-Aggregate je
 Metrik plus eine Workout-Liste.
 
+Die Oberfläche ist zweisprachig (Deutsch/Englisch) und folgt automatisch der
+UI-Sprache von Obsidian — deutsche Obsidian-Oberfläche zeigt Deutsch, jede andere
+Englisch. Es gibt dafür keine eigene Einstellung.
+
 ### Zugriff außerhalb des Vaults
 
 Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
