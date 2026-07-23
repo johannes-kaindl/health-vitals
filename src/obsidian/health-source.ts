@@ -1,4 +1,5 @@
 import { Unzip, UnzipInflate } from "fflate";
+import { t } from "../vendor/kit/i18n";
 
 /**
  * True, wenn der Zip-Eintrag die Export.xml ist (egal in welchem Ordner).
@@ -73,7 +74,7 @@ async function* readZip(file: File): AsyncIterable<string> {
     unzip.push(new Uint8Array(0), true);
     if (failure) throw toError(failure);
     if (pending.length) yield* pending;
-    if (!matched) throw new Error("Export.xml nicht im Zip gefunden");
+    if (!matched) throw new Error(t("error.exportNotFound"));
   } finally {
     reader.releaseLock();
   }

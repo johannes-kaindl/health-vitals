@@ -2,11 +2,11 @@ import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
 import { buildDetailVM } from "../../core/view-model";
 import { renderChart } from "../chart-render";
+import { t } from "../../vendor/kit/i18n";
 
 export interface DetailState { metricId: string | null; range: RangeKey; }
 
 const RANGES: RangeKey[] = ["1M", "3M", "1Y", "all"];
-const RANGE_LABEL: Record<RangeKey, string> = { "1M": "1M", "3M": "3M", "1Y": "1J", all: "Alles" };
 const CHART_DIMS = { width: 640, height: 260, padding: 24 };
 
 export function renderDetail(
@@ -14,7 +14,7 @@ export function renderDetail(
 ): void {
   if (!state.metricId) {
     const hint = el.createDiv({ cls: "ah-detail-hint" });
-    hint.createSpan({ text: "Wähle in der Übersicht eine Metrik aus." });
+    hint.createSpan({ text: t("detail.pickMetric") });
     return;
   }
   const vm = buildDetailVM(cache, state.metricId, state.range, CHART_DIMS);
@@ -25,7 +25,7 @@ export function renderDetail(
 
   const tabs = el.createDiv({ cls: "ah-range-bar" });
   for (const rk of RANGES) {
-    const btn = tabs.createEl("button", { text: RANGE_LABEL[rk] });
+    const btn = tabs.createEl("button", { text: t("range." + rk) });
     btn.addClass("ah-range-btn");
     if (rk === state.range) btn.addClass("is-active");
     btn.addEventListener("click", () => onState({ metricId: state.metricId, range: rk }));
@@ -33,7 +33,7 @@ export function renderDetail(
 
   if (vm.empty) {
     const hint = el.createDiv({ cls: "ah-detail-hint" });
-    hint.createSpan({ text: "Keine Daten in diesem Zeitraum." });
+    hint.createSpan({ text: t("detail.noData") });
   } else {
     const chartBox = el.createDiv({ cls: "ah-detail-chart" });
     renderChart(chartBox, vm.chart, { axis: true });

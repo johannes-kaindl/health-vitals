@@ -1,9 +1,11 @@
-import { Plugin, WorkspaceLeaf, normalizePath } from "obsidian";
+import { Plugin, WorkspaceLeaf, normalizePath, getLanguage } from "obsidian";
 import type { HealthCache } from "./core/types";
 import type { ImportState } from "./core/import-state";
 import { ImportController } from "./obsidian/import-controller";
 import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "./obsidian/dashboard-view";
+import { pickLang, setLang } from "./vendor/kit/i18n";
+import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 
@@ -16,14 +18,17 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   async onload(): Promise<void> {
     await this.loadPluginData();
 
+    setLang(pickLang(safeGetLanguage()));
+    registerI18n();
+
     this.registerView(VIEW_TYPE_DASHBOARD, (leaf) => new DashboardView(leaf, this));
 
     this.addCommand({
       id: "open-dashboard",
-      name: "Dashboard öffnen",
+      name: t("cmd.openDashboard"),
       callback: () => { void this.activateView(); },
     });
-    this.addRibbonIcon("heart-pulse", "Health Vitals Dashboard", () => { void this.activateView(); });
+    this.addRibbonIcon("heart-pulse", t("ribbon.tooltip"), () => { void this.activateView(); });
   }
 
   onunload(): void {}
@@ -91,4 +96,8 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     }
     await workspace.revealLeaf(leaf);
   }
+}
+
+function safeGetLanguage(): string | null {
+  try { return getLanguage(); } catch { return null; }
 }

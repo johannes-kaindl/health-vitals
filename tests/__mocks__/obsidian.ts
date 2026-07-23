@@ -98,6 +98,8 @@ export class Modal {
 
 export const Platform = { isMobile: false, isDesktopApp: true };
 
+export function getLanguage(): string { return "en"; }
+
 export function normalizePath(p: string): string { return p.replace(/\\/g, "/").replace(/\/+/g, "/"); }
 
 export async function requestUrl(_opts: any): Promise<{ status: number; text: string; json: any }> {

@@ -1,15 +1,17 @@
 import { ButtonComponent } from "obsidian";
 import type { ImportPhase, ImportState } from "../../core/import-state";
+import { t } from "../../vendor/kit/i18n";
+import { localeTag } from "../../i18n/strings";
 
 export interface ImportActions {
   choose(): void;
   abort(): void;
 }
 
-const PHASE_LABEL: Record<ImportPhase, string> = {
-  unzipping: "Export wird entpackt …",
-  parsing: "Daten werden gelesen …",
-  writing: "Ergebnis wird gespeichert …",
+const PHASE_KEY: Record<ImportPhase, string> = {
+  unzipping: "import.phase.unzipping",
+  parsing: "import.phase.parsing",
+  writing: "import.phase.writing",
 };
 
 /** Rendert den Import-Screen für den gegebenen Zustand. Ersetzt den Inhalt von `el`. */
@@ -18,42 +20,38 @@ export function renderImport(el: HTMLElement, state: ImportState, actions: Impor
   const box = el.createDiv({ cls: "ah-empty ah-import" });
 
   if (state.status === "running") {
-    box.createEl("h3", { text: "Import läuft" });
+    box.createEl("h3", { text: t("import.running.title") });
     box.createEl("p", { cls: "ah-import-file", text: state.fileName });
-    box.createEl("p", { cls: "ah-import-phase", text: PHASE_LABEL[state.phase] });
+    box.createEl("p", { cls: "ah-import-phase", text: t(PHASE_KEY[state.phase]) });
     box.createEl("p", {
       cls: "ah-import-count",
-      text: state.records > 0 ? `${state.records.toLocaleString("de-DE")} Datensätze` : "…",
+      text: state.records > 0 ? t("import.records", state.records.toLocaleString(localeTag())) : "…",
     });
-    // Only show cancel button during unzipping/parsing; writing phase is point of no return
     if (state.phase === "unzipping" || state.phase === "parsing") {
-      new ButtonComponent(box).setButtonText("Abbrechen").onClick(() => { actions.abort(); });
+      new ButtonComponent(box).setButtonText(t("import.cancel")).onClick(() => { actions.abort(); });
     }
     return;
   }
 
   if (state.status === "failed") {
-    box.createEl("h3", { text: "Import fehlgeschlagen" });
+    box.createEl("h3", { text: t("import.failed.title") });
     box.createEl("p", { cls: "ah-import-error", text: state.message });
-    new ButtonComponent(box).setButtonText("Erneut versuchen").setCta()
+    new ButtonComponent(box).setButtonText(t("import.retry")).setCta()
       .onClick(() => { actions.choose(); });
     return;
   }
 
   if (state.status === "aborted") {
-    box.createEl("h3", { text: "Import abgebrochen" });
-    box.createEl("p", { text: "Es wurden keine Daten gespeichert." });
-    new ButtonComponent(box).setButtonText("Export auswählen").setCta()
+    box.createEl("h3", { text: t("import.aborted.title") });
+    box.createEl("p", { text: t("import.aborted.body") });
+    new ButtonComponent(box).setButtonText(t("import.choose")).setCta()
       .onClick(() => { actions.choose(); });
     return;
   }
 
   // idle / done-ohne-Cache
-  box.createEl("h3", { text: "Noch keine Daten" });
-  box.createEl("p", {
-    text: "Exportiere deine Daten in der Health-App (Profil → Alle Gesundheitsdaten "
-      + "exportieren) und wähle hier die entstandene Datei aus.",
-  });
-  new ButtonComponent(box).setButtonText("Export auswählen").setCta()
+  box.createEl("h3", { text: t("import.idle.title") });
+  box.createEl("p", { text: t("import.idle.body") });
+  new ButtonComponent(box).setButtonText(t("import.choose")).setCta()
     .onClick(() => { actions.choose(); });
 }

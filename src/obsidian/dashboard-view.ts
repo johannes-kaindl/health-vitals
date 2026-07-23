@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
+import { t } from "../vendor/kit/i18n";
 import type { HealthCache } from "../core/types";
 import { IDLE, type ImportState } from "../core/import-state";
 import type { ImportController } from "./import-controller";
@@ -18,10 +19,10 @@ export interface DashboardHost {
 }
 
 export type TabId = "overview" | "detail" | "workouts";
-const TABS: Array<{ id: TabId; label: string; icon: string }> = [
-  { id: "overview", label: "Übersicht", icon: "layout-grid" },
-  { id: "detail", label: "Detail", icon: "line-chart" },
-  { id: "workouts", label: "Workouts", icon: "dumbbell" },
+const TABS: Array<{ id: TabId; labelKey: string; icon: string }> = [
+  { id: "overview", labelKey: "tab.overview", icon: "layout-grid" },
+  { id: "detail", labelKey: "tab.detail", icon: "line-chart" },
+  { id: "workouts", labelKey: "tab.workouts", icon: "dumbbell" },
 ];
 
 export class DashboardView extends ItemView {
@@ -44,7 +45,7 @@ export class DashboardView extends ItemView {
   }
 
   getViewType(): string { return VIEW_TYPE_DASHBOARD; }
-  getDisplayText(): string { return "Health Vitals"; }
+  getDisplayText(): string { return t("view.title"); }
   getIcon(): string { return "heart-pulse"; }
 
   openDetail(metricId: string): void {
@@ -80,21 +81,21 @@ export class DashboardView extends ItemView {
     if (!this.cache) { this.renderImportScreen(root); return; }
 
     const head = root.createDiv({ cls: "ah-tabbar" });
-    for (const t of TABS) {
+    for (const tab of TABS) {
       const btn = head.createDiv({ cls: "ah-tab" });
       btn.setAttribute("role", "tab");
-      btn.setAttribute("aria-label", t.label);
+      btn.setAttribute("aria-label", t(tab.labelKey));
       const icon = btn.createSpan({ cls: "ah-tab-icon" });
-      setIcon(icon, t.icon);
-      btn.createSpan({ cls: "ah-tab-label", text: t.label });
-      btn.addEventListener("click", () => { this.switchTab(t.id); this.renderActive(); });
-      this.tabButtons.set(t.id, btn);
+      setIcon(icon, tab.icon);
+      btn.createSpan({ cls: "ah-tab-label", text: t(tab.labelKey) });
+      btn.addEventListener("click", () => { this.switchTab(tab.id); this.renderActive(); });
+      this.tabButtons.set(tab.id, btn);
     }
 
     const content = root.createDiv({ cls: "ah-content" });
-    for (const t of TABS) {
+    for (const tab of TABS) {
       const panel = content.createDiv({ cls: "ah-panel" });
-      this.panels.set(t.id, panel);
+      this.panels.set(tab.id, panel);
     }
     this.switchTab(this.active);
     this.renderActive();
