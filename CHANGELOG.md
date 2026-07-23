@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Bilingual interface (German / English).** The dashboard now follows
+  Obsidian's UI language automatically — a German Obsidian shows German, any
+  other language shows English. There is no separate setting; switching
+  Obsidian's language and restarting switches the plugin too.
+
+### Changed
+
+- Minimum Obsidian version raised to **1.8.7** (the plugin now reads the UI
+  language via Obsidian's `getLanguage()` API, available from 1.8.7).
+
 ## [0.1.1] — 2026-07-23
 
 ### Changed
