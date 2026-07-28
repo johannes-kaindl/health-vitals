@@ -1,0 +1,17 @@
+{
+  "note": "Verbatim snapshots. Never hand-edit. Re-copy from the source to update.",
+  "modules": [
+    {
+      "file": "collapsible.ts",
+      "source": "obsidian-kit",
+      "version": "0.16.1",
+      "sha": "00fdd72"
+    },
+    {
+      "file": "folder-suggest.ts",
+      "source": "obsidian-kit",
+      "version": "0.18.0",
+      "sha": "649aab9"
+    }
+  ]
+}

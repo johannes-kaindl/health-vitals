@@ -3,17 +3,34 @@ import type { HealthCache } from "./core/types";
 import type { ImportState } from "./core/import-state";
 import { ImportController } from "./obsidian/import-controller";
 import { pickHealthExport } from "./obsidian/file-picker";
-import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "./obsidian/dashboard-view";
+import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
 import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 
-interface PluginData { favorites: string[]; }
-const DEFAULT_DATA: PluginData = { favorites: [] };
+interface PluginData {
+  favorites: string[];
+  exportFolder: string;
+  exportFormat: ExportFormat;
+  collapsed: Record<string, boolean>;
+}
+const DEFAULT_DATA: PluginData = {
+  favorites: [], exportFolder: "", exportFormat: "md", collapsed: {},
+};
+
+// Frische Kopie von DEFAULT_DATA statt der Modul-Vorlage selbst: `favorites`/`collapsed`
+// sind Objekte/Arrays — ein flacher Spread von DEFAULT_DATA würde deren REFERENZ teilen,
+// und `toggleFavorite`/`setCollapsed` mutieren in place. Ohne diese Kopie würde die erste
+// Plugin-Instanz im Prozess (Dev-Hot-Reload, Deaktivieren/Aktivieren ohne Neustart) die
+// Modul-Vorlage selbst verunreinigen — jede spätere Instanz sähe dann keine echten Defaults
+// mehr, sondern den Endzustand der vorherigen.
+function freshDefaultData(): PluginData {
+  return { ...DEFAULT_DATA, favorites: [...DEFAULT_DATA.favorites], collapsed: { ...DEFAULT_DATA.collapsed } };
+}
 
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
-  private data: PluginData = { ...DEFAULT_DATA };
+  private data: PluginData = freshDefaultData();
 
   async onload(): Promise<void> {
     await this.loadPluginData();
@@ -36,7 +53,10 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   // --- Persistence ---
   async loadPluginData(): Promise<void> {
     const loaded = (await this.loadData()) as Partial<PluginData> | null;
-    this.data = { ...DEFAULT_DATA, ...(loaded ?? {}) };
+    // freshDefaultData() statt DEFAULT_DATA direkt spreaden — sonst übernehmen fehlende
+    // Felder (jedes alte data.json, oder loadData() === null beim allerersten Start) die
+    // geteilte Referenz auf die Modul-Vorlage statt eine eigene Kopie (siehe Kommentar dort).
+    this.data = { ...freshDefaultData(), ...(loaded ?? {}) };
   }
 
   /**
@@ -60,6 +80,27 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     if (i >= 0) this.data.favorites.splice(i, 1);
     else this.data.favorites.push(id);
     await this.saveData(this.data);
+  }
+
+  getExportFolder(): string { return this.data.exportFolder; }
+  setExportFolder(v: string): void {
+    this.data.exportFolder = v;
+    void this.saveData(this.data);
+  }
+
+  getExportFormat(): ExportFormat { return this.data.exportFormat; }
+  setExportFormat(f: ExportFormat): void {
+    this.data.exportFormat = f;
+    void this.saveData(this.data);
+  }
+
+  // Signatur von CollapsibleStorage vorgegeben: synchron, kein Promise. Das
+  // Schreiben läuft deshalb bewusst als void-Aufruf nebenher — geht es schief,
+  // ist die Folge ein nicht gemerkter Aufklappzustand, kein Datenverlust.
+  getCollapsed(key: string): boolean | undefined { return this.data.collapsed[key]; }
+  setCollapsed(key: string, collapsed: boolean): void {
+    this.data.collapsed[key] = collapsed;
+    void this.saveData(this.data);
   }
 
   async loadCache(): Promise<HealthCache | null> {

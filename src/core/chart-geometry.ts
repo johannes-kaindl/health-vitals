@@ -1,7 +1,12 @@
-import type { RollupPoint } from "./rollup";
+import type { RollupPoint, Granularity } from "./rollup";
 import type { ChartKind } from "./metric-catalog";
 
+/** Zielzahl der x-Labels. Bewusst niedrig: mehr Labels kollidieren in schmalen
+ *  Sidebars, und der Gesamtzeitraum steht ohnehin im Kopf der Detail-Ansicht. */
+export const AXIS_TICKS = 5;
+
 export interface ChartDims { width: number; height: number; padding: number; }
+export interface GeometryOpts { granularity?: Granularity; }
 export interface ChartGeometry {
   kind: ChartKind;
   width: number; height: number;
@@ -9,11 +14,24 @@ export interface ChartGeometry {
   band: string;
   bars: Array<{ x: number; y: number; w: number; h: number }>;
   yTicks: Array<{ y: number; value: number }>;
+  /** Nur Zahlen, keine Texte — das View-Model holt den Schlüssel über `i`. */
+  xTicks: Array<{ i: number; x: number }>;
+  weekMarks: number[];
 }
 
-export function buildChartGeometry(points: RollupPoint[], kind: ChartKind, dims: ChartDims): ChartGeometry {
+/** Montag = 1 nach getUTCDay(). Der Key ist UTC-Mitternacht; ohne das "T00:00:00Z"
+ *  interpretiert Node ihn zonenabhängig und der Wochentag kippt. */
+function isMonday(key: string): boolean {
+  return new Date(`${key}T00:00:00Z`).getUTCDay() === 1;
+}
+
+export function buildChartGeometry(
+  points: RollupPoint[], kind: ChartKind, dims: ChartDims, opts?: GeometryOpts,
+): ChartGeometry {
   const { width, height, padding } = dims;
-  const empty: ChartGeometry = { kind, width, height, polyline: "", band: "", bars: [], yTicks: [] };
+  const empty: ChartGeometry = {
+    kind, width, height, polyline: "", band: "", bars: [], yTicks: [], xTicks: [], weekMarks: [],
+  };
   if (points.length === 0) return empty;
 
   const values = points.map((p) => p.value);
@@ -32,8 +50,26 @@ export function buildChartGeometry(points: RollupPoint[], kind: ChartKind, dims:
 
   const yTicks = [lo, (lo + hi) / 2, hi].map((value) => ({ y: scaleY(value), value }));
 
+  // Achsendaten entstehen nur auf Anfrage. Sparklines rufen dreiargumentig auf und
+  // bekommen dieselbe Geometrie wie bisher — das hält die Übersicht unberührt.
+  const g = opts?.granularity;
+  const slotW = innerW / n;
+  const tickX = (i: number): number => (kind === "bar" ? padding + i * slotW + slotW / 2 : scaleX(i));
+  const xTicks: Array<{ i: number; x: number }> = [];
+  const weekMarks: number[] = [];
+  if (g) {
+    const step = Math.max(1, Math.ceil(n / AXIS_TICKS));
+    for (let i = 0; i < n; i += step) xTicks.push({ i, x: tickX(i) });
+    if (g === "day") {
+      for (let i = 0; i < n; i++) {
+        // Der Strich grenzt die Woche ab, markiert also den Anfang des Montags-Slots
+        // und nicht dessen Mitte — sonst steht er auf dem Balken statt vor ihm.
+        if (isMonday(points[i].key)) weekMarks.push(kind === "bar" ? padding + i * slotW : scaleX(i));
+      }
+    }
+  }
+
   if (kind === "bar") {
-    const slotW = innerW / n;
     const barW = slotW * 0.8;
     const base = scaleY(lo);
     const bars = points.map((p, i) => {
@@ -41,7 +77,7 @@ export function buildChartGeometry(points: RollupPoint[], kind: ChartKind, dims:
       const y = scaleY(p.value);
       return { x, y, w: barW, h: Math.max(0, base - y) };
     });
-    return { kind, width, height, polyline: "", band: "", bars, yTicks };
+    return { kind, width, height, polyline: "", band: "", bars, yTicks, xTicks, weekMarks };
   }
 
   const polyline = points.map((p, i) => `${scaleX(i)},${scaleY(p.value)}`).join(" ");
@@ -51,5 +87,5 @@ export function buildChartGeometry(points: RollupPoint[], kind: ChartKind, dims:
     const bottom = points.map((p, i) => `${scaleX(i)},${scaleY(p.min ?? p.value)}`).reverse();
     band = [...top, ...bottom].join(" ");
   }
-  return { kind, width, height, polyline, band, bars: [], yTicks };
+  return { kind, width, height, polyline, band, bars: [], yTicks, xTicks, weekMarks };
 }

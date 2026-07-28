@@ -62,3 +62,86 @@ describe("buildDetailVM", () => {
     expect(vm.empty).toBe(true);
   });
 });
+
+describe("buildDetailVM — Achse und Tabelle", () => {
+  const dims = { width: 640, height: 260, padding: 24 };
+
+  const measureCache: HealthCache = {
+    version: 1, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
+    dateRange: { from: "2026-07-27", to: "2026-07-29" },
+    metrics: {
+      HKQuantityTypeIdentifierRestingHeartRate: {
+        unit: "bpm", policy: "measure",
+        daily: {
+          "2026-07-27": { min: 50, max: 90, avg: 60, count: 2 },
+          "2026-07-28": { min: 55, max: 95, avg: 72.3456, count: 2 },
+        },
+      },
+    },
+    workouts: [],
+  };
+
+  const sumCache: HealthCache = {
+    version: 1, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    dateRange: { from: "2026-07-27", to: "2026-07-28" },
+    metrics: {
+      HKQuantityTypeIdentifierStepCount: {
+        unit: "count", policy: "sum",
+        daily: { "2026-07-28": { sum: 8000, count: 1 } },
+      },
+    },
+    workouts: [],
+  };
+
+  it("measure: vier Spalten, Einheit im Kopf statt in den Zellen", () => {
+    const vm = buildDetailVM(measureCache, "HKQuantityTypeIdentifierRestingHeartRate", "1M", dims);
+    expect(vm.table.headers).toHaveLength(4);
+    expect(vm.table.headers[1]).toContain("bpm");
+    // Keine Zelle trägt die Einheit
+    for (const row of vm.table.rows) {
+      for (const cell of row) expect(cell).not.toContain("bpm");
+    }
+  });
+
+  it("sum: zwei Spalten", () => {
+    const vm = buildDetailVM(sumCache, "HKQuantityTypeIdentifierStepCount", "1M", dims);
+    expect(vm.table.headers).toHaveLength(2);
+    expect(vm.table.rows[0]).toHaveLength(2);
+  });
+
+  it("erste Spalte trägt den rohen Schlüssel, nicht das Achsenformat", () => {
+    const vm = buildDetailVM(sumCache, "HKQuantityTypeIdentifierStepCount", "1M", dims);
+    expect(vm.table.rows[0][0]).toBe("2026-07-28");
+  });
+
+  it("rows sind locale-formatiert, rowsRaw tragen Punkt-Dezimalzahlen", () => {
+    const vm = buildDetailVM(measureCache, "HKQuantityTypeIdentifierRestingHeartRate", "1M", dims);
+    const i = vm.table.rows.findIndex((r) => r[0] === "2026-07-28");
+    expect(vm.table.rows[i][1]).toBe("72,3");    // de-DE, gerundet wie formatValue
+    expect(vm.table.rowsRaw[i][1]).toBe("72.346"); // roh, Punkt, 3 Nachkommastellen
+  });
+
+  it("Achse: x-Labels tragen Prozentpositionen zwischen 0 und 100", () => {
+    const vm = buildDetailVM(measureCache, "HKQuantityTypeIdentifierRestingHeartRate", "1M", dims);
+    expect(vm.axis.x.length).toBeGreaterThan(0);
+    for (const tick of vm.axis.x) {
+      expect(tick.leftPct).toBeGreaterThanOrEqual(0);
+      expect(tick.leftPct).toBeLessThanOrEqual(100);
+      expect(tick.label).toBeTruthy();
+    }
+  });
+
+  it("Achse: drei y-Labels ohne Einheit", () => {
+    const vm = buildDetailVM(measureCache, "HKQuantityTypeIdentifierRestingHeartRate", "1M", dims);
+    expect(vm.axis.y).toHaveLength(3);
+    for (const tick of vm.axis.y) expect(tick.label).not.toContain("bpm");
+  });
+
+  it("unbekannte Metrik → leere Achse und leere Tabelle statt Absturz", () => {
+    const vm = buildDetailVM(measureCache, "GibtsNicht", "1M", dims);
+    expect(vm.empty).toBe(true);
+    expect(vm.axis.x).toEqual([]);
+    expect(vm.axis.y).toEqual([]);
+    expect(vm.table.rows).toEqual([]);
+  });
+});

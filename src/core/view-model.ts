@@ -1,9 +1,10 @@
 import type { HealthCache } from "./types";
 import { describeMetric, type Category } from "./metric-catalog";
-import { resolveRange, rollupDaily, type RangeKey } from "./rollup";
+import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granularity } from "./rollup";
 import { buildChartGeometry, type ChartDims, type ChartGeometry } from "./chart-geometry";
 import { computeStats } from "./series-stats";
-import { formatValue } from "./format";
+import { formatValue, formatTickLabel } from "./format";
+import type { Policy } from "./types";
 import { t } from "../vendor/kit/i18n";
 import { localeTag } from "../i18n/strings";
 
@@ -13,9 +14,66 @@ export interface OverviewVM {
   sections: Array<{ category: Category; categoryLabel: string; tiles: TileVM[] }>;
 }
 export interface StatRow { label: string; value: string; }
+export interface AxisVM {
+  x: Array<{ leftPct: number; label: string }>;
+  y: Array<{ topPct: number; label: string }>;
+}
+export interface TableVM {
+  headers: string[];
+  rows: string[][];     // locale-formatiert — Anzeige und Markdown
+  rowsRaw: string[][];  // rohe Zahlen mit Punkt — CSV
+}
 export interface DetailVM {
   id: string; name: string; unit: string; empty: boolean;
   rangeLabel: string; chart: ChartGeometry; stats: StatRow[];
+  axis: AxisVM; table: TableVM;
+}
+
+const EMPTY_TABLE: TableVM = { headers: [], rows: [], rowsRaw: [] };
+const EMPTY_AXIS: AxisVM = { x: [], y: [] };
+
+function colDateKey(g: Granularity): string {
+  if (g === "week") return "table.colWeek";
+  if (g === "month") return "table.colMonth";
+  return "table.colDate";
+}
+
+/** Die Einheit steht im Kopf, nie in der Zelle: sonst wiederholt sie sich
+ *  hundertfach und macht die Werte für Weiterverarbeitung unbrauchbar. */
+function withUnit(label: string, unit: string): string {
+  return unit ? `${label} (${unit})` : label;
+}
+
+function fmtCell(n: number | undefined): string {
+  return n === undefined ? "—" : formatValue(n, "");
+}
+
+/** Rohwert fürs CSV: Punkt-Dezimaltrenner, drei Nachkommastellen. formatValue
+ *  liefert auf Deutsch "1.234,5" — das zerlegt eine komma-getrennte CSV-Zelle,
+ *  und selbst gequotet liest eine Tabellenkalkulation den Wert als Text. */
+function rawCell(n: number | undefined): string {
+  return n === undefined ? "" : String(Math.round(n * 1000) / 1000);
+}
+
+function buildTable(points: RollupPoint[], policy: Policy, unit: string, g: Granularity): TableVM {
+  const dateCol = t(colDateKey(g));
+  if (policy === "measure") {
+    return {
+      headers: [
+        dateCol,
+        withUnit(t("stat.avg"), unit),
+        withUnit(t("stat.min"), unit),
+        withUnit(t("stat.max"), unit),
+      ],
+      rows: points.map((p) => [p.key, fmtCell(p.value), fmtCell(p.min), fmtCell(p.max)]),
+      rowsRaw: points.map((p) => [p.key, rawCell(p.value), rawCell(p.min), rawCell(p.max)]),
+    };
+  }
+  return {
+    headers: [dateCol, withUnit(t("table.colValue"), unit)],
+    rows: points.map((p) => [p.key, fmtCell(p.value)]),
+    rowsRaw: points.map((p) => [p.key, rawCell(p.value)]),
+  };
 }
 
 export const CATEGORY_ORDER: Category[] = ["activity", "heart", "body", "sleep", "nutrition", "other"];
@@ -61,12 +119,30 @@ export function buildOverviewVM(cache: HealthCache, favorites: string[], sparkDi
 export function buildDetailVM(cache: HealthCache, metricId: string, range: RangeKey, dims: ChartDims): DetailVM {
   const series = cache.metrics[metricId];
   if (!series || !cache.dateRange) {
-    return { id: metricId, name: metricId, unit: "", empty: true, rangeLabel: "", chart: buildChartGeometry([], "line", dims), stats: [] };
+    return {
+      id: metricId, name: metricId, unit: "", empty: true, rangeLabel: "",
+      chart: buildChartGeometry([], "line", dims), stats: [],
+      axis: EMPTY_AXIS, table: EMPTY_TABLE,
+    };
   }
   const info = describeMetric(metricId, series.policy);
   const r = resolveRange(range, cache.dateRange);
   const points = rollupDaily(series.daily, series.policy, r);
-  const chart = buildChartGeometry(points, info.chartKind, dims);
+  const chart = buildChartGeometry(points, info.chartKind, dims, { granularity: r.granularity });
+  // Die Prozentumrechnung passiert hier, damit die Obsidian-Schicht keine
+  // Koordinatenrechnung enthält. Die Wochenlinien bleiben bewusst außen vor:
+  // sie werden IM SVG gezeichnet und brauchen viewBox-Einheiten.
+  const axis: AxisVM = {
+    x: chart.xTicks.map((tick) => ({
+      leftPct: (tick.x / dims.width) * 100,
+      label: formatTickLabel(points[tick.i].key, r.granularity),
+    })),
+    y: chart.yTicks.map((tick) => ({
+      topPct: (tick.y / dims.height) * 100,
+      label: formatValue(tick.value, ""),
+    })),
+  };
+  const table = buildTable(points, series.policy, series.unit, r.granularity);
   const s = computeStats(series.daily, series.policy, r);
   const stats: StatRow[] = series.policy === "measure"
     ? [
@@ -81,5 +157,5 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
         { label: t("stat.total"), value: s.total !== undefined ? formatValue(s.total, series.unit) : "—" },
       ];
   const rangeLabel = points.length ? `${points[0].key} – ${points[points.length - 1].key}` : "";
-  return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats };
+  return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats, axis, table };
 }

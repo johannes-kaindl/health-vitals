@@ -57,6 +57,11 @@ Export-Datei selbst wird ausschließlich gelesen — nichts davon wird
 geschrieben, verschoben oder irgendwohin gesendet. Die daraus ausgewerteten
 Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
 
+Getrennt davon kann das Detail-Tab auf Wunsch Werte-Tabellen **innerhalb**
+des Vaults als Datei ablegen — das ist kein Zugriff außerhalb des Vaults,
+sondern ein gewöhnlicher Schreibvorgang in einen von dir gewählten Ordner
+deines Vaults. Details dazu unter „Datenschutz".
+
 ## Dashboard
 
 Command-Palette → **„Health Vitals: Dashboard öffnen"** (oder das Ribbon-Icon).
@@ -69,7 +74,10 @@ bleibt unbelastet. Drei Tabs:
 - **Detail** — Klick auf eine Kachel öffnet die Zeitreihe: Zeitraum-Presets
   1M / 3M / 1J / Alles, darunter die passenden Kennzahlen. Lange Zeiträume
   werden automatisch gebündelt (Tage → Wochen → Monate), damit der Chart
-  lesbar bleibt.
+  lesbar bleibt. Darunter lässt sich eine Werte-Tabelle mit den zugrunde
+  liegenden Zeilen ausklappen; ihr Inhalt kann in die Zwischenablage
+  kopiert oder als Markdown- oder CSV-Datei in einen selbst gewählten
+  Vault-Ordner geschrieben werden (siehe „Datenschutz").
 - **Workouts** — Workouts pro Monat als Balken, darunter die letzten Einheiten
   mit Typ, Datum und Dauer.
 
@@ -102,6 +110,17 @@ Gesundheitsdaten sind besonders sensibel. Deshalb:
   kopiert wird.
 - `isDesktopOnly: true` — der Import großer XML-Dateien ist nur auf dem Desktop
   sinnvoll.
+- **Der Werte-Export im Detail-Tab schreibt in deinen Vault, aber nur wenn du
+  auf „Speichern" klickst.** Es gibt dort eine ausklappbare Werte-Tabelle mit
+  den Rohwerten der aktuellen Metrik und des aktuellen Zeitraums; ein Klick
+  auf „Speichern" legt sie als `.md`- oder `.csv`-Datei in einem von dir
+  gewählten Vault-Ordner ab (Ordnerfeld mit Autocomplete über deine
+  bestehenden Ordner). Der Dateiname setzt sich aus Metrikname sowie erstem
+  und letztem Zeitschlüssel der Tabelle zusammen. Existiert die Datei schon,
+  wird sie **nie überschrieben** — stattdessen hängt das Plugin eine
+  fortlaufende Nummer an (` 2`, ` 3`, …), bis ein freier Name gefunden ist.
+  Diese Export-Dateien liegen danach wie jede andere Notiz in deinem Vault:
+  wenn dein Vault synchronisiert oder versioniert wird, gilt das auch für sie.
 
 Wenn du deinen Vault synchronisierst, liegt `health-cache.json` im
 Plugin-Ordner unter `.obsidian/` und wird je nach Sync-Konfiguration

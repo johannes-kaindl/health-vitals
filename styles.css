@@ -65,3 +65,65 @@
   color: var(--text-error);
   max-width: 40em;
 }
+
+/* --- Chart-Achsen (Slice 3c) --- */
+.ah-chart-frame {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--size-4-2);
+}
+/* Breite wird pro Render in chart-render.ts inline gesetzt (an die längste
+   Beschriftung angepasst, siehe Kommentar dort); dies ist nur der Fallback,
+   solange kein Tick vorliegt. */
+.ah-axis-y { position: relative; min-width: 1ch; }
+.ah-axis-x { position: relative; height: 1.6em; }
+.ah-axis-label {
+  position: absolute;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.ah-axis-y .ah-axis-label { right: 0; transform: translateY(-50%); }
+.ah-axis-x .ah-axis-label { transform: translateX(-50%); }
+.ah-chart-week { stroke: var(--background-modifier-border); stroke-width: 1; opacity: 0.5; }
+
+/* --- Kit: collapsible section (verbatim aus src/vendor/kit-obsidian/collapsible.ts, COLLAPSIBLE_CSS) --- */
+.okit-collapsible-header {
+  display: flex; align-items: center; gap: var(--size-4-2);
+  cursor: pointer; padding: var(--size-4-2) 0;
+  font-weight: var(--font-semibold); color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.okit-collapsible-header:hover { color: var(--text-accent); }
+.okit-collapsible-header:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+.okit-collapsible-chevron { display: inline-flex; color: var(--text-muted); }
+.okit-collapsible-body { padding-top: var(--size-4-2); }
+.okit-collapsible-body.is-collapsed { display: none; }
+
+/* --- Werte-Tabelle (Slice 3c) --- */
+.ah-table-wrap { max-height: 22em; overflow: auto; }
+.ah-table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-small); }
+.ah-table th, .ah-table td {
+  text-align: left;
+  padding: var(--size-4-1) var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.ah-table th { color: var(--text-muted); font-weight: var(--font-semibold); position: sticky; top: 0; background: var(--background-primary); }
+.ah-table tr:hover td { background: var(--background-modifier-hover); }
+
+/* --- Export-Zeile (Slice 3c) --- */
+.ah-export-row {
+  display: flex; align-items: center; gap: var(--size-4-2);
+  flex-wrap: wrap; margin-bottom: var(--size-4-2);
+}
+.ah-export-folder {
+  display: flex; align-items: center; gap: var(--size-4-2);
+  margin-bottom: var(--size-4-2);
+}
+.ah-export-folder input { flex: 1; min-width: 12ch; }
+.ah-export-label { color: var(--text-muted); font-size: var(--font-ui-small); }

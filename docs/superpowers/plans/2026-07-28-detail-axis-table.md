@@ -445,6 +445,16 @@ describe("formatTickLabel", () => {
     expect(label).toContain("26");
   });
 
+  it("Monat: auch lange Monatsnamen bleiben kurz", () => {
+    // Achtung, ICU-Falle: `{ month: "short", year: "2-digit" }` in EINEM Aufruf
+    // wählt im Deutschen ein längeres Muster ("Sept. 26", "Juli 26", "März 26").
+    // Nur getrennt formatiert kommt das echte Kurzmuster heraus. Dieser Test
+    // fällt, sobald jemand die beiden Aufrufe wieder zusammenlegt.
+    expect(formatTickLabel("2026-09", "month")).not.toContain(".");
+    expect(formatTickLabel("2026-09", "month").length).toBeLessThanOrEqual(7);
+    expect(formatTickLabel("2026-03", "month").length).toBeLessThanOrEqual(7);
+  });
+
   it("Woche auf Englisch nutzt den englischen Präfix", () => {
     setLang("en");
     expect(formatTickLabel("2026-W30", "week")).toBe("W 30");
@@ -491,9 +501,13 @@ export function formatTickLabel(key: string, g: Granularity): string {
     return `${t("axis.week")} ${week}`;
   }
   if (g === "month") {
-    return new Date(`${key}-01T00:00:00Z`).toLocaleDateString(localeTag(), {
-      month: "short", year: "2-digit", timeZone: "UTC",
-    });
+    // Monat und Jahr GETRENNT formatieren: in einem Aufruf kombiniert wählt ICU
+    // im Deutschen ein längeres Muster ("Sept. 26" statt "Sep 26"), was bei fünf
+    // Labels nebeneinander in einer schmalen Sidebar überlappt.
+    const d = new Date(`${key}-01T00:00:00Z`);
+    const month = d.toLocaleDateString(localeTag(), { month: "short", timeZone: "UTC" });
+    const year = d.toLocaleDateString(localeTag(), { year: "2-digit", timeZone: "UTC" });
+    return `${month} ${year}`;
   }
   return new Date(`${key}T00:00:00Z`).toLocaleDateString(localeTag(), {
     day: "2-digit", month: "2-digit", timeZone: "UTC",
@@ -571,6 +585,12 @@ describe("toCsv", () => {
     expect(toCsv(["A"], [["a\nb"]])).toBe('A\n"a\nb"');
   });
 
+  it("auch ein alleinstehendes Carriage Return wird gequotet", () => {
+    // Die Einheiten in den Spaltenköpfen stammen aus dem Apple-Export, sind also
+    // fremdbestimmt. Ein ungequotetes \r bricht CSV-Parser, die es als Zeilenende lesen.
+    expect(toCsv(["A"], [["a\rb"]])).toBe('A\n"a\rb"');
+  });
+
   it("harmlose Zellen bleiben unquotiert", () => {
     expect(toCsv(["A"], [["72.5"]])).toBe("A\n72.5");
   });
@@ -606,9 +626,11 @@ export function toMarkdownTable(headers: string[], rows: string[][]): string {
   return [head, sep, ...body].join("\n");
 }
 
-/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt. */
+/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt.
+ *  `\r` gehört mit in die Zeichenklasse — ein alleinstehendes Carriage Return ist für
+ *  CSV-Parser ein Zeilenende und zerlegt sonst den Datensatz. */
 function csvCell(cell: string): string {
-  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  return /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
 }
 
 /** Zeilenende `\n` statt des von RFC 4180 verlangten `\r\n` — Ziel ist ein
@@ -1711,38 +1733,28 @@ Und die Host-Methoden neben `toggleFavorite` einfügen:
   }
 ```
 
-`loadPluginData` bleibt unverändert — das vorhandene `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` füllt fehlende Felder alter `data.json`-Dateien automatisch auf.
+`loadPluginData` muss die verschachtelten Felder **tief** übernehmen. Der vorhandene flache Spread `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` füllt fehlende Felder zwar auf, kopiert dabei aber die *Referenz* auf `DEFAULT_DATA.collapsed` bzw. `DEFAULT_DATA.favorites` — `setCollapsed`/`toggleFavorite` mutieren danach die Modul-Vorlage selbst, und die nächste Plugin-Instanz im selben Prozess startet mit verunreinigten Defaults:
 
-- [ ] **Step 5: Tests laufen lassen**
-
-Run: `npx vitest run tests/obsidian/main-host.test.ts && npm run typecheck`
-Expected: Tests PASS. Der Typecheck meldet noch einen Fehler in `tests/obsidian/detail.test.ts`, weil `renderDetail` dort viergargumentig gerufen wird — der wird in Task 13 behoben. Ist der Typecheck Teil des Commit-Gates, führe Task 13 direkt anschließend aus.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/main.ts src/obsidian/dashboard-view.ts tests/obsidian/main-host.test.ts
-git commit -m "feat(obsidian): Export-Ordner, -Format und Aufklappzustand in data.json
-
-DashboardHost erfüllt zugleich das CollapsibleStorage-Interface des Kit-Moduls."
+```ts
+  async loadPluginData(): Promise<void> {
+    const loaded = (await this.loadData()) as Partial<PluginData> | null;
+    // Flacher Spread genügt hier NICHT: Für die verschachtelten Felder kopierte er die
+    // Referenz auf DEFAULT_DATA, und die späteren In-place-Mutationen (toggleFavorite,
+    // setCollapsed) verändern dann dauerhaft die Vorlage.
+    this.data = {
+      ...DEFAULT_DATA,
+      ...(loaded ?? {}),
+      favorites: [...(loaded?.favorites ?? DEFAULT_DATA.favorites)],
+      collapsed: { ...DEFAULT_DATA.collapsed, ...(loaded?.collapsed ?? {}) },
+    };
+  }
 ```
 
----
+Das gilt auch für den Feld-Initialisierer `private data: PluginData = { ...DEFAULT_DATA }` — er teilt dieselben Referenzen, bis `loadPluginData` läuft.
 
-### Task 13: Detail-Tab — Aufklapp-Sektion mit Werte-Tabelle
+- [ ] **Step 5: Bestandstests auf die neue Signatur heben**
 
-**Files:**
-- Modify: `src/obsidian/tabs/detail.ts`
-- Modify: `styles.css`
-- Test: `tests/obsidian/detail.test.ts`
-
-**Interfaces:**
-- Consumes: `collapsibleSection` (Task 8), `DetailVM.table` (Task 7), `DashboardHost` (Task 12)
-- Produces: `renderDetail(el, cache, state, onState, view: DashboardView): void` — fünfter Parameter neu
-
-- [ ] **Step 1: Bestehende Tests auf die neue Signatur heben**
-
-In `tests/obsidian/detail.test.ts` einen View-Stub ergänzen und allen `renderDetail`-Aufrufen als fünftes Argument mitgeben:
+`renderDetail` hat jetzt einen fünften Parameter — die vorhandenen Aufrufe in `tests/obsidian/detail.test.ts` rufen noch viergargumentig und brechen den Typecheck. Ergänze in der Datei einen View-Stub und gib ihn **allen** bestehenden `renderDetail`-Aufrufen als fünftes Argument mit:
 
 ```ts
 function fakeView(): any {
@@ -1761,11 +1773,42 @@ function fakeView(): any {
 }
 ```
 
-`fakeEl()` in dieser Datei muss zusätzlich `setCssStyles` und `createSvg` mit `attr` unterstützen — ergänze im Helfer:
+Erweitere im selben Zug den `fakeEl()`-Helfer der Datei um die Methode, die der Achsen-Layer aufruft:
 
 ```ts
     setCssStyles(_s: any) {},
 ```
+
+- [ ] **Step 6: Tests und Typecheck**
+
+Run: `npm test && npm run typecheck`
+Expected: **beides grün.** Die Task hinterlässt keinen roten Zwischenstand — das ist der Grund, warum die Test-Anpassung hier und nicht in Task 13 steht.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/main.ts src/obsidian/dashboard-view.ts tests/obsidian/main-host.test.ts tests/obsidian/detail.test.ts
+git commit -m "feat(obsidian): Export-Ordner, -Format und Aufklappzustand in data.json
+
+DashboardHost erfüllt zugleich das CollapsibleStorage-Interface des Kit-Moduls."
+```
+
+---
+
+### Task 13: Detail-Tab — Aufklapp-Sektion mit Werte-Tabelle
+
+**Files:**
+- Modify: `src/obsidian/tabs/detail.ts`
+- Modify: `styles.css`
+- Test: `tests/obsidian/detail.test.ts`
+
+**Interfaces:**
+- Consumes: `collapsibleSection` (Task 8), `DetailVM.table` (Task 7), `DashboardHost` (Task 12)
+- Produces: `renderDetail(el, cache, state, onState, view: DashboardView): void` — fünfter Parameter neu
+
+- [ ] **Step 1: Voraussetzung prüfen**
+
+Der View-Stub `fakeView()` und die `setCssStyles`-Ergänzung in `fakeEl()` stammen aus Task 12 und liegen bereits in `tests/obsidian/detail.test.ts`. Vergewissere dich davon (`npm test`), bevor du weiterschreibst — die folgenden Tests bauen darauf auf.
 
 - [ ] **Step 2: Failing tests für die Tabelle schreiben**
 
@@ -1934,7 +1977,7 @@ describe("renderDetail — Export-Zeile", () => {
     vi.unstubAllGlobals();
   });
 
-  it("bei CSV-Format kopiert derselbe Button eine CSV", async () => {
+  it("bei CSV-Format kopiert derselbe Button eine CSV mit ROHEN Zahlen", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const view = fakeView();
@@ -1943,8 +1986,15 @@ describe("renderDetail — Export-Zeile", () => {
     renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
     findByText(el, "Kopieren")._click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
-    expect(writeText.mock.calls[0][0]).not.toContain("|");
-    expect(writeText.mock.calls[0][0]).toContain(",");
+    const out = writeText.mock.calls[0][0];
+    expect(out).not.toContain("|");
+    // Der eigentliche Punkt: CSV muss aus rowsRaw stammen. Auf Deutsch formatiert
+    // formatValue 1500 zu "1.500" — der Punkt als Tausendertrenner. Nur ein Wert
+    // ÜBER 1000 im Fixture macht eine Vertauschung von rows/rowsRaw überhaupt
+    // sichtbar; bei kleinen Zahlen sind beide Zeilensätze identisch und der Test
+    // wäre auch mit vertauschten Argumenten grün.
+    expect(out).toContain("1500");
+    expect(out).not.toContain("1.500");
     vi.unstubAllGlobals();
   });
 });
@@ -2159,4 +2209,4 @@ Node-Tests können die Naht zum Host nicht prüfen. Lege eine Handover-Note im C
 
 **Typkonsistenz:** `AxisVM`/`TableVM` werden in Task 7 definiert und in 11/13/14 unter denselben Namen konsumiert. `buildChartGeometry`s vierter Parameter heißt durchgehend `opts` mit Feld `granularity`. `writeExport` hat in Task 10 und 14 dieselbe fünfstellige Signatur. `ExportFormat` wird in Task 12 exportiert und in 14 importiert. `buildExportName` ist überall dreiargumentig (ohne Endung) — **abweichend von der Spec**, die vier Parameter nennt; die Spec wird entsprechend präzisiert, weil das Kollisions-Suffix vor die Endung muss.
 
-**Reihenfolge-Abhängigkeiten:** Task 2 (i18n) vor 4, 7, 13, 14. Task 3 vor 7 und 11. Task 7 vor 11, 13, 14. Task 12 vor 13 und 14. Task 8 vor 13 (collapsible) und 14 (FolderSuggest). Zwischen Task 12 und 13 ist der Typecheck kurzzeitig rot (`renderDetail`-Signatur) — im Plan an Ort und Stelle vermerkt.
+**Reihenfolge-Abhängigkeiten:** Task 2 (i18n) vor 4, 7, 13, 14. Task 3 vor 7 und 11. Task 7 vor 11, 13, 14. Task 12 vor 13 und 14. Task 8 vor 13 (collapsible) und 14 (FolderSuggest). **Jede Task hinterlässt einen grünen Typecheck** — der Signaturwechsel an `renderDetail` und die Anpassung seiner Bestandstests liegen beide in Task 12.

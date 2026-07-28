@@ -30,4 +30,24 @@ describe("strings", () => {
     setLang("en");
     expect(localeTag()).toBe("en-US");
   });
+
+  it("Achsen-, Tabellen- und Export-Keys sind in beiden Sprachen belegt", () => {
+    const keys = [
+      "axis.week", "table.title", "table.colDate", "table.colWeek",
+      "table.colMonth", "table.colValue", "export.copy", "export.save",
+      "export.folder", "export.copied", "export.copyFailed",
+      "export.saved", "export.saveFailed",
+    ];
+    for (const k of keys) {
+      expect(EN[k], `EN fehlt: ${k}`).toBeTruthy();
+      expect(DE[k], `DE fehlt: ${k}`).toBeTruthy();
+    }
+  });
+
+  it("Platzhalter-Keys tragen ihren {0}-Slot in beiden Sprachen", () => {
+    for (const k of ["export.copied", "export.saved", "export.saveFailed"]) {
+      expect(EN[k]).toContain("{0}");
+      expect(DE[k]).toContain("{0}");
+    }
+  });
 });

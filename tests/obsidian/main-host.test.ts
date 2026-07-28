@@ -1,6 +1,10 @@
 import AppleHealthPlugin from "../../src/main";
 import type { HealthCache } from "../../src/core/types";
 
+function makePlugin(): any {
+  return new AppleHealthPlugin({} as any, {} as any) as any;
+}
+
 describe("AppleHealthPlugin favorites host", () => {
   it("toggleFavorite fügt hinzu und entfernt, persistiert über saveData", async () => {
     const p = new AppleHealthPlugin({} as any, {} as any) as any;
@@ -70,5 +74,59 @@ describe("AppleHealthPlugin cache I/O", () => {
     expect(writes).toHaveLength(1);
     expect(writes[0].path).toBe(".my-config/plugins/apple-health/health-cache.json");
     expect(JSON.parse(writes[0].data)).toEqual(cache);
+  });
+});
+
+describe("Export-Einstellungen im Plugin-Data", () => {
+  it("Defaults: leerer Ordner, Markdown, nichts eingeklappt gespeichert", async () => {
+    const plugin = makePlugin();           // vorhandener Helfer der Datei
+    await plugin.loadPluginData();
+    expect(plugin.getExportFolder()).toBe("");
+    expect(plugin.getExportFormat()).toBe("md");
+    expect(plugin.getCollapsed("detail-values")).toBeUndefined();
+  });
+
+  it("Setzen persistiert über saveData", async () => {
+    const plugin = makePlugin();
+    const saved: any[] = [];
+    plugin.saveData = async (d: any) => { saved.push(d); };
+    await plugin.loadPluginData();
+    plugin.setExportFolder("30_Health");
+    plugin.setExportFormat("csv");
+    plugin.setCollapsed("detail-values", false);
+    // Nicht nur den In-Memory-Zustand zurücklesen (das würde auch dann grün sein, wenn
+    // saveData gar nicht aufgerufen würde) — sondern belegen, dass jeder Setter tatsächlich
+    // mit den erwarteten Daten persistiert hat.
+    expect(saved).toHaveLength(3);
+    expect(saved[0]).toMatchObject({ exportFolder: "30_Health" });
+    expect(saved[1]).toMatchObject({ exportFormat: "csv" });
+    expect(saved[2]).toMatchObject({ collapsed: { "detail-values": false } });
+  });
+
+  it("Altes data.json ohne die neuen Felder lädt ohne Absturz", async () => {
+    const plugin = makePlugin();
+    plugin.loadData = async () => ({ favorites: ["a"] });
+    await plugin.loadPluginData();
+    expect(plugin.getFavorites()).toEqual(["a"]);
+    expect(plugin.getExportFolder()).toBe("");
+    expect(plugin.getExportFormat()).toBe("md");
+  });
+
+  it("zwei Instanzen ohne gespeicherte Felder teilen keine Default-Referenz (kein Cross-Instance-Leak)", async () => {
+    // Regression: DEFAULT_DATA.collapsed/favorites sind Modul-Level-Objekte/Arrays. Ein
+    // flacher Spread `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` übernimmt bei fehlendem Feld
+    // (jedes alte data.json, oder der allererste Start ohne data.json) die REFERENZ auf die
+    // Default-Vorlage statt eine Kopie — nachfolgende Mutationen (setCollapsed, toggleFavorite)
+    // verunreinigen dann DEFAULT_DATA selbst und damit jede später im selben Prozess
+    // erzeugte Plugin-Instanz (Dev-Hot-Reload, Deaktivieren/Aktivieren ohne Neustart).
+    const first = makePlugin();
+    await first.loadPluginData(); // loadData() liefert null → nichts geladen, reiner Default-Pfad
+    first.setCollapsed("detail-values", true);
+    await first.toggleFavorite("HKQuantityTypeIdentifierStepCount");
+
+    const second = makePlugin();
+    await second.loadPluginData();
+    expect(second.getCollapsed("detail-values")).toBeUndefined();
+    expect(second.getFavorites()).toEqual([]);
   });
 });

@@ -12,3 +12,6 @@ import/
 node_modules/
 # macOS-Clutter
 .DS_Store
+
+# Arbeitsverzeichnis der Subagent-Läufe (Briefs, Berichte, Review-Diffs) — nie ins Repo
+.superpowers/

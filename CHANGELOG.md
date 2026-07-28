@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Detail-Chart: Achsenbeschriftung (Datum, Kalenderwoche oder Monat je Zeitraum) und
+  Werte an den Gitterlinien.
+- Detail-Chart: Wochenanfänge sind bei Tagesauflösung markiert.
+- Detail-Ansicht: aufklappbare Werte-Tabelle unter dem Chart.
+- Werte-Export als Markdown-Tabelle oder CSV — in die Zwischenablage oder als Datei
+  ins Vault, mit Ordnerauswahl. Bestehende Dateien werden nie überschrieben.
+
 ## [0.2.0] — 2026-07-23
 
 ### Added

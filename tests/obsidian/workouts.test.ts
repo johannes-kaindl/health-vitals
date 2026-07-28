@@ -6,7 +6,7 @@ function fakeEl(): any {
     createDiv(o?: any) { const c = fakeEl(); c.cls = (o && o.cls) || ""; el.children.push(c); return c; },
     createEl(_t: string, o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
-    createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
+    createSvg(tag: string, o?: any) { const c = fakeEl(); c.tag = tag; c.cls = (o && o.cls) || ""; el.children.push(c); return c; },
     addEventListener() {}, setAttribute() {}, addClass() {},
   };
   return el;
@@ -34,5 +34,10 @@ describe("renderWorkouts", () => {
   it("leere Workouts → Hinweis statt Absturz", () => {
     const el = fakeEl();
     expect(() => renderWorkouts(el, { ...cache, workouts: [] })).not.toThrow();
+  });
+  it("Monatschart hat Gitterlinien", () => {
+    const el = fakeEl();
+    renderWorkouts(el, cache);
+    expect(countClass(el, "ah-chart-grid")).toBeGreaterThan(0);
   });
 });
