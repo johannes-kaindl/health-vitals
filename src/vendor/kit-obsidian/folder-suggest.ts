@@ -1,12 +1,12 @@
-/** Autocomplete-Suggest für Vault-Ordner in einem Text-Input-Feld.
- *  VENDORED (kit-Kandidat, REGISTRY §36) aus `local-image-generator/src/obsidian/
- *  folder-suggest.ts` (selbst aus `vault-rag/src/settings.ts`). Zwei Details des
- *  Originals sind bewusst erhalten, weil sie beim Neubau typischerweise fehlen:
- *  (1) `dispatchEvent(new Event("input"))` — ohne das feuert Obsidians Setting-onChange
- *      nach einer Klick-Auswahl NICHT, der gewählte Ordner würde also nie gespeichert.
- *  (2) `slice(0, 20)` — deckelt die Vorschlagsliste in großen Vaults. */
-import { AbstractInputSuggest, type App, type TFolder } from 'obsidian';
+import { AbstractInputSuggest, type App, type TFolder } from "obsidian";
 
+/** Ordner-Autocomplete für ein Settings-Textfeld (REGISTRY „Ordner-Autocomplete
+ *  im Settings-Textfeld", n=4: vault-rag → lig → kuro → apple-health).
+ *  Zwei load-bearing Details, die beim Neubau typischerweise fehlen:
+ *  (1) `dispatchEvent(new Event("input"))` in `selectSuggestion` — ohne das feuert
+ *      Obsidians Setting-onChange nach einer Klick-Auswahl NICHT, der gewählte
+ *      Ordner würde also nie gespeichert.
+ *  (2) `slice(0, 20)` — deckelt die Vorschlagsliste in großen Vaults. */
 export class FolderSuggest extends AbstractInputSuggest<string> {
   constructor(
     app: App,
@@ -30,7 +30,7 @@ export class FolderSuggest extends AbstractInputSuggest<string> {
 
   selectSuggestion(path: string, _evt: MouseEvent | KeyboardEvent): void {
     this.setValue(path);
-    this.textInputEl.dispatchEvent(new Event('input'));
+    this.textInputEl.dispatchEvent(new Event("input"));
     this.close();
   }
 }
