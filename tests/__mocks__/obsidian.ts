@@ -21,6 +21,7 @@ function makeEl(): any {
     removeClass() {},
     toggleClass(_cls: string, _value: boolean) {},
     setAttribute(_name: string, _value: string) {},
+    setCssStyles(styles: Record<string, string>) { Object.assign(el.style, styles); },
     addEventListener() {},
     removeEventListener() {},
     instanceOf(_type: any) { return true; }, // template stub: permissive so guards pass; refine per plugin
@@ -106,10 +107,6 @@ export async function requestUrl(_opts: any): Promise<{ status: number; text: st
   return { status: 200, text: "", json: {} };
 }
 
-export function setCssStyles(el: any, styles: Record<string, string>): void {
-  Object.assign(el.style, styles);
-}
-
 export class WorkspaceLeaf { view: any; }
 export class ItemView {
   containerEl: any = makeEl();
@@ -132,4 +129,14 @@ export class ButtonComponent {
   setIcon() { return this; }
   setTooltip() { return this; }
   onClick(_cb: any) { return this; }
+}
+
+export class AbstractInputSuggest<T> {
+  app: any;
+  constructor(app?: any, _inputEl?: any) { this.app = app; }
+  setValue(_v: string) {}
+  close() {}
+  getSuggestions(_q: string): T[] { return []; }
+  renderSuggestion(_item: T, _el: any): void {}
+  selectSuggestion(_item: T, _evt: any): void {}
 }

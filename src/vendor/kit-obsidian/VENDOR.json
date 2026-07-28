@@ -1,0 +1,17 @@
+{
+  "note": "Verbatim snapshots. Never hand-edit. Re-copy from the source to update.",
+  "modules": [
+    {
+      "file": "collapsible.ts",
+      "source": "obsidian-kit",
+      "version": "0.16.1",
+      "sha": "00fdd72"
+    },
+    {
+      "file": "folder-suggest.ts",
+      "source": "kuro-gamification/src/vendor/kit/folder-suggest.ts",
+      "status": "Kit-Kandidat (REGISTRY §36) — noch nicht im Kit; Ursprungskette vault-rag → local-image-generator → kuro-gamification",
+      "note": "Liegt hier nach UI-STANDARD §9 in kit-obsidian/, weil das Modul `obsidian` importiert. In kuro-gamification liegt es noch unter vendor/kit/ — den Fehler nicht zurückportieren."
+    }
+  ]
+}
