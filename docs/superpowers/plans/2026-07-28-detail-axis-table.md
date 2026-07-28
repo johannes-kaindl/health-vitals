@@ -1713,36 +1713,9 @@ Und die Host-Methoden neben `toggleFavorite` einfügen:
 
 `loadPluginData` bleibt unverändert — das vorhandene `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` füllt fehlende Felder alter `data.json`-Dateien automatisch auf.
 
-- [ ] **Step 5: Tests laufen lassen**
+- [ ] **Step 5: Bestandstests auf die neue Signatur heben**
 
-Run: `npx vitest run tests/obsidian/main-host.test.ts && npm run typecheck`
-Expected: Tests PASS. Der Typecheck meldet noch einen Fehler in `tests/obsidian/detail.test.ts`, weil `renderDetail` dort viergargumentig gerufen wird — der wird in Task 13 behoben. Ist der Typecheck Teil des Commit-Gates, führe Task 13 direkt anschließend aus.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/main.ts src/obsidian/dashboard-view.ts tests/obsidian/main-host.test.ts
-git commit -m "feat(obsidian): Export-Ordner, -Format und Aufklappzustand in data.json
-
-DashboardHost erfüllt zugleich das CollapsibleStorage-Interface des Kit-Moduls."
-```
-
----
-
-### Task 13: Detail-Tab — Aufklapp-Sektion mit Werte-Tabelle
-
-**Files:**
-- Modify: `src/obsidian/tabs/detail.ts`
-- Modify: `styles.css`
-- Test: `tests/obsidian/detail.test.ts`
-
-**Interfaces:**
-- Consumes: `collapsibleSection` (Task 8), `DetailVM.table` (Task 7), `DashboardHost` (Task 12)
-- Produces: `renderDetail(el, cache, state, onState, view: DashboardView): void` — fünfter Parameter neu
-
-- [ ] **Step 1: Bestehende Tests auf die neue Signatur heben**
-
-In `tests/obsidian/detail.test.ts` einen View-Stub ergänzen und allen `renderDetail`-Aufrufen als fünftes Argument mitgeben:
+`renderDetail` hat jetzt einen fünften Parameter — die vorhandenen Aufrufe in `tests/obsidian/detail.test.ts` rufen noch viergargumentig und brechen den Typecheck. Ergänze in der Datei einen View-Stub und gib ihn **allen** bestehenden `renderDetail`-Aufrufen als fünftes Argument mit:
 
 ```ts
 function fakeView(): any {
@@ -1761,11 +1734,42 @@ function fakeView(): any {
 }
 ```
 
-`fakeEl()` in dieser Datei muss zusätzlich `setCssStyles` und `createSvg` mit `attr` unterstützen — ergänze im Helfer:
+Erweitere im selben Zug den `fakeEl()`-Helfer der Datei um die Methode, die der Achsen-Layer aufruft:
 
 ```ts
     setCssStyles(_s: any) {},
 ```
+
+- [ ] **Step 6: Tests und Typecheck**
+
+Run: `npm test && npm run typecheck`
+Expected: **beides grün.** Die Task hinterlässt keinen roten Zwischenstand — das ist der Grund, warum die Test-Anpassung hier und nicht in Task 13 steht.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/main.ts src/obsidian/dashboard-view.ts tests/obsidian/main-host.test.ts tests/obsidian/detail.test.ts
+git commit -m "feat(obsidian): Export-Ordner, -Format und Aufklappzustand in data.json
+
+DashboardHost erfüllt zugleich das CollapsibleStorage-Interface des Kit-Moduls."
+```
+
+---
+
+### Task 13: Detail-Tab — Aufklapp-Sektion mit Werte-Tabelle
+
+**Files:**
+- Modify: `src/obsidian/tabs/detail.ts`
+- Modify: `styles.css`
+- Test: `tests/obsidian/detail.test.ts`
+
+**Interfaces:**
+- Consumes: `collapsibleSection` (Task 8), `DetailVM.table` (Task 7), `DashboardHost` (Task 12)
+- Produces: `renderDetail(el, cache, state, onState, view: DashboardView): void` — fünfter Parameter neu
+
+- [ ] **Step 1: Voraussetzung prüfen**
+
+Der View-Stub `fakeView()` und die `setCssStyles`-Ergänzung in `fakeEl()` stammen aus Task 12 und liegen bereits in `tests/obsidian/detail.test.ts`. Vergewissere dich davon (`npm test`), bevor du weiterschreibst — die folgenden Tests bauen darauf auf.
 
 - [ ] **Step 2: Failing tests für die Tabelle schreiben**
 
@@ -2159,4 +2163,4 @@ Node-Tests können die Naht zum Host nicht prüfen. Lege eine Handover-Note im C
 
 **Typkonsistenz:** `AxisVM`/`TableVM` werden in Task 7 definiert und in 11/13/14 unter denselben Namen konsumiert. `buildChartGeometry`s vierter Parameter heißt durchgehend `opts` mit Feld `granularity`. `writeExport` hat in Task 10 und 14 dieselbe fünfstellige Signatur. `ExportFormat` wird in Task 12 exportiert und in 14 importiert. `buildExportName` ist überall dreiargumentig (ohne Endung) — **abweichend von der Spec**, die vier Parameter nennt; die Spec wird entsprechend präzisiert, weil das Kollisions-Suffix vor die Endung muss.
 
-**Reihenfolge-Abhängigkeiten:** Task 2 (i18n) vor 4, 7, 13, 14. Task 3 vor 7 und 11. Task 7 vor 11, 13, 14. Task 12 vor 13 und 14. Task 8 vor 13 (collapsible) und 14 (FolderSuggest). Zwischen Task 12 und 13 ist der Typecheck kurzzeitig rot (`renderDetail`-Signatur) — im Plan an Ort und Stelle vermerkt.
+**Reihenfolge-Abhängigkeiten:** Task 2 (i18n) vor 4, 7, 13, 14. Task 3 vor 7 und 11. Task 7 vor 11, 13, 14. Task 12 vor 13 und 14. Task 8 vor 13 (collapsible) und 14 (FolderSuggest). **Jede Task hinterlässt einen grünen Typecheck** — der Signaturwechsel an `renderDetail` und die Anpassung seiner Bestandstests liegen beide in Task 12.
