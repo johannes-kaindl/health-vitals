@@ -9,6 +9,7 @@ function fakeEl(): any {
     createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
     addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {}, addClass() {},
+    removeClass() {},
     setCssStyles(_styles: Record<string, string>) {},
   };
   return el;
@@ -89,5 +90,54 @@ describe("renderDetail — Werte-Tabelle", () => {
     const el = fakeEl();
     renderDetail(el, leer, { metricId: "HKQuantityTypeIdentifierStepCount", range: "1M" }, () => {}, fakeView());
     expect(findText(el, "Werte")).toBe(false);
+  });
+});
+
+describe("renderDetail — Export-Zeile", () => {
+  it("Buttons, Format-Umschalter und Ordner-Feld sind da", () => {
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
+    expect(findText(el, "Kopieren")).toBe(true);
+    expect(findText(el, "Speichern")).toBe(true);
+    expect(findText(el, "MD")).toBe(true);
+    expect(findText(el, "CSV")).toBe(true);
+    expect(findText(el, "Ordner")).toBe(true);
+  });
+
+  it("Klick auf CSV meldet das Format an den Host", () => {
+    const view = fakeView();
+    const seen: string[] = [];
+    view.host.setExportFormat = (f: string) => seen.push(f);
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    findByText(el, "CSV")._click();
+    expect(seen).toEqual(["csv"]);
+  });
+
+  it("Kopieren schreibt die Markdown-Tabelle in die Zwischenablage", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
+    findByText(el, "Kopieren")._click();
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+    // range "all" rollt auf Monatsgranularität hoch (resolveRange, s. Task 13), daher
+    // "Monat" statt "Datum" im Kopf — siehe "Tabelle trägt Kopfzeile..." oben im selben Setup.
+    expect(writeText.mock.calls[0][0]).toContain("| Monat |");
+    vi.unstubAllGlobals();
+  });
+
+  it("bei CSV-Format kopiert derselbe Button eine CSV", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const view = fakeView();
+    view.host.getExportFormat = () => "csv";
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    findByText(el, "Kopieren")._click();
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+    expect(writeText.mock.calls[0][0]).not.toContain("|");
+    expect(writeText.mock.calls[0][0]).toContain(",");
+    vi.unstubAllGlobals();
   });
 });

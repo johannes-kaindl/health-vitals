@@ -112,3 +112,15 @@
 }
 .ah-table th { color: var(--text-muted); font-weight: var(--font-semibold); position: sticky; top: 0; background: var(--background-primary); }
 .ah-table tr:hover td { background: var(--background-modifier-hover); }
+
+/* --- Export-Zeile (Slice 3c) --- */
+.ah-export-row {
+  display: flex; align-items: center; gap: var(--size-4-2);
+  flex-wrap: wrap; margin-bottom: var(--size-4-2);
+}
+.ah-export-folder {
+  display: flex; align-items: center; gap: var(--size-4-2);
+  margin-bottom: var(--size-4-2);
+}
+.ah-export-folder input { flex: 1; min-width: 12ch; }
+.ah-export-label { color: var(--text-muted); font-size: var(--font-ui-small); }

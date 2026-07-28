@@ -1,11 +1,17 @@
+import { Notice } from "obsidian";
 import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
-import type { TableVM } from "../../core/view-model";
+import type { DetailVM, TableVM } from "../../core/view-model";
 import { buildDetailVM } from "../../core/view-model";
 import { renderChart } from "../chart-render";
-import type { DashboardView } from "../dashboard-view";
+import type { DashboardView, ExportFormat } from "../dashboard-view";
 import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
+import { toCsv, toMarkdownTable } from "../../core/serialize";
+import { buildExportName } from "../../core/export-path";
+import { copyToClipboard } from "../clipboard";
+import { writeExport } from "../export-writer";
+import { FolderSuggest } from "../../vendor/kit-obsidian/folder-suggest";
 
 export interface DetailState { metricId: string | null; range: RangeKey; }
 
@@ -52,17 +58,83 @@ export function renderDetail(
   }
 
   // Kein Export von nichts: ohne Punkte im Zeitraum entfällt die Sektion ganz.
-  if (!vm.empty) renderValuesSection(el, vm.table, view);
+  if (!vm.empty) renderValuesSection(el, vm, view);
 }
 
-function renderValuesSection(el: HTMLElement, table: TableVM, view: DashboardView): void {
+function renderValuesSection(el: HTMLElement, vm: DetailVM, view: DashboardView): void {
   const body = collapsibleSection(el, {
-    title: `${t("table.title")} (${table.rows.length})`,
+    title: `${t("table.title")} (${vm.table.rows.length})`,
     key: VALUES_KEY,
     defaultCollapsed: true,
     storage: view.host,
   });
-  renderValuesTable(body, table);
+  renderExportRow(body, vm, view);
+  renderValuesTable(body, vm.table);
+}
+
+const FORMATS: Array<{ id: ExportFormat; label: string }> = [
+  { id: "md", label: "MD" },
+  { id: "csv", label: "CSV" },
+];
+
+function serializeTable(vm: DetailVM, format: ExportFormat): string {
+  return format === "csv"
+    ? toCsv(vm.table.headers, vm.table.rowsRaw)
+    : toMarkdownTable(vm.table.headers, vm.table.rows);
+}
+
+function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView): void {
+  const host = view.host;
+  const row = parent.createDiv({ cls: "ah-export-row" });
+
+  const copyBtn = row.createEl("button", { cls: "mod-cta", text: t("export.copy") });
+  copyBtn.addEventListener("click", () => {
+    const text = serializeTable(vm, host.getExportFormat());
+    copyToClipboard(text, () => {
+      new Notice(t("export.copied", String(vm.table.rows.length)));
+    });
+  });
+
+  const saveBtn = row.createEl("button", { text: t("export.save") });
+  saveBtn.addEventListener("click", () => { void save(); });
+
+  const formatBar = row.createDiv({ cls: "ah-range-bar" });
+  for (const f of FORMATS) {
+    const btn = formatBar.createEl("button", { text: f.label });
+    btn.addClass("ah-range-btn");
+    if (f.id === host.getExportFormat()) btn.addClass("is-active");
+    btn.addEventListener("click", () => {
+      host.setExportFormat(f.id);
+      // Nur die Markierung umhängen statt neu zu rendern: ein Re-Render würde
+      // den Fokus aus dem Ordner-Feld reißen, während man noch tippt.
+      for (const el of Array.from(formatBar.children)) el.removeClass("is-active");
+      btn.addClass("is-active");
+    });
+  }
+
+  const folderRow = parent.createDiv({ cls: "ah-export-folder" });
+  folderRow.createSpan({ cls: "ah-export-label", text: t("export.folder") });
+  const input = folderRow.createEl("input", { attr: { type: "text", placeholder: "/" } });
+  input.value = host.getExportFolder();
+  new FolderSuggest(view.app, input);
+  // Der Suggest feuert nach der Klick-Auswahl selbst ein "input"-Event —
+  // deshalb genügt dieser eine Listener für Tippen UND Auswählen.
+  input.addEventListener("input", () => { host.setExportFolder(input.value); });
+
+  async function save(): Promise<void> {
+    const format = host.getExportFormat();
+    const from = vm.table.rows[0]?.[0] ?? "";
+    const to = vm.table.rows[vm.table.rows.length - 1]?.[0] ?? "";
+    try {
+      const path = await writeExport(
+        view.app, host.getExportFolder(), buildExportName(vm.name, from, to),
+        format, serializeTable(vm, format),
+      );
+      new Notice(t("export.saved", path));
+    } catch (err) {
+      new Notice(t("export.saveFailed", err instanceof Error ? err.message : String(err)));
+    }
+  }
 }
 
 function renderValuesTable(parent: HTMLElement, table: TableVM): void {
