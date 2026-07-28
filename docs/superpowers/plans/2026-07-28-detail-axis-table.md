@@ -1733,7 +1733,24 @@ Und die Host-Methoden neben `toggleFavorite` einfügen:
   }
 ```
 
-`loadPluginData` bleibt unverändert — das vorhandene `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` füllt fehlende Felder alter `data.json`-Dateien automatisch auf.
+`loadPluginData` muss die verschachtelten Felder **tief** übernehmen. Der vorhandene flache Spread `{ ...DEFAULT_DATA, ...(loaded ?? {}) }` füllt fehlende Felder zwar auf, kopiert dabei aber die *Referenz* auf `DEFAULT_DATA.collapsed` bzw. `DEFAULT_DATA.favorites` — `setCollapsed`/`toggleFavorite` mutieren danach die Modul-Vorlage selbst, und die nächste Plugin-Instanz im selben Prozess startet mit verunreinigten Defaults:
+
+```ts
+  async loadPluginData(): Promise<void> {
+    const loaded = (await this.loadData()) as Partial<PluginData> | null;
+    // Flacher Spread genügt hier NICHT: Für die verschachtelten Felder kopierte er die
+    // Referenz auf DEFAULT_DATA, und die späteren In-place-Mutationen (toggleFavorite,
+    // setCollapsed) verändern dann dauerhaft die Vorlage.
+    this.data = {
+      ...DEFAULT_DATA,
+      ...(loaded ?? {}),
+      favorites: [...(loaded?.favorites ?? DEFAULT_DATA.favorites)],
+      collapsed: { ...DEFAULT_DATA.collapsed, ...(loaded?.collapsed ?? {}) },
+    };
+  }
+```
+
+Das gilt auch für den Feld-Initialisierer `private data: PluginData = { ...DEFAULT_DATA }` — er teilt dieselben Referenzen, bis `loadPluginData` läuft.
 
 - [ ] **Step 5: Bestandstests auf die neue Signatur heben**
 
