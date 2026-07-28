@@ -10,12 +10,21 @@ import { renderWorkouts } from "./tabs/workouts";
 
 export const VIEW_TYPE_DASHBOARD = "apple-health-dashboard";
 
+export type ExportFormat = "md" | "csv";
+
 export interface DashboardHost {
   loadCache(): Promise<HealthCache | null>;
   getFavorites(): string[];
   toggleFavorite(id: string): Promise<void>;
   createImportController(onState: (s: ImportState) => void): ImportController;
   pickExport(): Promise<File | null>;
+  getExportFolder(): string;
+  setExportFolder(v: string): void;
+  getExportFormat(): ExportFormat;
+  setExportFormat(f: ExportFormat): void;
+  /** Erfüllt zugleich das CollapsibleStorage-Interface des Kit-Moduls. */
+  getCollapsed(key: string): boolean | undefined;
+  setCollapsed(key: string, collapsed: boolean): void;
 }
 
 export type TabId = "overview" | "detail" | "workouts";
@@ -163,7 +172,7 @@ export class DashboardView extends ItemView {
     if (this.active === "overview") {
       renderOverview(panel, this.cache, this);
     } else if (this.active === "detail") {
-      renderDetail(panel, this.cache, this.detail, (s) => { this.detail = s; this.renderActive(); });
+      renderDetail(panel, this.cache, this.detail, (s) => { this.detail = s; this.renderActive(); }, this);
     } else {
       renderWorkouts(panel, this.cache);
     }

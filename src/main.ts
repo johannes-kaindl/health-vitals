@@ -3,14 +3,21 @@ import type { HealthCache } from "./core/types";
 import type { ImportState } from "./core/import-state";
 import { ImportController } from "./obsidian/import-controller";
 import { pickHealthExport } from "./obsidian/file-picker";
-import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "./obsidian/dashboard-view";
+import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
 import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 
-interface PluginData { favorites: string[]; }
-const DEFAULT_DATA: PluginData = { favorites: [] };
+interface PluginData {
+  favorites: string[];
+  exportFolder: string;
+  exportFormat: ExportFormat;
+  collapsed: Record<string, boolean>;
+}
+const DEFAULT_DATA: PluginData = {
+  favorites: [], exportFolder: "", exportFormat: "md", collapsed: {},
+};
 
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   private data: PluginData = { ...DEFAULT_DATA };
@@ -60,6 +67,27 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     if (i >= 0) this.data.favorites.splice(i, 1);
     else this.data.favorites.push(id);
     await this.saveData(this.data);
+  }
+
+  getExportFolder(): string { return this.data.exportFolder; }
+  setExportFolder(v: string): void {
+    this.data.exportFolder = v;
+    void this.saveData(this.data);
+  }
+
+  getExportFormat(): ExportFormat { return this.data.exportFormat; }
+  setExportFormat(f: ExportFormat): void {
+    this.data.exportFormat = f;
+    void this.saveData(this.data);
+  }
+
+  // Signatur von CollapsibleStorage vorgegeben: synchron, kein Promise. Das
+  // Schreiben läuft deshalb bewusst als void-Aufruf nebenher — geht es schief,
+  // ist die Folge ein nicht gemerkter Aufklappzustand, kein Datenverlust.
+  getCollapsed(key: string): boolean | undefined { return this.data.collapsed[key]; }
+  setCollapsed(key: string, collapsed: boolean): void {
+    this.data.collapsed[key] = collapsed;
+    void this.saveData(this.data);
   }
 
   async loadCache(): Promise<HealthCache | null> {

@@ -2,6 +2,7 @@ import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
 import { buildDetailVM } from "../../core/view-model";
 import { renderChart } from "../chart-render";
+import type { DashboardView } from "../dashboard-view";
 import { t } from "../../vendor/kit/i18n";
 
 export interface DetailState { metricId: string | null; range: RangeKey; }
@@ -9,8 +10,11 @@ export interface DetailState { metricId: string | null; range: RangeKey; }
 const RANGES: RangeKey[] = ["1M", "3M", "1Y", "all"];
 const CHART_DIMS = { width: 640, height: 260, padding: 24 };
 
+// `view` wird ab dieser Task durchgereicht (Wert-Tabelle + Export in Task 13 brauchen
+// Zugriff auf view.host als CollapsibleStorage), hier selbst noch ungenutzt.
 export function renderDetail(
   el: HTMLElement, cache: HealthCache, state: DetailState, onState: (s: DetailState) => void,
+  _view: DashboardView,
 ): void {
   if (!state.metricId) {
     const hint = el.createDiv({ cls: "ah-detail-hint" });

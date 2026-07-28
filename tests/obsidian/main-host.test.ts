@@ -1,6 +1,10 @@
 import AppleHealthPlugin from "../../src/main";
 import type { HealthCache } from "../../src/core/types";
 
+function makePlugin(): any {
+  return new AppleHealthPlugin({} as any, {} as any) as any;
+}
+
 describe("AppleHealthPlugin favorites host", () => {
   it("toggleFavorite fügt hinzu und entfernt, persistiert über saveData", async () => {
     const p = new AppleHealthPlugin({} as any, {} as any) as any;
@@ -70,5 +74,35 @@ describe("AppleHealthPlugin cache I/O", () => {
     expect(writes).toHaveLength(1);
     expect(writes[0].path).toBe(".my-config/plugins/apple-health/health-cache.json");
     expect(JSON.parse(writes[0].data)).toEqual(cache);
+  });
+});
+
+describe("Export-Einstellungen im Plugin-Data", () => {
+  it("Defaults: leerer Ordner, Markdown, nichts eingeklappt gespeichert", async () => {
+    const plugin = makePlugin();           // vorhandener Helfer der Datei
+    await plugin.loadPluginData();
+    expect(plugin.getExportFolder()).toBe("");
+    expect(plugin.getExportFormat()).toBe("md");
+    expect(plugin.getCollapsed("detail-values")).toBeUndefined();
+  });
+
+  it("Setzen persistiert über saveData", async () => {
+    const plugin = makePlugin();
+    await plugin.loadPluginData();
+    plugin.setExportFolder("30_Health");
+    plugin.setExportFormat("csv");
+    plugin.setCollapsed("detail-values", false);
+    expect(plugin.getExportFolder()).toBe("30_Health");
+    expect(plugin.getExportFormat()).toBe("csv");
+    expect(plugin.getCollapsed("detail-values")).toBe(false);
+  });
+
+  it("Altes data.json ohne die neuen Felder lädt ohne Absturz", async () => {
+    const plugin = makePlugin();
+    plugin.loadData = async () => ({ favorites: ["a"] });
+    await plugin.loadPluginData();
+    expect(plugin.getFavorites()).toEqual(["a"]);
+    expect(plugin.getExportFolder()).toBe("");
+    expect(plugin.getExportFormat()).toBe("md");
   });
 });

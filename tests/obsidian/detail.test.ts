@@ -22,6 +22,20 @@ function findByText(el: any, needle: string): any {
   for (const c of el.children) { const hit = findByText(c, needle); if (hit) return hit; }
   return null;
 }
+function fakeView(): any {
+  const store: Record<string, boolean> = {};
+  return {
+    app: {},
+    host: {
+      getExportFolder: () => "",
+      setExportFolder: () => {},
+      getExportFormat: () => "md",
+      setExportFormat: () => {},
+      getCollapsed: (k: string) => store[k],
+      setCollapsed: (k: string, c: boolean) => { store[k] = c; },
+    },
+  };
+}
 const cache: HealthCache = {
   version: 1, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
   dateRange: { from: "2026-01-01", to: "2026-01-31" },
@@ -32,13 +46,13 @@ const cache: HealthCache = {
 describe("renderDetail", () => {
   it("ohne gewählte Metrik → Hinweis, kein Absturz", () => {
     const el = fakeEl();
-    renderDetail(el, cache, { metricId: null, range: "3M" }, () => {});
+    renderDetail(el, cache, { metricId: null, range: "3M" }, () => {}, fakeView());
     expect(findText(el, "Metrik")).toBe(true);
   });
 
   it("mit Metrik → Titel + Range-Buttons + Summe-Stat", () => {
     const el = fakeEl();
-    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {});
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
     expect(findText(el, "Schritte")).toBe(true);
     expect(findText(el, "Summe")).toBe(true);
     expect(findText(el, "1M")).toBe(true);
@@ -47,7 +61,7 @@ describe("renderDetail", () => {
   it("Klick auf 1M-Button meldet range=1M an onState", () => {
     const el = fakeEl();
     let got: RangeKey | null = null;
-    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, (s) => { got = s.range; });
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, (s) => { got = s.range; }, fakeView());
     const btn = findByText(el, "1M");
     expect(btn).not.toBeNull();
     btn._click();
