@@ -1,4 +1,4 @@
-import { formatValue, formatDuration } from "../../src/core/format";
+import { formatValue, formatDuration, formatTickLabel } from "../../src/core/format";
 import { setLang } from "../../src/vendor/kit/i18n";
 
 describe("formatDuration", () => {
@@ -32,5 +32,39 @@ describe("formatValue", () => {
     setLang("en");
     expect(formatValue(8432, "count")).toBe("8,432 count");
     expect(formatValue(78.53, "kg")).toBe("78.5 kg");
+  });
+});
+
+describe("formatTickLabel", () => {
+  // Das Test-Setup setzt "de"; die Zeitzone der Suite ist America/New_York.
+  it("Tag: zeigt den Tag des Schlüssels, nicht den Vortag (UTC-Fallstrick)", () => {
+    const label = formatTickLabel("2026-07-28", "day");
+    expect(label).toContain("28");
+    expect(label).toContain("07");
+    expect(label).not.toContain("27");
+  });
+
+  it("Woche: Kalenderwoche aus dem Schlüssel, ohne führende Null", () => {
+    expect(formatTickLabel("2026-W30", "week")).toBe("KW 30");
+    expect(formatTickLabel("2026-W05", "week")).toBe("KW 5");
+  });
+
+  it("Monat: Kurzmonat und zweistelliges Jahr", () => {
+    const label = formatTickLabel("2026-07", "month");
+    expect(label).toMatch(/Jul/);
+    expect(label).toContain("26");
+  });
+
+  it("Woche auf Englisch nutzt den englischen Präfix", () => {
+    setLang("en");
+    expect(formatTickLabel("2026-W30", "week")).toBe("W 30");
+    setLang("de");
+  });
+
+  it("Monatswechsel am 1. bleibt im richtigen Monat", () => {
+    // Ohne timeZone: "UTC" läge dieser Tag in New York noch im Juni.
+    const label = formatTickLabel("2026-07-01", "day");
+    expect(label).toContain("07");
+    expect(label).not.toContain("06");
   });
 });
