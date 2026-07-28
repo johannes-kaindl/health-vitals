@@ -55,6 +55,16 @@ describe("formatTickLabel", () => {
     expect(label).toContain("26");
   });
 
+  it("Monat: auch lange Monatsnamen bleiben kurz", () => {
+    // Achtung, ICU-Falle: `{ month: "short", year: "2-digit" }` in EINEM Aufruf
+    // wählt im Deutschen ein längeres Muster ("Sept. 26", "Juli 26", "März 26").
+    // Nur getrennt formatiert kommt das echte Kurzmuster heraus. Dieser Test
+    // fällt, sobald jemand die beiden Aufrufe wieder zusammenlegt.
+    expect(formatTickLabel("2026-09", "month")).not.toContain(".");
+    expect(formatTickLabel("2026-09", "month").length).toBeLessThanOrEqual(7);
+    expect(formatTickLabel("2026-03", "month").length).toBeLessThanOrEqual(7);
+  });
+
   it("Woche auf Englisch nutzt den englischen Präfix", () => {
     setLang("en");
     expect(formatTickLabel("2026-W30", "week")).toBe("W 30");

@@ -33,9 +33,13 @@ export function formatTickLabel(key: string, g: Granularity): string {
     return `${t("axis.week")} ${week}`;
   }
   if (g === "month") {
-    return new Date(`${key}-01T00:00:00Z`).toLocaleDateString(localeTag(), {
-      month: "short", year: "2-digit", timeZone: "UTC",
-    });
+    // Monat und Jahr GETRENNT formatieren: in einem Aufruf kombiniert wählt ICU
+    // im Deutschen ein längeres Muster ("Sept. 26" statt "Sep 26"), was bei fünf
+    // Labels nebeneinander in einer schmalen Sidebar überlappt.
+    const d = new Date(`${key}-01T00:00:00Z`);
+    const month = d.toLocaleDateString(localeTag(), { month: "short", timeZone: "UTC" });
+    const year = d.toLocaleDateString(localeTag(), { year: "2-digit", timeZone: "UTC" });
+    return `${month} ${year}`;
   }
   return new Date(`${key}T00:00:00Z`).toLocaleDateString(localeTag(), {
     day: "2-digit", month: "2-digit", timeZone: "UTC",
