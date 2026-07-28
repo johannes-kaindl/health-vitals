@@ -71,6 +71,24 @@ describe("formatTickLabel", () => {
     setLang("de");
   });
 
+  it("Tag und Monat auf Englisch", () => {
+    // Das englische Tagesformat ist strukturell ein anderes (07/28 statt 28.07.) und war
+    // bislang unbelegt — die deutschen Tests decken es nicht mit ab.
+    setLang("en");
+    const day = formatTickLabel("2026-07-28", "day");
+    expect(day).toContain("28");
+    expect(day).toContain("07");
+    expect(day).not.toContain("27"); // UTC-Fallstrick gilt in jeder Sprache
+    const month = formatTickLabel("2026-07", "month");
+    expect(month).toMatch(/Jul/);
+    expect(month).toContain("26");
+    setLang("de");
+  });
+
+  it("Wochenschlüssel ohne Wochenmarke ergibt kein 'KW NaN'", () => {
+    expect(formatTickLabel("2026-07-28", "week")).not.toContain("NaN");
+  });
+
   it("Monatswechsel am 1. bleibt im richtigen Monat", () => {
     // Ohne timeZone: "UTC" läge dieser Tag in New York noch im Juni.
     const label = formatTickLabel("2026-07-01", "day");

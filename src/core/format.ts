@@ -29,8 +29,13 @@ export function formatDuration(min: number): string {
  */
 export function formatTickLabel(key: string, g: Granularity): string {
   if (g === "week") {
-    const week = Number(key.slice(key.indexOf("W") + 1));
-    return `${t("axis.week")} ${week}`;
+    // Ohne die Prüfung liefert indexOf() bei einem Schlüssel ohne "W" den Wert -1, slice(0)
+    // gibt den ganzen Schlüssel zurück und Number() daraus NaN — auf der Achse stünde dann
+    // "KW NaN". Heute erzeugt nur isoWeekKey() diese Schlüssel, die Kette ist also
+    // geschlossen; der rohe Schlüssel als Rückfallebene ist trotzdem lesbar statt sinnlos.
+    const marker = key.indexOf("W");
+    const week = marker < 0 ? NaN : Number(key.slice(marker + 1));
+    return Number.isFinite(week) ? `${t("axis.week")} ${week}` : key;
   }
   if (g === "month") {
     // Monat und Jahr GETRENNT formatieren: in einem Aufruf kombiniert wählt ICU
