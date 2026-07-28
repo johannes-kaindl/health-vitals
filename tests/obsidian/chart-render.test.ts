@@ -97,6 +97,19 @@ describe("renderChart mit Achsen", () => {
     expect(findText(el, "100")).toBe(true);
   });
 
+  it("mit axis: y-Spaltenbreite folgt der längsten Beschriftung (I-2, kein fixes ch)", () => {
+    const wideAxis = {
+      x: [{ leftPct: 10, label: "28.07." }],
+      // "374.512" (7 Zeichen) — der konkrete Fehlszenario-Wert aus dem Review:
+      // eine feste 4ch-Box hätte das auf "4.512" zurechtgeschnitten.
+      y: [{ topPct: 90, label: "0" }, { topPct: 10, label: "374.512" }],
+    };
+    const el = fakeEl();
+    renderChart(el, geom, { axis: wideAxis });
+    const yCol = findByCls(el, "ah-axis-y");
+    expect(yCol.style.width).toBe("7ch");
+  });
+
   it("mit axis: Wochenlinien werden als eigene SVG-Linien gezeichnet", () => {
     const el = fakeEl();
     renderChart(el, geom, { axis });

@@ -36,6 +36,15 @@ export function renderChart(
 
   if (axis) {
     const yCol = host.createDiv({ cls: "ah-axis-y" });
+    // Die Spaltenbreite ist fix per CSS nicht darstellbar: Die Labels sitzen
+    // `position: absolute`, tragen also nichts zur automatischen Breite der
+    // Grid-Spalte bei (out-of-flow-Elemente werden von jeder Shrink-to-fit-
+    // Berechnung ausgenommen). Ohne diese Zeile bräuchte es eine feste ch-Zahl
+    // in styles.css — die schneidet dann bei jedem längeren Wert wieder ab
+    // (siehe I-2). Stattdessen hier je Render an die tatsächlich längste
+    // Beschriftung angepasst, funktioniert also für beliebig viele Stellen.
+    const maxLen = axis.y.reduce((m, tick) => Math.max(m, tick.label.length), 0);
+    if (maxLen > 0) yCol.setCssStyles({ width: `${maxLen}ch` });
     for (const tick of axis.y) {
       const label = yCol.createSpan({ cls: "ah-axis-label", text: tick.label });
       label.setCssStyles({ top: `${tick.topPct}%` });

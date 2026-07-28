@@ -73,7 +73,10 @@
   grid-template-rows: auto auto;
   column-gap: var(--size-4-2);
 }
-.ah-axis-y { position: relative; width: 4ch; }
+/* Breite wird pro Render in chart-render.ts inline gesetzt (an die längste
+   Beschriftung angepasst, siehe Kommentar dort); dies ist nur der Fallback,
+   solange kein Tick vorliegt. */
+.ah-axis-y { position: relative; min-width: 1ch; }
 .ah-axis-x { position: relative; height: 1.6em; }
 .ah-axis-label {
   position: absolute;
