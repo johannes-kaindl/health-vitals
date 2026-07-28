@@ -68,3 +68,26 @@ describe("renderDetail", () => {
     expect(got).toBe("1M");
   });
 });
+
+describe("renderDetail — Werte-Tabelle", () => {
+  it("mit Daten: Sektion mit Titel und Zeilenzahl", () => {
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
+    expect(findText(el, "Werte")).toBe(true);
+  });
+
+  it("Tabelle trägt Kopfzeile und eine Zeile je Punkt", () => {
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
+    // range "all" rollt auf Monatsgranularität hoch (resolveRange), daher "Monat" statt "Datum" im Kopf.
+    expect(findText(el, "Monat")).toBe(true);
+    expect(findText(el, "2026-01")).toBe(true); // Monatsschlüssel bei range "all"
+  });
+
+  it("ohne Daten im Zeitraum: keine Sektion", () => {
+    const leer: HealthCache = { ...cache, dateRange: { from: "2020-01-01", to: "2020-01-02" } };
+    const el = fakeEl();
+    renderDetail(el, leer, { metricId: "HKQuantityTypeIdentifierStepCount", range: "1M" }, () => {}, fakeView());
+    expect(findText(el, "Werte")).toBe(false);
+  });
+});

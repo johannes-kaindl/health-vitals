@@ -1,20 +1,21 @@
 import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
+import type { TableVM } from "../../core/view-model";
 import { buildDetailVM } from "../../core/view-model";
 import { renderChart } from "../chart-render";
 import type { DashboardView } from "../dashboard-view";
+import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
 
 export interface DetailState { metricId: string | null; range: RangeKey; }
 
 const RANGES: RangeKey[] = ["1M", "3M", "1Y", "all"];
 const CHART_DIMS = { width: 640, height: 260, padding: 24 };
+const VALUES_KEY = "detail-values";
 
-// `view` wird ab dieser Task durchgereicht (Wert-Tabelle + Export in Task 13 brauchen
-// Zugriff auf view.host als CollapsibleStorage), hier selbst noch ungenutzt.
 export function renderDetail(
   el: HTMLElement, cache: HealthCache, state: DetailState, onState: (s: DetailState) => void,
-  _view: DashboardView,
+  view: DashboardView,
 ): void {
   if (!state.metricId) {
     const hint = el.createDiv({ cls: "ah-detail-hint" });
@@ -48,5 +49,30 @@ export function renderDetail(
     const cell = stats.createDiv({ cls: "ah-stat-cell" });
     cell.createSpan({ cls: "ah-stat-label", text: row.label });
     cell.createSpan({ cls: "ah-stat-value", text: row.value });
+  }
+
+  // Kein Export von nichts: ohne Punkte im Zeitraum entfällt die Sektion ganz.
+  if (!vm.empty) renderValuesSection(el, vm.table, view);
+}
+
+function renderValuesSection(el: HTMLElement, table: TableVM, view: DashboardView): void {
+  const body = collapsibleSection(el, {
+    title: `${t("table.title")} (${table.rows.length})`,
+    key: VALUES_KEY,
+    defaultCollapsed: true,
+    storage: view.host,
+  });
+  renderValuesTable(body, table);
+}
+
+function renderValuesTable(parent: HTMLElement, table: TableVM): void {
+  const wrap = parent.createDiv({ cls: "ah-table-wrap" });
+  const el = wrap.createEl("table", { cls: "ah-table" });
+  const headRow = el.createEl("thead").createEl("tr");
+  for (const h of table.headers) headRow.createEl("th", { text: h });
+  const tbody = el.createEl("tbody");
+  for (const row of table.rows) {
+    const tr = tbody.createEl("tr");
+    for (const cell of row) tr.createEl("td", { text: cell });
   }
 }
