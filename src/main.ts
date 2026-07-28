@@ -19,8 +19,18 @@ const DEFAULT_DATA: PluginData = {
   favorites: [], exportFolder: "", exportFormat: "md", collapsed: {},
 };
 
+// Frische Kopie von DEFAULT_DATA statt der Modul-Vorlage selbst: `favorites`/`collapsed`
+// sind Objekte/Arrays — ein flacher Spread von DEFAULT_DATA würde deren REFERENZ teilen,
+// und `toggleFavorite`/`setCollapsed` mutieren in place. Ohne diese Kopie würde die erste
+// Plugin-Instanz im Prozess (Dev-Hot-Reload, Deaktivieren/Aktivieren ohne Neustart) die
+// Modul-Vorlage selbst verunreinigen — jede spätere Instanz sähe dann keine echten Defaults
+// mehr, sondern den Endzustand der vorherigen.
+function freshDefaultData(): PluginData {
+  return { ...DEFAULT_DATA, favorites: [...DEFAULT_DATA.favorites], collapsed: { ...DEFAULT_DATA.collapsed } };
+}
+
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
-  private data: PluginData = { ...DEFAULT_DATA };
+  private data: PluginData = freshDefaultData();
 
   async onload(): Promise<void> {
     await this.loadPluginData();
@@ -43,7 +53,10 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   // --- Persistence ---
   async loadPluginData(): Promise<void> {
     const loaded = (await this.loadData()) as Partial<PluginData> | null;
-    this.data = { ...DEFAULT_DATA, ...(loaded ?? {}) };
+    // freshDefaultData() statt DEFAULT_DATA direkt spreaden — sonst übernehmen fehlende
+    // Felder (jedes alte data.json, oder loadData() === null beim allerersten Start) die
+    // geteilte Referenz auf die Modul-Vorlage statt eine eigene Kopie (siehe Kommentar dort).
+    this.data = { ...freshDefaultData(), ...(loaded ?? {}) };
   }
 
   /**
