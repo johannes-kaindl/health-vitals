@@ -36,6 +36,12 @@ describe("toCsv", () => {
     expect(toCsv(["A"], [["a\nb"]])).toBe('A\n"a\nb"');
   });
 
+  it("auch ein alleinstehendes Carriage Return wird gequotet", () => {
+    // Die Einheiten in den Spaltenköpfen stammen aus dem Apple-Export, sind also
+    // fremdbestimmt. Ein ungequotetes \r bricht CSV-Parser, die es als Zeilenende lesen.
+    expect(toCsv(["A"], [["a\rb"]])).toBe('A\n"a\rb"');
+  });
+
   it("harmlose Zellen bleiben unquotiert", () => {
     expect(toCsv(["A"], [["72.5"]])).toBe("A\n72.5");
   });

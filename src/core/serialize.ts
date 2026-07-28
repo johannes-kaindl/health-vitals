@@ -17,9 +17,11 @@ export function toMarkdownTable(headers: string[], rows: string[][]): string {
   return [head, sep, ...body].join("\n");
 }
 
-/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt. */
+/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt.
+ *  `\r` gehört mit in die Zeichenklasse — ein alleinstehendes Carriage Return ist für
+ *  CSV-Parser ein Zeilenende und zerlegt sonst den Datensatz. */
 function csvCell(cell: string): string {
-  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  return /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
 }
 
 /** Zeilenende `\n` statt des von RFC 4180 verlangten `\r\n` — Ziel ist ein
