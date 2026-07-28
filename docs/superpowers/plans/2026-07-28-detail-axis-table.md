@@ -1977,7 +1977,7 @@ describe("renderDetail — Export-Zeile", () => {
     vi.unstubAllGlobals();
   });
 
-  it("bei CSV-Format kopiert derselbe Button eine CSV", async () => {
+  it("bei CSV-Format kopiert derselbe Button eine CSV mit ROHEN Zahlen", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const view = fakeView();
@@ -1986,8 +1986,15 @@ describe("renderDetail — Export-Zeile", () => {
     renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
     findByText(el, "Kopieren")._click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
-    expect(writeText.mock.calls[0][0]).not.toContain("|");
-    expect(writeText.mock.calls[0][0]).toContain(",");
+    const out = writeText.mock.calls[0][0];
+    expect(out).not.toContain("|");
+    // Der eigentliche Punkt: CSV muss aus rowsRaw stammen. Auf Deutsch formatiert
+    // formatValue 1500 zu "1.500" — der Punkt als Tausendertrenner. Nur ein Wert
+    // ÜBER 1000 im Fixture macht eine Vertauschung von rows/rowsRaw überhaupt
+    // sichtbar; bei kleinen Zahlen sind beide Zeilensätze identisch und der Test
+    // wäre auch mit vertauschten Argumenten grün.
+    expect(out).toContain("1500");
+    expect(out).not.toContain("1.500");
     vi.unstubAllGlobals();
   });
 });
