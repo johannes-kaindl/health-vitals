@@ -43,4 +43,69 @@ describe("chart-geometry", () => {
     expect(g.bars).toHaveLength(2);
     for (const b of g.bars) { expect(b.x).toBeGreaterThanOrEqual(5); expect(b.x + b.w).toBeLessThanOrEqual(95); }
   });
+
+  it("ohne opts (Sparkline-Aufruf) bleiben xTicks und weekMarks leer", () => {
+    const pts: RollupPoint[] = Array.from({ length: 30 }, (_, i) => ({
+      key: `2026-07-${String(i + 1).padStart(2, "0")}`, value: i,
+    }));
+    const g = buildChartGeometry(pts, "line", dims);
+    expect(g.xTicks).toEqual([]);
+    expect(g.weekMarks).toEqual([]);
+  });
+
+  it("leere Serie → xTicks und weekMarks leer, kein Absturz", () => {
+    const g = buildChartGeometry([], "bar", dims, { granularity: "day" });
+    expect(g.xTicks).toEqual([]);
+    expect(g.weekMarks).toEqual([]);
+  });
+
+  it("91 Punkte → 5 Ticks, gleichmäßiger Abstand, erster bei Index 0", () => {
+    const pts: RollupPoint[] = Array.from({ length: 91 }, (_, i) => ({ key: `k${i}`, value: i }));
+    const g = buildChartGeometry(pts, "line", dims, { granularity: "day" });
+    expect(g.xTicks).toHaveLength(5);
+    expect(g.xTicks[0].i).toBe(0);
+    // step = ceil(91 / 5) = 19
+    expect(g.xTicks.map((t) => t.i)).toEqual([0, 19, 38, 57, 76]);
+  });
+
+  it("weniger Punkte als Zielzahl → jeder Punkt bekommt einen Tick", () => {
+    const pts: RollupPoint[] = [{ key: "a", value: 1 }, { key: "b", value: 2 }, { key: "c", value: 3 }];
+    const g = buildChartGeometry(pts, "line", dims, { granularity: "day" });
+    expect(g.xTicks.map((t) => t.i)).toEqual([0, 1, 2]);
+  });
+
+  it("ein Punkt → ein Tick, x mittig wie die Linie selbst", () => {
+    const g = buildChartGeometry([{ key: "a", value: 1 }], "line", dims, { granularity: "day" });
+    expect(g.xTicks).toHaveLength(1);
+    // n <= 1: scaleX liefert padding + innerW / 2 = 5 + 45 = 50
+    expect(g.xTicks[0].x).toBeCloseTo(50);
+  });
+
+  it("weekMarks: nur Montage, und nur bei Tagesgranularität", () => {
+    // 2026-07-27 ist ein Montag, 2026-08-03 der nächste.
+    const pts: RollupPoint[] = [
+      { key: "2026-07-26", value: 1 }, // So
+      { key: "2026-07-27", value: 2 }, // Mo
+      { key: "2026-07-28", value: 3 }, // Di
+      { key: "2026-08-03", value: 4 }, // Mo
+    ];
+    const day = buildChartGeometry(pts, "bar", dims, { granularity: "day" });
+    expect(day.weekMarks).toHaveLength(2);
+
+    const week = buildChartGeometry(pts, "bar", dims, { granularity: "week" });
+    expect(week.weekMarks).toEqual([]);
+    const month = buildChartGeometry(pts, "bar", dims, { granularity: "month" });
+    expect(month.weekMarks).toEqual([]);
+  });
+
+  it("bar: Wochenlinie am Slot-Anfang, Tick in der Slot-Mitte", () => {
+    const pts: RollupPoint[] = [
+      { key: "2026-07-27", value: 1 }, // Mo, Index 0
+      { key: "2026-07-28", value: 2 },
+    ];
+    const g = buildChartGeometry(pts, "bar", dims, { granularity: "day" });
+    // innerW = 90, n = 2 → slotW = 45; Slot 0 beginnt bei padding = 5, Mitte bei 27.5
+    expect(g.weekMarks[0]).toBeCloseTo(5);
+    expect(g.xTicks[0].x).toBeCloseTo(27.5);
+  });
 });
