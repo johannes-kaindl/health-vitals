@@ -6,6 +6,11 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    // Bewusst NICHT UTC: Die Datums-Formatierung (formatTickLabel) und die
+    // Tagesbildung (apple-date.ts) sind nur dann beweisbar korrekt, wenn die
+    // Testumgebung eine andere Zonenlage hat als die verarbeiteten Daten.
+    // In UTC sieht fehlerhafter Code identisch zu korrektem aus.
+    env: { TZ: "America/New_York" },
   },
   resolve: {
     alias: {
