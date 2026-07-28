@@ -98,7 +98,9 @@ Als Zeilenende `\n` statt des von RFC 4180 verlangten `\r\n` — Ziel ist ein Ob
 und jede gängige Tabellenkalkulation liest beides.
 
 **`src/core/export-path.ts` (neu).** `sanitizeBase(name)`, `joinPath(dir, file)`,
-`buildExportName(metricName, from, to, ext)` → `Ruhepuls 2026-06-28–2026-07-28.md`. `from`/`to`
+`buildExportName(metricName, from, to)` → `Ruhepuls 2026-06-28–2026-07-28` (Basename **ohne**
+Endung — das Kollisions-Suffix muss zwischen Name und Endung, deshalb hängt `writeExport` sie
+selbst an). `from`/`to`
 sind die Schlüssel des ersten und letzten Punkts — dieselbe Quelle, aus der schon der
 `rangeLabel` im Kopf der Ansicht gebaut wird, nicht die angeforderten Range-Grenzen. Der Name
 beschreibt damit die tatsächlich enthaltenen Daten. Aus paperize/epub-exporter übernommen; die
