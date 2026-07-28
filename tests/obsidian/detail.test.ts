@@ -38,9 +38,17 @@ function fakeView(): any {
   };
 }
 const cache: HealthCache = {
-  version: 1, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
-  dateRange: { from: "2026-01-01", to: "2026-01-31" },
-  metrics: { HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: { "2026-01-10": { sum: 500, count: 1 } } } },
+  version: 1, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
+  // dateRange reicht bis Februar, damit der zweite Datenpunkt (für den CSV-vs-Markdown-Test
+  // unten gebraucht) bei range "all" nicht durch resolveRange herausgefiltert wird.
+  dateRange: { from: "2026-01-01", to: "2026-02-05" },
+  metrics: { HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: {
+    "2026-01-10": { sum: 500, count: 1 },
+    // Wert > 1000 in einem eigenen Monat: formatValue rendert ihn deutsch als "1.500"
+    // (Tausenderpunkt), rawCell als "1500" — nur damit divergieren rows/rowsRaw sichtbar
+    // und ein versehentliches toCsv(headers, rows) statt rowsRaw fiele im Test auf.
+    "2026-02-05": { sum: 1500, count: 1 },
+  } } },
   workouts: [],
 };
 
@@ -127,7 +135,7 @@ describe("renderDetail — Export-Zeile", () => {
     vi.unstubAllGlobals();
   });
 
-  it("bei CSV-Format kopiert derselbe Button eine CSV", async () => {
+  it("bei CSV-Format kopiert derselbe Button eine CSV mit ROHEN Zahlen", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const view = fakeView();
@@ -136,8 +144,15 @@ describe("renderDetail — Export-Zeile", () => {
     renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
     findByText(el, "Kopieren")._click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
-    expect(writeText.mock.calls[0][0]).not.toContain("|");
-    expect(writeText.mock.calls[0][0]).toContain(",");
+    const out = writeText.mock.calls[0][0];
+    expect(out).not.toContain("|");
+    // Der eigentliche Punkt: CSV muss aus rowsRaw stammen. Auf Deutsch formatiert
+    // formatValue 1500 zu "1.500" — der Punkt als Tausendertrenner. Nur ein Wert
+    // ÜBER 1000 im Fixture macht eine Vertauschung von rows/rowsRaw überhaupt
+    // sichtbar; bei kleinen Zahlen sind beide Zeilensätze identisch und der Test
+    // wäre auch mit vertauschten Argumenten grün.
+    expect(out).toContain("1500");
+    expect(out).not.toContain("1.500");
     vi.unstubAllGlobals();
   });
 });
