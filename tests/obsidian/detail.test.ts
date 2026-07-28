@@ -156,3 +156,47 @@ describe("renderDetail — Export-Zeile", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("renderDetail — Speichern (Export ins Vault, I-4)", () => {
+  // Der Kopieren-Pfad hat zwei End-to-End-Tests (oben); der Speichern-Pfad
+  // (detail.ts save(), Z. 124-137) hatte keinen — vertauschte Argumente an
+  // writeExport() oder ein falsch abgeleitetes from/to wären grün durchgelaufen.
+  function makeVaultView(folder: string, format: "md" | "csv"): {
+    view: any; write: ReturnType<typeof vi.fn>; exists: ReturnType<typeof vi.fn>; mkdir: ReturnType<typeof vi.fn>;
+  } {
+    const write = vi.fn().mockResolvedValue(undefined);
+    const exists = vi.fn().mockResolvedValue(false); // Ordner "existiert" schon, kein mkdir; Zielpfad ist frei
+    const mkdir = vi.fn().mockResolvedValue(undefined);
+    const view = fakeView();
+    view.app = { vault: { adapter: { exists, mkdir, write } } };
+    view.host.getExportFolder = () => folder;
+    view.host.getExportFormat = () => format;
+    return { view, write, exists, mkdir };
+  }
+
+  it("CSV: schreibt in den gewählten Ordner, Dateiname aus Metrik+Zeitraum, Endung .csv, Inhalt aus rowsRaw", async () => {
+    const { view, write } = makeVaultView("30_Health/Exporte", "csv");
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    findByText(el, "Speichern")._click();
+    await vi.waitFor(() => expect(write).toHaveBeenCalled());
+    const [path, content] = write.mock.calls[0];
+    // Ordner + Metrikname + von–bis (Monatsschlüssel bei range "all", s. Tabellen-Test oben) + Endung.
+    expect(path).toBe("30_Health/Exporte/Schritte 2026-01–2026-02.csv");
+    expect(content).not.toContain("|");
+    expect(content).toContain("1500");
+    expect(content).not.toContain("1.500");
+  });
+
+  it("Markdown: gleicher Knopf, anderer Ordner, Endung .md, Inhalt aus rows (formatiert)", async () => {
+    const { view, write } = makeVaultView("Notes", "md");
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    findByText(el, "Speichern")._click();
+    await vi.waitFor(() => expect(write).toHaveBeenCalled());
+    const [path, content] = write.mock.calls[0];
+    expect(path).toBe("Notes/Schritte 2026-01–2026-02.md");
+    expect(content).toContain("| Monat |");
+    expect(content).toContain("1.500");
+  });
+});
