@@ -175,8 +175,10 @@ geschriebenen Pfad zurück; der Aufrufer zeigt die Notice.
 
 y-Labels sitzen in einer eigenen Spalte (kein Overlay über der Zeichenfläche), absolut auf
 `top: topPct%`. x-Labels sitzen in der Zeile darunter auf `left: leftPct%` mit
-`transform: translateX(-50%)`. Wochenlinien werden als `<line>` im SVG gezeichnet, schwächer
-als die Gitterlinien.
+`transform: translateX(-50%)`. Wochenlinien werden als `<line>` im SVG gezeichnet —
+**gestrichelt** und in `--text-faint`, damit sie sich in der *Form* vom durchgezogenen Gitter
+unterscheiden (Korrektur nach dem Smoke-Test, siehe Nachtrag unten; die ursprüngliche Vorgabe
+„schwächer als die Gitterlinien" war der Fehler).
 
 **Warum HTML-Labels statt SVG-`<text>`:** Das SVG skaliert über `width: 100%` bei
 `height: auto`, die Skalierung ist also uniform — aber die Schriftgröße wäre an die
@@ -362,3 +364,40 @@ als Versehen gelesen werden:
 - **`KIT-MATRIX.md` im Dach kennt den neuen `kit-obsidian/`-Vendor-Ordner nicht.** Die Datei
   ist generiert und wird laut Dach-`AGENTS.md` nie von Hand editiert — sie zieht beim
   nächsten `drift-audit` nach.
+
+## Nachtrag Smoke-Test (2026-07-28): Wochenmarkierung war unsichtbar
+
+Der manuelle Durchklick meldete „Montagseinfärbungen waren nicht da". Die Untersuchung ergab:
+**Sie waren da — alle, an exakt den richtigen Stellen.**
+
+Gemessen wurde per Pixelanalyse im balkenfreien Bereich oberhalb der Balken, an den
+Screenshots aus dem Smoke-Test:
+
+| Zeitraum | erwartete Montage | gemessene Linien | Positionen |
+|---|---|---|---|
+| 1M | 4 | 4 | Abweichung < 0,5 px von den berechneten x-Werten |
+| 3M | 13 | 13 | konstanter Abstand 62 px = exakt 7 Tage |
+| 1J | 0 | 0 | korrekt, dort greift Wochen-Granularität |
+
+Kein Fehler in Geometrie, Rendering oder Auslieferung. Der Fehler stand in **dieser Spec**:
+„gezeichnet als feine Linie in `--background-modifier-border`, sichtbar schwächer als die
+Gitterlinien". Damit bekam die bedeutungstragende Markierung dieselbe Farbe wie die neutrale
+Lesehilfe und zusätzlich halbe Deckkraft — gemessene Kontraststärke 21–38 gegen Hintergrund,
+während Textziffern im selben Bild 42–100 erreichen.
+
+**Die Lektion ist allgemeiner als dieser Slice:** Ein Element, das eine eigene Aussage trägt,
+darf sich nicht *nur quantitativ* (blasser, dünner) von der Hilfsgeometrie unterscheiden,
+gegen die es sich abheben soll — sonst wird es als deren schwacher Teil gelesen. Der
+Unterschied muss *qualitativ* sein: Strichmuster, Form, Position. Das deckt sich mit
+UI-STANDARD §8, wo dieselbe Regel für Status-Indikatoren steht („Zustand über Form UND Farbe,
+Farbe nie allein") — sie gilt genauso für Chart-Dekoration.
+
+**Umgesetzt:** `stroke: var(--text-faint)`, `stroke-dasharray: 4 4`, keine `opacity`.
+Festgehalten in `tests/obsidian/styles-invariants.test.ts` — der Test beweist keine
+Sichtbarkeit (das kann nur das echte Rendering), aber er verhindert das versehentliche
+Zurückdrehen auf „nur blasser".
+
+**Warum kein Test das vorher fangen konnte:** Die Unit-Tests prüften, *dass* Linien mit der
+richtigen Klasse an den richtigen Koordinaten entstehen — das war korrekt und blieb grün. Ob
+ein Mensch sie sieht, ist außerhalb dessen, was eine Node-Suite beantworten kann. Genau dafür
+existiert der manuelle Smoke-Test in diesem Repo.

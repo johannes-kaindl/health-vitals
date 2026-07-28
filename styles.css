@@ -86,7 +86,13 @@
 }
 .ah-axis-y .ah-axis-label { right: 0; transform: translateY(-50%); }
 .ah-axis-x .ah-axis-label { transform: translateX(-50%); }
-.ah-chart-week { stroke: var(--background-modifier-border); stroke-width: 1; opacity: 0.5; }
+/* Gestrichelt statt nur blasser: Die Wochenmarkierung trägt eigene Bedeutung, das
+   Gitter ist bloße Lesehilfe. Der erste Entwurf gab ihr dieselbe Farbe wie dem Gitter
+   und dazu halbe Deckkraft — im Smoke-Test war sie dadurch nicht auffindbar, obwohl
+   nachweislich jede einzelne Linie an der richtigen Stelle gezeichnet wurde. Ein
+   Unterschied in der Form (Strichmuster) trägt auch dort, wo ein Unterschied in der
+   Stärke untergeht: zwischen 92 Balken, in fremden Themes, bei Farbfehlsichtigkeit. */
+.ah-chart-week { stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 4 4; }
 
 /* --- Kit: collapsible section (verbatim aus src/vendor/kit-obsidian/collapsible.ts, COLLAPSIBLE_CSS) --- */
 .okit-collapsible-header {
