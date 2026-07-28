@@ -585,6 +585,12 @@ describe("toCsv", () => {
     expect(toCsv(["A"], [["a\nb"]])).toBe('A\n"a\nb"');
   });
 
+  it("auch ein alleinstehendes Carriage Return wird gequotet", () => {
+    // Die Einheiten in den Spaltenköpfen stammen aus dem Apple-Export, sind also
+    // fremdbestimmt. Ein ungequotetes \r bricht CSV-Parser, die es als Zeilenende lesen.
+    expect(toCsv(["A"], [["a\rb"]])).toBe('A\n"a\rb"');
+  });
+
   it("harmlose Zellen bleiben unquotiert", () => {
     expect(toCsv(["A"], [["72.5"]])).toBe("A\n72.5");
   });
@@ -620,9 +626,11 @@ export function toMarkdownTable(headers: string[], rows: string[][]): string {
   return [head, sep, ...body].join("\n");
 }
 
-/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt. */
+/** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt.
+ *  `\r` gehört mit in die Zeichenklasse — ein alleinstehendes Carriage Return ist für
+ *  CSV-Parser ein Zeilenende und zerlegt sonst den Datensatz. */
 function csvCell(cell: string): string {
-  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  return /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
 }
 
 /** Zeilenende `\n` statt des von RFC 4180 verlangten `\r\n` — Ziel ist ein
