@@ -2,8 +2,11 @@ import type { ChartGeometry } from "../core/chart-geometry";
 import type { AxisVM } from "../core/view-model";
 
 /**
- * Zeichnet das Chart. Ohne `opts.axis` entsteht exakt das bisherige DOM (ein
- * nacktes <svg>) — das ist der Sparkline-Pfad der Übersicht.
+ * Zeichnet das Chart. Drei Aufrufformen:
+ *
+ *   renderChart(el, geom)                    → nacktes <svg>, sonst nichts (Sparklines, Übersicht)
+ *   renderChart(el, geom, { grid: true })    → <svg> + Gitterlinien (Workouts)
+ *   renderChart(el, geom, { axis: vm.axis }) → Rahmen + Labels + Gitterlinien (Detail)
  *
  * Mit Achsendaten kommt ein Grid-Rahmen dazu:
  *
@@ -17,9 +20,18 @@ import type { AxisVM } from "../core/view-model";
  * width:100%, eine Schriftgröße in viewBox-Einheiten schrumpfte in einer
  * schmalen Sidebar auf wenige Pixel. Als HTML tragen sie --font-ui-smaller
  * und bleiben in jeder Containerbreite lesbar.
+ *
+ * `grid` und `axis` sind unabhängig voneinander wählbar, `axis` bringt die
+ * Gitterlinien aber immer mit — die Entscheidung, ob überhaupt Gitterlinien
+ * entstehen, fällt genau einmal in `showGrid`, nicht dupliziert an jeder Stelle.
+ * Wochenlinien bleiben ausschließlich dem Achsen-Fall vorbehalten: sie gehören
+ * fachlich zur Detail-Ansicht, nicht zu jedem beliebigen Grid.
  */
-export function renderChart(parent: HTMLElement, geom: ChartGeometry, opts?: { axis?: AxisVM }): void {
+export function renderChart(
+  parent: HTMLElement, geom: ChartGeometry, opts?: { axis?: AxisVM; grid?: boolean },
+): void {
   const axis = opts?.axis;
+  const showGrid = Boolean(axis) || Boolean(opts?.grid);
   const host = axis ? parent.createDiv({ cls: "ah-chart-frame" }) : parent;
 
   if (axis) {
@@ -36,15 +48,18 @@ export function renderChart(parent: HTMLElement, geom: ChartGeometry, opts?: { a
     attr: { viewBox: `0 0 ${geom.width} ${geom.height}`, preserveAspectRatio: "none" },
   });
 
-  if (axis) {
+  if (showGrid) {
     for (const tick of geom.yTicks) {
       svg.createSvg("line", {
         cls: "ah-chart-grid",
         attr: { x1: 0, y1: tick.y, x2: geom.width, y2: tick.y },
       });
     }
+  }
+  if (axis) {
     // Wochenlinien kommen aus der Geometrie (viewBox-Einheiten), nicht aus dem
-    // AxisVM — sie werden im SVG gezeichnet, nicht im HTML-Layer.
+    // AxisVM — sie werden im SVG gezeichnet, nicht im HTML-Layer. Sie gehören
+    // an den Achsen-Fall, nicht an jedes Grid (Workouts-Chart hat keine Wochen).
     for (const x of geom.weekMarks) {
       svg.createSvg("line", {
         cls: "ah-chart-week",

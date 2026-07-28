@@ -21,7 +21,7 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
   el.createEl("h3", { text: t("workouts.perMonth") });
   const points: RollupPoint[] = summary.monthly.map((m) => ({ key: m.key, value: m.value }));
   const chartBox = el.createDiv({ cls: "ah-detail-chart" });
-  renderChart(chartBox, buildChartGeometry(points, "bar", CHART_DIMS));
+  renderChart(chartBox, buildChartGeometry(points, "bar", CHART_DIMS), { grid: true });
 
   el.createEl("h3", { text: t("workouts.recent") });
   const list = el.createDiv({ cls: "ah-workout-list" });

@@ -109,4 +109,25 @@ describe("renderChart mit Achsen", () => {
     renderChart(el, geom);
     expect(collectByCls(el, "ah-chart-week")).toHaveLength(0);
   });
+
+  it("ohne Optionen: keine Gitterlinien", () => {
+    const el = fakeEl();
+    renderChart(el, geom);
+    expect(collectByCls(el, "ah-chart-grid")).toHaveLength(0);
+  });
+
+  it("mit grid: Gitterlinien werden gezeichnet, aber kein Label-DOM und kein Wrapper", () => {
+    const el = fakeEl();
+    renderChart(el, geom, { grid: true });
+    expect(collectByCls(el, "ah-chart-grid")).toHaveLength(geom.yTicks.length);
+    expect(findByCls(el, "ah-axis-x")).toBeNull();
+    expect(findByCls(el, "ah-axis-y")).toBeNull();
+    expect(findByCls(el, "ah-chart-frame")).toBeNull();
+  });
+
+  it("mit grid: keine Wochenlinien, auch wenn die Geometrie welche trägt", () => {
+    const el = fakeEl();
+    renderChart(el, geom, { grid: true });
+    expect(collectByCls(el, "ah-chart-week")).toHaveLength(0);
+  });
 });
