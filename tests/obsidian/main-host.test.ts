@@ -1,7 +1,10 @@
 import AppleHealthPlugin from "../../src/main";
 import type { HealthCache } from "../../src/core/types";
 
-function makePlugin(): any {
+/** Nackte Plugin-Instanz ohne Vault-Attrappe. Heißt bewusst anders als der
+ *  `makePlugin(...)`-Helfer weiter unten, der eine mit Adapter bestückte Instanz baut —
+ *  gleiche Namen in einer Datei lassen offen, welcher gemeint ist. */
+function makeBarePlugin(): any {
   return new AppleHealthPlugin({} as any, {} as any) as any;
 }
 
@@ -79,7 +82,7 @@ describe("AppleHealthPlugin cache I/O", () => {
 
 describe("Export-Einstellungen im Plugin-Data", () => {
   it("Defaults: leerer Ordner, Markdown, nichts eingeklappt gespeichert", async () => {
-    const plugin = makePlugin();           // vorhandener Helfer der Datei
+    const plugin = makeBarePlugin();
     await plugin.loadPluginData();
     expect(plugin.getExportFolder()).toBe("");
     expect(plugin.getExportFormat()).toBe("md");
@@ -87,7 +90,7 @@ describe("Export-Einstellungen im Plugin-Data", () => {
   });
 
   it("Setzen persistiert über saveData", async () => {
-    const plugin = makePlugin();
+    const plugin = makeBarePlugin();
     const saved: any[] = [];
     plugin.saveData = async (d: any) => { saved.push(d); };
     await plugin.loadPluginData();
@@ -104,12 +107,31 @@ describe("Export-Einstellungen im Plugin-Data", () => {
   });
 
   it("Altes data.json ohne die neuen Felder lädt ohne Absturz", async () => {
-    const plugin = makePlugin();
+    const plugin = makeBarePlugin();
     plugin.loadData = async () => ({ favorites: ["a"] });
     await plugin.loadPluginData();
     expect(plugin.getFavorites()).toEqual(["a"]);
     expect(plugin.getExportFolder()).toBe("");
     expect(plugin.getExportFormat()).toBe("md");
+  });
+
+  it("beschädigtes data.json fällt feldweise auf die Defaults zurück", async () => {
+    // data.json liegt im Vault des Nutzers: handeditiert, von einem Sync-Konflikt zerlegt
+    // oder aus einer künftigen Version zurückgerollt. Ein pauschaler Spread übernähme jeden
+    // dieser Werte ungeprüft — `favorites: null` ließe getFavorites() null liefern, worauf
+    // die Übersicht .indexOf() ruft und beim Öffnen des Dashboards stirbt.
+    const plugin = makeBarePlugin();
+    plugin.loadData = async () => ({
+      favorites: null,
+      exportFolder: 42,
+      exportFormat: "pdf",
+      collapsed: "nope",
+    });
+    await plugin.loadPluginData();
+    expect(plugin.getFavorites()).toEqual([]);
+    expect(plugin.getExportFolder()).toBe("");
+    expect(plugin.getExportFormat()).toBe("md");
+    expect(plugin.getCollapsed("detail-values")).toBeUndefined();
   });
 
   it("zwei Instanzen ohne gespeicherte Felder teilen keine Default-Referenz (kein Cross-Instance-Leak)", async () => {
@@ -119,12 +141,12 @@ describe("Export-Einstellungen im Plugin-Data", () => {
     // Default-Vorlage statt eine Kopie — nachfolgende Mutationen (setCollapsed, toggleFavorite)
     // verunreinigen dann DEFAULT_DATA selbst und damit jede später im selben Prozess
     // erzeugte Plugin-Instanz (Dev-Hot-Reload, Deaktivieren/Aktivieren ohne Neustart).
-    const first = makePlugin();
+    const first = makeBarePlugin();
     await first.loadPluginData(); // loadData() liefert null → nichts geladen, reiner Default-Pfad
     first.setCollapsed("detail-values", true);
     await first.toggleFavorite("HKQuantityTypeIdentifierStepCount");
 
-    const second = makePlugin();
+    const second = makeBarePlugin();
     await second.loadPluginData();
     expect(second.getCollapsed("detail-values")).toBeUndefined();
     expect(second.getFavorites()).toEqual([]);
