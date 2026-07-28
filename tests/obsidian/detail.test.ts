@@ -5,7 +5,7 @@ import type { RangeKey } from "../../src/core/rollup";
 function fakeEl(): any {
   const el: any = { children: [] as any[], cls: "", text: "", _click: null as any,
     createDiv(o?: any) { const c = fakeEl(); c.cls = (o && o.cls) || ""; el.children.push(c); return c; },
-    createEl(_t: string, o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
+    createEl(tag: string, o?: any) { const c = fakeEl(); c.tag = tag; c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
     addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {}, addClass() {},
@@ -21,6 +21,11 @@ function findText(el: any, needle: string): boolean {
 function findByText(el: any, needle: string): any {
   if (el.text === needle) return el;
   for (const c of el.children) { const hit = findByText(c, needle); if (hit) return hit; }
+  return null;
+}
+function findByTag(el: any, tag: string): any {
+  if (el.tag === tag) return el;
+  for (const c of el.children) { const hit = findByTag(c, tag); if (hit) return hit; }
   return null;
 }
 function fakeView(): any {
@@ -198,5 +203,34 @@ describe("renderDetail — Speichern (Export ins Vault, I-4)", () => {
     expect(path).toBe("Notes/Schritte 2026-01–2026-02.md");
     expect(content).toContain("| Monat |");
     expect(content).toContain("1.500");
+  });
+
+  it("zwei schnelle Klicks schreiben nur eine Datei", async () => {
+    // Die Kollisionssuche in writeExport ist TOCTOU-anfällig: Zwei parallele Läufe fragen
+    // beide adapter.exists ab, bekommen denselben freien Pfad und der zweite überschreibt
+    // den ersten. Das Versprechen "es wird nie überschrieben" gilt sonst gegen fremde
+    // Dateien, aber nicht gegen den eigenen zweiten Klick.
+    const { view, write } = makeVaultView("Notes", "md");
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    const btn = findByText(el, "Speichern");
+    btn._click();
+    btn._click();
+    await vi.waitFor(() => expect(write).toHaveBeenCalled());
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it("nimmt den getippten Ordner, auch wenn er noch nicht persistiert wurde", async () => {
+    // Persistiert wird erst bei "change"/"blur". Wer tippt und sofort auf Speichern klickt,
+    // hat den Wert noch nicht im Speicher — gelten muss er trotzdem, sonst landet der Export
+    // stillschweigend im vorherigen Ordner.
+    const { view, write } = makeVaultView("Alt", "md");
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, view);
+    const input = findByTag(el, "input");
+    input.value = "Neu/Unterordner";
+    findByText(el, "Speichern")._click();
+    await vi.waitFor(() => expect(write).toHaveBeenCalled());
+    expect(write.mock.calls[0][0]).toBe("Neu/Unterordner/Schritte 2026-01–2026-02.md");
   });
 });

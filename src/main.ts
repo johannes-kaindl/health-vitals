@@ -29,6 +29,11 @@ function freshDefaultData(): PluginData {
   return { ...DEFAULT_DATA, favorites: [...DEFAULT_DATA.favorites], collapsed: { ...DEFAULT_DATA.collapsed } };
 }
 
+/** `typeof null === "object"` — die Null-Prüfung ist der eigentliche Punkt hier. */
+function isPlainObject(v: unknown): v is Record<string, boolean> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   private data: PluginData = freshDefaultData();
 
@@ -56,7 +61,20 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     // freshDefaultData() statt DEFAULT_DATA direkt spreaden — sonst übernehmen fehlende
     // Felder (jedes alte data.json, oder loadData() === null beim allerersten Start) die
     // geteilte Referenz auf die Modul-Vorlage statt eine eigene Kopie (siehe Kommentar dort).
-    this.data = { ...freshDefaultData(), ...(loaded ?? {}) };
+    //
+    // Jedes Feld einzeln auf seinen Typ prüfen, statt `loaded` pauschal darüberzuspreaden:
+    // data.json ist eine Datei im Vault des Nutzers und kann von Hand editiert oder von
+    // einem Sync-Konflikt zerlegt worden sein. Ein `"favorites": null` darin überschriebe
+    // beim Spread den Default und ließe getFavorites() null liefern — die Übersicht ruft
+    // darauf .indexOf() und stirbt beim Öffnen des Dashboards.
+    const base = freshDefaultData();
+    const fmt = loaded?.exportFormat;
+    this.data = {
+      favorites: Array.isArray(loaded?.favorites) ? [...loaded.favorites] : base.favorites,
+      exportFolder: typeof loaded?.exportFolder === "string" ? loaded.exportFolder : base.exportFolder,
+      exportFormat: fmt === "md" || fmt === "csv" ? fmt : base.exportFormat,
+      collapsed: isPlainObject(loaded?.collapsed) ? { ...loaded.collapsed } : base.collapsed,
+    };
   }
 
   /**

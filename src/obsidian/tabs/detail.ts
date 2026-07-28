@@ -117,22 +117,39 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
   const input = folderRow.createEl("input", { attr: { type: "text", placeholder: "/" } });
   input.value = host.getExportFolder();
   new FolderSuggest(view.app, input);
-  // Der Suggest feuert nach der Klick-Auswahl selbst ein "input"-Event —
-  // deshalb genügt dieser eine Listener für Tippen UND Auswählen.
-  input.addEventListener("input", () => { host.setExportFolder(input.value); });
+  // Gespeichert wird beim Verlassen des Feldes, nicht bei jedem Tastenanschlag: Jeder
+  // Setter schreibt data.json als Ganzes und unawaited weg — ein 17-Zeichen-Pfad löste
+  // damit 17 nebenläufige Schreibvorgänge aus, deren Abschlussreihenfolge nicht garantiert
+  // ist; gewinnt ein früherer, bleibt ein abgeschnittenes Präfix gespeichert.
+  // "change" deckt Enter und Fokusverlust ab, "blur" zusätzlich den Weg über die
+  // Suggest-Auswahl per Maus.
+  const persistFolder = (): void => { host.setExportFolder(input.value); };
+  input.addEventListener("change", persistFolder);
+  input.addEventListener("blur", persistFolder);
 
   async function save(): Promise<void> {
+    // Zwei schnelle Klicks lösen sonst parallel dieselbe Kollisionssuche in writeExport
+    // aus, finden denselben freien Pfad und der zweite Lauf überschreibt den ersten —
+    // "es wird nie überschrieben" gilt gegen Bestandsdateien, nicht gegen sich selbst.
+    if (saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    // Der Ordner kommt aus dem Feld, nicht aus dem Speicher: Wer tippt und sofort auf
+    // Speichern klickt, hat den Wert noch nicht persistiert — gelten soll er trotzdem.
+    const folder = input.value;
+    persistFolder();
     const format = host.getExportFormat();
     const from = vm.table.rows[0]?.[0] ?? "";
     const to = vm.table.rows[vm.table.rows.length - 1]?.[0] ?? "";
     try {
       const path = await writeExport(
-        view.app, host.getExportFolder(), buildExportName(vm.name, from, to),
+        view.app, folder, buildExportName(vm.name, from, to),
         format, serializeTable(vm, format),
       );
       new Notice(t("export.saved", path));
     } catch (err) {
       new Notice(t("export.saveFailed", err instanceof Error ? err.message : String(err)));
+    } finally {
+      saveBtn.disabled = false;
     }
   }
 }

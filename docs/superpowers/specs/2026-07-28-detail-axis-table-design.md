@@ -26,7 +26,7 @@ bereits gelöst ist**. Übernommen wird:
 | Baustein | Quelle | Was daran nicht offensichtlich ist |
 |---|---|---|
 | `copyToClipboard(text, onCopied?)` | `json_viewer/src/obsidian/clipboard.ts` | `navigator.clipboard` muss **vor** dem Zugriff geprüft werden — in non-secure Contexts wirft schon das Property-Lesen synchron |
-| Kopier-Feedback am Button („✓", 800 ms) | `json_viewer/src/obsidian/CopyButton.ts` | `window.setTimeout`, nicht `activeWindow` (`obsidianmd/prefer-window-timers`) |
+| ~~Kopier-Feedback am Button („✓", 800 ms)~~ **nicht umgesetzt** — siehe Nachtrag unten | `json_viewer/src/obsidian/CopyButton.ts` | `window.setTimeout`, nicht `activeWindow` (`obsidianmd/prefer-window-timers`) |
 | `renderTable` / `escapeCell` | `vault-rag/src/reformat_mechanical.ts` | Ein literales `\|` in einer Zelle muss re-escaped werden, sonst zerfällt die Zelle in zwei |
 | `sanitizeBase`, `joinPath`, versionierte Pfadauflösung | `obsidian-paperize/src/obsidian/output.ts`, byte-nah in `epub-exporter/src/core/output-path.ts` | Die `exists`-Schleife braucht einen Abbruchgrund, sonst läuft sie endlos, wenn sich der Name nie ändert |
 | `collapsibleSection` + `CollapsibleStorage` | `obsidian-kit/src/obsidian/collapsible.ts` | Persistenz-Callback und a11y (`role=button`, `aria-expanded`, Enter/Space) sind enthalten |
@@ -334,3 +334,31 @@ Kategorie-Kollaps) gilt weiter.
   (Wissen ab n=1).
 - `folder-suggest.ts` liegt hier erstmals nach UI-STANDARD §9 korrekt in
   `src/vendor/kit-obsidian/` — beim Kit-Extraktionsschritt als Referenz nennen.
+
+## Nachtrag nach der Umsetzung (2026-07-28)
+
+**Das Kopier-Feedback am Button wurde nicht übernommen.** Die Tabelle oben führte
+`CopyButton.ts` aus `json_viewer` als zu übernehmenden Baustein („✓" für 800 ms am Knopf).
+Umgesetzt ist stattdessen eine `Notice` mit der Zeilenzahl. Funktional gleichwertig — eine
+Rückmeldung, dass der Kopiervorgang geklappt hat —, aber es ist eine andere Lösung als die
+hier versprochene, und keine Task hat die Abweichung bemerkt: Jede prüfte nur gegen ihren
+eigenen Auftrag, und der Abschluss-Review über den ganzen Branch fand sie als Einzigen.
+
+Der Unterschied ist nicht bloß kosmetisch: Das Knopf-Feedback sitzt dort, wo der Blick beim
+Klick ohnehin ist; eine Notice erscheint am Bildschirmrand. Wer das nachziehen will, findet
+das Muster unverändert in `json_viewer/src/obsidian/CopyButton.ts` — mit `window.setTimeout`,
+nicht `activeWindow.setTimeout` (`obsidianmd/prefer-window-timers`).
+
+**Bewusst offen gebliebene Punkte** aus dem Abschluss-Review, dokumentiert damit sie nicht
+als Versehen gelesen werden:
+
+- **Zwei Mechanismen für denselben Aufklappzustand.** Die Übersicht merkt sich ihre
+  Kategorien in einem `Set` am View (überlebt keinen Neustart), die Werte-Sektion persistiert
+  über `CollapsibleStorage` nach `data.json`. Erst dieser Slice macht daraus eine Dublette —
+  jetzt, wo der persistente Speicher existiert, ist das `Set` ein Konsolidierungskandidat.
+- **`npm run lint` läuft ohne `--max-warnings 0`** und meldet Exit 0 trotz 78 Warnungen (alle
+  `no-explicit-any` in Tests und Mock, keine im Produktionscode). Das Gate kann auf neue
+  Warnungen nicht anschlagen. Repo-Hygiene, unabhängig von diesem Slice.
+- **`KIT-MATRIX.md` im Dach kennt den neuen `kit-obsidian/`-Vendor-Ordner nicht.** Die Datei
+  ist generiert und wird laut Dach-`AGENTS.md` nie von Hand editiert — sie zieht beim
+  nächsten `drift-audit` nach.
