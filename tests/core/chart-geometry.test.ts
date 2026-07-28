@@ -108,4 +108,34 @@ describe("chart-geometry", () => {
     expect(g.weekMarks[0]).toBeCloseTo(5);
     expect(g.xTicks[0].x).toBeCloseTo(27.5);
   });
+
+  // Der Linien-Pfad (scaleX) ist der Live-Pfad jeder `measure`-Metrik (Puls,
+  // Gewicht, Sauerstoffsättigung) — der bar-Pfad hatte oben zwei eigene Tests,
+  // dieser hatte keinen.
+  it("line: Wochenlinien folgen auch bei Tagesgranularität nur den Montagen", () => {
+    // 2026-07-27 ist ein Montag, 2026-08-03 der nächste (wie im bar-Pendant oben).
+    const pts: RollupPoint[] = [
+      { key: "2026-07-26", value: 1 }, // So
+      { key: "2026-07-27", value: 2 }, // Mo
+      { key: "2026-07-28", value: 3 }, // Di
+      { key: "2026-08-03", value: 4 }, // Mo
+    ];
+    const g = buildChartGeometry(pts, "line", dims, { granularity: "day" });
+    expect(g.weekMarks).toHaveLength(2);
+  });
+
+  it("line: Wochenlinie sitzt auf scaleX(i) (Punkt-Position), nicht auf dem Slot-Anfang wie beim Balken", () => {
+    const pts: RollupPoint[] = [
+      { key: "2026-07-26", value: 1 }, // So, Index 0
+      { key: "2026-07-27", value: 2 }, // Mo, Index 1
+      { key: "2026-07-28", value: 3 }, // Di, Index 2
+    ];
+    const g = buildChartGeometry(pts, "line", dims, { granularity: "day" });
+    // innerW = 90, n = 3 → scaleX(1) = padding + innerW * 1/(n-1) = 5 + 45 = 50.
+    // Beim bar-Pfad läge der gleichzeitige Slot-Anfang bei padding + i*slotW = 35 —
+    // andere Formel, anderer Wert; dieser Test würde also auch eine versehentliche
+    // Wiederverwendung der Slot-Formel im Linien-Pfad auffangen.
+    expect(g.weekMarks).toHaveLength(1);
+    expect(g.weekMarks[0]).toBeCloseTo(50);
+  });
 });
