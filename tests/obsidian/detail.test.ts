@@ -9,6 +9,7 @@ function fakeEl(): any {
     createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
     addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {}, addClass() {},
+    setCssStyles(_styles: Record<string, string>) {},
   };
   return el;
 }

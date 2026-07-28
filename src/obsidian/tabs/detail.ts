@@ -36,7 +36,7 @@ export function renderDetail(
     hint.createSpan({ text: t("detail.noData") });
   } else {
     const chartBox = el.createDiv({ cls: "ah-detail-chart" });
-    renderChart(chartBox, vm.chart, { axis: true });
+    renderChart(chartBox, vm.chart, { axis: vm.axis });
   }
 
   const stats = el.createDiv({ cls: "ah-stat-row" });
