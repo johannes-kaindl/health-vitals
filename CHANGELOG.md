@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-07-29
+
 ### Fixed
 
 - Interne Testlücke, die das Release-Gate von 0.4.0 nach dem Tag scheitern ließ, weshalb
