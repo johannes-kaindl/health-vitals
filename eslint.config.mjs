@@ -148,7 +148,24 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-return": "off",
+      // no-explicit-any stand hier zunaechst weiter auf "warn", als Hinweis auf die Quelle.
+      // Mit `--max-warnings 0` (package.json) geht das nicht mehr auf: Die Regel erzeugte
+      // 81 Treffer, ausschliesslich in dieser Gruppe und ausschliesslich dort, wo Testcode
+      // den bewusst `any`-typisierten Mock annotiert. Sie haette das Gate dauerhaft rot
+      // gehalten und damit genau die Signalwirkung zerstoert, um die es geht. Die
+      // Alternative — den Mock durchtypisieren — verwirft schon der Absatz oben. Fuer
+      // src/** gilt die Regel unveraendert; dort steht kein einziges `any`.
+      "@typescript-eslint/no-explicit-any": "off",
     },
+  },
+  {
+    // prefer-window-timers schuetzt Plugin-Laufzeitcode: In einem Obsidian-Popout-Fenster
+    // zeigt das globale `setTimeout` auf das falsche Fenster. Testcode laeuft in Node, wo
+    // es weder Popouts noch ueberhaupt ein `window` gibt — dieselbe Begruendung wie beim
+    // .mjs-Block oben. Konkret betrifft es den window-Stub in clipboard.test.ts, der das
+    // globale setTimeout absichtlich aufruft: Er IST dort die window-Implementierung.
+    files: ["tests/**/*.ts"],
+    rules: { "obsidianmd/prefer-window-timers": "off" },
   },
   {
     // main-host.test.ts pinnt ausdruecklich, dass der Cache-Pfad NICHT von einem hartkodierten
