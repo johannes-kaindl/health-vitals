@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Übersicht: Kacheln und der Favoriten-Stern sind per Tastatur erreichbar und mit
+  Enter oder Leertaste auslösbar; der Fokus bleibt nach dem Umschalten eines Favoriten
+  auf dem betätigten Stern.
+
+### Changed
+
+- Übersicht: Der Aufklappzustand der Kategorien überlebt jetzt den Neustart von
+  Obsidian — er liegt im selben Speicher wie der Zustand der Werte-Tabelle.
+- Export: Der Kopiervorgang wird am Knopf selbst quittiert statt über eine Meldung am
+  Bildschirmrand.
+
+### Fixed
+
+- Übersicht öffnet spürbar schneller: Die Kacheln werden pro Import einmal berechnet
+  statt bei jedem Tabwechsel und jedem Favoriten-Klick neu.
+
 ## [0.3.0] — 2026-07-28
 
 ### Added
