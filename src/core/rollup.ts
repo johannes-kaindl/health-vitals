@@ -40,7 +40,31 @@ function bucketKey(day: string, g: Granularity): string {
   return isoWeekKey(day);
 }
 
-interface Acc { sum: number; wSum: number; count: number; min: number; max: number; }
+/** Akkumulator für die measure-Policy. Wandert bewusst hierher statt in jeden Aufrufer:
+ *  Tagesmittel sind NICHT gleichgewichtet mittelbar — ein Tag mit 200 Messungen wiegt
+ *  schwerer als einer mit dreien, deshalb `avg * count` und Division durch die Gesamtzahl.
+ *  Diese Gewichtung stand vorher hier und in computeStats getrennt; wer sie an einer
+ *  Stelle korrigiert, hätte die andere still falsch zurückgelassen. */
+export interface MeasureAcc { wSum: number; count: number; min: number; max: number; }
+
+export function emptyMeasureAcc(): MeasureAcc {
+  return { wSum: 0, count: 0, min: Infinity, max: -Infinity };
+}
+
+export function addMeasure(acc: MeasureAcc, mb: MeasureBucket): void {
+  acc.wSum += mb.avg * mb.count;
+  acc.count += mb.count;
+  acc.min = Math.min(acc.min, mb.min);
+  acc.max = Math.max(acc.max, mb.max);
+}
+
+/** Gewichtetes Mittel, oder `undefined` wenn kein einziger Messwert eingegangen ist —
+ *  die Unterscheidung „keine Daten" vs. „Mittelwert 0" trifft der Aufrufer. */
+export function measureAvg(acc: MeasureAcc): number | undefined {
+  return acc.count ? acc.wSum / acc.count : undefined;
+}
+
+interface Acc extends MeasureAcc { sum: number; }
 
 export function rollupDaily(daily: Record<string, DayBucket>, policy: Policy, r: ResolvedRange): RollupPoint[] {
   const buckets = new Map<string, Acc>();
@@ -48,24 +72,21 @@ export function rollupDaily(daily: Record<string, DayBucket>, policy: Policy, r:
     if (day < r.from || day > r.to) continue;
     const key = bucketKey(day, r.granularity);
     let acc = buckets.get(key);
-    if (!acc) { acc = { sum: 0, wSum: 0, count: 0, min: Infinity, max: -Infinity }; buckets.set(key, acc); }
+    if (!acc) { acc = { sum: 0, ...emptyMeasureAcc() }; buckets.set(key, acc); }
     const b = daily[day];
     if (policy === "sum") {
       acc.sum += (b as SumBucket).sum;
     } else if (policy === "duration") {
       acc.sum += (b as DurationBucket).minutes;
     } else {
-      const mb = b as MeasureBucket;
-      acc.wSum += mb.avg * mb.count;
-      acc.count += mb.count;
-      acc.min = Math.min(acc.min, mb.min);
-      acc.max = Math.max(acc.max, mb.max);
+      addMeasure(acc, b as MeasureBucket);
     }
   }
   const out: RollupPoint[] = [];
   for (const [key, acc] of buckets) {
     if (policy === "measure") {
-      out.push({ key, value: acc.count ? acc.wSum / acc.count : 0, min: acc.min, max: acc.max });
+      // 0 statt undefined: ein Punkt im Chart braucht eine Zahl.
+      out.push({ key, value: measureAvg(acc) ?? 0, min: acc.min, max: acc.max });
     } else {
       out.push({ key, value: acc.sum });
     }
