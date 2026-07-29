@@ -1330,20 +1330,20 @@ git commit -m "chore: extend lint gate to repo root so manifest and license are 
 
 Renderer-Verhalten ist in Node-Tests unsichtbar — zweimal in diesem Projekt bestätigt (fflate-Worker `beab394`, Kategorie-Kollaps `a4289dd`). Dieser Task ist Teil der Definition of Done, nicht optional.
 
-**Deploy-Ziel:** `/Users/Shared/10_ObsidianVaults/00_ProtoVault/.obsidian/plugins/apple-health`
+**Deploy-Ziel:** `<vault>/.obsidian/plugins/apple-health` (`<vault>` = ProtoVault-Wurzel)
 (ProtoVault ist **kein** git-Repo.)
 
 - [ ] **Step 1: Bauen und deployen**
 
 ```bash
-OBSIDIAN_PLUGIN_DIR="/Users/Shared/10_ObsidianVaults/00_ProtoVault/.obsidian/plugins/apple-health" npm run deploy
+OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/apple-health" npm run deploy
 ```
 
 - [ ] **Step 2: Alten Zustand entfernen, damit der Erst-Start-Pfad geprüft wird**
 
 ```bash
-rm -f "/Users/Shared/10_ObsidianVaults/00_ProtoVault/.obsidian/plugins/apple-health/health-cache.json"
-rm -rf "/Users/Shared/10_ObsidianVaults/00_ProtoVault/.obsidian/plugins/apple-health/import"
+rm -f "<vault>/.obsidian/plugins/apple-health/health-cache.json"
+rm -rf "<vault>/.obsidian/plugins/apple-health/import"
 ```
 
 - [ ] **Step 3: Prüfliste im laufenden Obsidian abarbeiten**

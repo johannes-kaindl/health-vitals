@@ -7,7 +7,7 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs --production",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "node scripts/check-no-abs-paths.mjs && vitest run",
     "lint": "eslint . --max-warnings 0",
     "lint:obsidian": "eslint . --max-warnings 0",
     "lint:portal": "eslint src --config eslint.portal.config.mjs --max-warnings 0",

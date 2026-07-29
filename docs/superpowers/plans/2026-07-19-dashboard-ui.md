@@ -1878,7 +1878,7 @@ Dies ist das **verbindliche Integrations-Gate** (LESSONS.md 2026-07-19): SVG-DOM
 
 Run:
 ```bash
-OBSIDIAN_PLUGIN_DIR="/Users/Shared/00_ProtoVault/.obsidian/plugins/apple-health" npm run deploy
+OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/apple-health" npm run deploy   # <vault> = ProtoVault-Wurzel
 ```
 Expected: `main.js`, `manifest.json`, `styles.css` kopiert, kein Build-Fehler.
 
@@ -1896,7 +1896,7 @@ Manuell prüfen (Plugin neu laden / Obsidian `Cmd+R`):
 
 Renderer-only-Bugs, die kein Node-Test fängt, hier beheben und committen. Danach:
 - Cockpit `10_Pallas/25_Coding/apple-health/apple-health.md` §🧭 um „Slice 2 Dashboard-UI" ergänzen (Claude-Ergänzung, kein Auto-Block).
-- Falls eine neue renderer-only-Falle auftauchte → `/Users/Shared/code/_docs/LESSONS.md` § 🟢 Aktiv ergänzen.
+- Falls eine neue renderer-only-Falle auftauchte → `../../_docs/LESSONS.md` (Schwester-Repo `_docs`) § 🟢 Aktiv ergänzen.
 
 - [ ] **Step 4: Final commit (falls Fixes)**
 

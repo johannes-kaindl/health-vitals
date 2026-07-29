@@ -2166,7 +2166,7 @@ Unter `## [Unreleased]` in `CHANGELOG.md`. **Nicht** datieren und **keine** Vers
 
 - [ ] **Step 2: REGISTRY-Nachträge im Dach**
 
-In `/Users/Shared/code/obsidian-plugins/REGISTRY.md`:
+In `../REGISTRY.md` (Dach-Repo `obsidian-plugins`):
 
 1. **`copyToClipboard`** erreicht mit diesem Plugin n=3 (json_viewer, kuro-gamification, health-vitals) → Status auf **Kit-Kandidat** heben, Fundstellen ergänzen. Nicht-offensichtliches Detail mitschreiben: Der `navigator.clipboard`-Guard muss vor dem Zugriff stehen, weil das Property-Lesen in non-secure Contexts synchron wirft.
 2. **Versionierte Pfadauflösung** (paperize, epub-exporter, health-vitals) erreicht n=3 → **Kit-Kandidat**.
@@ -2183,7 +2183,7 @@ git commit -m "docs(changelog): Slice 3c — Achsen, Werte-Tabelle, Export"
 Der REGISTRY-Commit läuft im Dach-Repo:
 
 ```bash
-cd /Users/Shared/code/obsidian-plugins
+cd ..   # vom Repo-Root ins Dach-Repo obsidian-plugins
 git add REGISTRY.md
 git commit -m "docs(registry): Clipboard + versionierte Pfadauflösung auf n=3, CSV-Serialisierung neu"
 cd apple-health

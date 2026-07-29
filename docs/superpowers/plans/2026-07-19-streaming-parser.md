@@ -1183,7 +1183,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `../REGISTRY.md` (Repo-übergreifend: `obsidian-plugins/REGISTRY.md`)
-- Modify: `/Users/Shared/10_ObsidianVaults/10_Pallas/25_Coding/apple-health/apple-health.md` (Cockpit: `letzter_commit`, „Was wurde gemacht")
+- Modify: `$VAULT/25_Coding/apple-health/apple-health.md` (Cockpit: `letzter_commit`, „Was wurde gemacht")
 
 **Interfaces:** keine Code-Interfaces.
 
@@ -1200,8 +1200,9 @@ Im Cockpit `apple-health.md`: `letzter_commit` auf den letzten Hash setzen, unte
 - [ ] **Step 3: Commit (nur REGISTRY; Vault-Cockpit wird per clean-shutdown committet)**
 
 ```bash
-git -C /Users/Shared/code/obsidian-plugins add REGISTRY.md
-git -C /Users/Shared/code/obsidian-plugins commit -m "docs(registry): add apple-health streaming tokenizer + unzip entries
+# vom Repo-Root aus; .. = Dach-Repo obsidian-plugins
+git -C .. add REGISTRY.md
+git -C .. commit -m "docs(registry): add apple-health streaming tokenizer + unzip entries
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
