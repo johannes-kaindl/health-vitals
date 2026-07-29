@@ -141,3 +141,13 @@
 }
 .ah-export-folder input { flex: 1; min-width: 12ch; }
 .ah-export-label { color: var(--text-muted); font-size: var(--font-ui-small); }
+
+/* Kopier-Quittung: Der Knopf trägt für 800 ms einen anderen Text. Die feste Mindestbreite
+   verhindert, dass er dabei die Breite wechselt und die Nachbarknöpfe verschiebt — genau
+   in dem Moment, in dem der Blick auf ihm liegt. Die Farbe kommt zum geänderten Text
+   hinzu, sie trägt den Zustand nicht allein (UI-STANDARD §8). */
+.ah-export-row button { min-width: 10ch; }
+.ah-export-row button.is-copied {
+  background: var(--background-modifier-success);
+  color: var(--text-normal);
+}

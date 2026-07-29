@@ -9,7 +9,7 @@ import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
 import { toCsv, toMarkdownTable } from "../../core/serialize";
 import { buildExportName } from "../../core/export-path";
-import { copyToClipboard } from "../clipboard";
+import { copyToClipboard, flashCopied } from "../clipboard";
 import { writeExport } from "../export-writer";
 import { FolderSuggest } from "../../vendor/kit-obsidian/folder-suggest";
 
@@ -90,9 +90,9 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
   const copyBtn = row.createEl("button", { cls: "mod-cta", text: t("export.copy") });
   copyBtn.addEventListener("click", () => {
     const text = serializeTable(vm, host.getExportFormat());
-    copyToClipboard(text, () => {
-      new Notice(t("export.copied", String(vm.table.rows.length)));
-    });
+    // Quittung am Knopf statt als Notice. Wieviel kopiert wurde, steht unverändert im
+    // Sektionstitel („Werte (N)") direkt darüber — ein zweites Signal dafür wäre Rauschen.
+    copyToClipboard(text, () => { flashCopied(copyBtn, t("export.copied"), t("export.copy")); });
   });
 
   const saveBtn = row.createEl("button", { text: t("export.save") });
