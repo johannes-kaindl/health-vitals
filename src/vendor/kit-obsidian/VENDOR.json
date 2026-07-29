@@ -5,13 +5,13 @@
       "file": "collapsible.ts",
       "source": "obsidian-kit",
       "version": "0.16.1",
-      "sha": "00fdd72"
+      "sha": "b7aaf7c"
     },
     {
       "file": "folder-suggest.ts",
       "source": "obsidian-kit",
       "version": "0.18.0",
-      "sha": "649aab9"
+      "sha": "988f4fd"
     }
   ]
 }
