@@ -164,8 +164,15 @@ export default tseslint.config(
     // es weder Popouts noch ueberhaupt ein `window` gibt — dieselbe Begruendung wie beim
     // .mjs-Block oben. Konkret betrifft es den window-Stub in clipboard.test.ts, der das
     // globale setTimeout absichtlich aufruft: Er IST dort die window-Implementierung.
+    // no-global-this hat dieselbe Wurzel und faellt in tests/setup.ts auf den window-Shim
+    // selbst: Die Regel verlangt „benutze window statt globalThis" — der Shim ist aber
+    // gerade die Stelle, die `window` erst anlegt, und kann sich dafuer nicht auf sich
+    // selbst berufen. Auch das gilt nur fuer Testcode; src/** benutzt globalThis nirgends.
     files: ["tests/**/*.ts"],
-    rules: { "obsidianmd/prefer-window-timers": "off" },
+    rules: {
+      "obsidianmd/prefer-window-timers": "off",
+      "obsidianmd/no-global-this": "off",
+    },
   },
   {
     // main-host.test.ts pinnt ausdruecklich, dass der Cache-Pfad NICHT von einem hartkodierten

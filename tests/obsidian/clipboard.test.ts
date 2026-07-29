@@ -39,18 +39,12 @@ function fakeButton(): any {
 }
 
 describe("flashCopied", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    // Die Tests laufen in Node, `window` gibt es dort nicht — in Obsidian dagegen schon,
-    // und obsidianmd/prefer-window-timers verlangt ausdrücklich window.setTimeout. Der
-    // Stub delegiert absichtlich erst zur Aufrufzeit an die globale Funktion, damit er
-    // die von useFakeTimers ersetzte Variante erwischt und nicht die echte.
-    vi.stubGlobal("window", {
-      setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
-      clearTimeout: (id: number) => { clearTimeout(id); },
-    });
-  });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  // `window` kommt aus tests/setup.ts und delegiert zur Aufrufzeit an die globalen Timer —
+  // useFakeTimers wirkt dadurch auch auf window.setTimeout, ohne Stub an dieser Stelle.
+  // Genau diese Datei hatte den Stub vorher lokal, und genau das verdeckte, dass jede
+  // ANDERE Testdatei ohne ihn in flashCopied auf ein fehlendes `window` läuft.
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
 
   it("setzt die Quittung und nimmt sie nach 800 ms zurück", () => {
     const btn = fakeButton();

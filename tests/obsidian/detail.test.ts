@@ -149,11 +149,14 @@ describe("renderDetail — Export-Zeile", () => {
     vi.unstubAllGlobals();
   });
 
-  it("der Kopier-Knopf quittiert am Knopf selbst", async () => {
-    // Wartet ausdruecklich auf die Quittung, nicht nur auf writeText: Der onCopied-Callback
-    // laeuft eine Microtask spaeter, und ein Fehler darin faellt sonst erst nach dem Ende
-    // des Tests an — ausserhalb jeder Zuordnung. Genau so blieb ein fehlendes setText im
-    // Mock lokal unsichtbar und kippte erst das CI-Gate.
+  it("der Kopier-Knopf quittiert am Knopf selbst und stellt sich zurueck", async () => {
+    // Wartet den GANZEN Zyklus ab, nicht nur bis zur Quittung. Das ist der Punkt: Der
+    // onCopied-Callback laeuft eine Microtask nach writeText, und der Rueckstell-Timer noch
+    // einmal 800 ms spaeter — beides ausserhalb des Tests, der nur geklickt hat. Genau dort
+    // sassen die zwei Fehler, die 0.4.0 und 0.4.1 das Gate gekostet haben (fehlendes setText
+    // im Mock, fehlendes `window` in Node): Sie traten NACH der letzten Zusicherung im
+    // selben Callback auf und kamen daher als unbehandelte Ablehnung ohne Testbezug hoch.
+    // Wer nur bis zur ersten sichtbaren Wirkung wartet, prueft die Haelfte des Pfades.
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const el = fakeEl();
@@ -162,6 +165,11 @@ describe("renderDetail — Export-Zeile", () => {
     btn._click();
     await vi.waitFor(() => expect(btn.text).toBe("Kopiert"));
     expect(btn.classes.has("is-copied")).toBe(true);
+    // Echte Zeit statt Fake-Timer: vi.waitFor oben braucht laufende Timer, und der Pfad
+    // fuehrt ueber window.setTimeout aus tests/setup.ts. Eine Sekunde ist der Preis dafuer,
+    // dass die Rueckstellung ueberhaupt je geprueft wird.
+    await vi.waitFor(() => expect(btn.text).toBe("Kopieren"), { timeout: 2000 });
+    expect(btn.classes.has("is-copied")).toBe(false);
     vi.unstubAllGlobals();
   });
 
