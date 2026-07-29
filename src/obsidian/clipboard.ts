@@ -24,6 +24,9 @@ export function copyToClipboard(text: string, onCopied?: () => void): void {
 
 const FLASH_MS = 800;
 
+/** Laufender Rückstell-Timer je Knopf. WeakMap, damit ein entsorgter Knopf nichts festhält. */
+const flashTimers = new WeakMap<HTMLButtonElement, number>();
+
 /**
  * Quittiert einen Kopiervorgang am Knopf selbst — Muster aus
  * `json_viewer/src/obsidian/CopyButton.ts`.
@@ -47,5 +50,3 @@ export function flashCopied(btn: HTMLButtonElement, doneLabel: string, idleLabel
     btn.setText(idleLabel);
   }, FLASH_MS));
 }
-
-const flashTimers = new WeakMap<HTMLButtonElement, number>();

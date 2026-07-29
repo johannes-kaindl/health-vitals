@@ -87,7 +87,7 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
   const host = view.host;
   const row = parent.createDiv({ cls: "ah-export-row" });
 
-  const copyBtn = row.createEl("button", { cls: "mod-cta", text: t("export.copy") });
+  const copyBtn = row.createEl("button", { cls: "mod-cta ah-copy-btn", text: t("export.copy") });
   copyBtn.addEventListener("click", () => {
     const text = serializeTable(vm, host.getExportFormat());
     // Quittung am Knopf statt als Notice. Wieviel kopiert wurde, steht unverändert im
