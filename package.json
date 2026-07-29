@@ -1,6 +1,6 @@
 {
   "name": "health-vitals",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Import Apple Health exports and explore your health data in charts and tables.",
   "type": "module",
   "scripts": {
