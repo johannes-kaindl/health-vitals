@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Interne Testlücke, die das Release-Gate von 0.4.0 nach dem Tag scheitern ließ, weshalb
+  0.4.0 nie als GitHub-Release erschien und den Store nicht erreichte. Die Funktionalität
+  von 0.4.0 ist unverändert und in dieser Version enthalten.
+
 ## [0.4.0] — 2026-07-29
 
 ### Added

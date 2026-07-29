@@ -8,8 +8,17 @@ function fakeEl(): any {
     createEl(tag: string, o?: any) { const c = fakeEl(); c.tag = tag; c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
     createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
-    addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {}, addClass() {},
-    removeClass() {},
+    addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {},
+    // setText fehlte hier — der Kopier-Knopf ruft es aus einem `.then()` auf, also erst
+    // nach dem Ende des Tests, der geklickt hat. Der TypeError landete damit als
+    // unbehandelte Promise-Ablehnung ausserhalb jeder Testgrenze: lokal blieb der Lauf
+    // gruen, im CI schlug er zu. Ein Mock, dem eine benutzte Methode fehlt, ist deshalb
+    // kein kleiner Mangel — er verlagert echte Fehler in ein Zeitfenster, in dem sie
+    // niemandem mehr zugeordnet werden.
+    setText(v: string) { el.text = v; el.textContent = v; },
+    classes: new Set<string>(),
+    addClass(c: string) { el.classes.add(c); },
+    removeClass(c: string) { el.classes.delete(c); },
     setCssStyles(_styles: Record<string, string>) {},
   };
   return el;
@@ -137,6 +146,22 @@ describe("renderDetail — Export-Zeile", () => {
     // range "all" rollt auf Monatsgranularität hoch (resolveRange, s. Task 13), daher
     // "Monat" statt "Datum" im Kopf — siehe "Tabelle trägt Kopfzeile..." oben im selben Setup.
     expect(writeText.mock.calls[0][0]).toContain("| Monat |");
+    vi.unstubAllGlobals();
+  });
+
+  it("der Kopier-Knopf quittiert am Knopf selbst", async () => {
+    // Wartet ausdruecklich auf die Quittung, nicht nur auf writeText: Der onCopied-Callback
+    // laeuft eine Microtask spaeter, und ein Fehler darin faellt sonst erst nach dem Ende
+    // des Tests an — ausserhalb jeder Zuordnung. Genau so blieb ein fehlendes setText im
+    // Mock lokal unsichtbar und kippte erst das CI-Gate.
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const el = fakeEl();
+    renderDetail(el, cache, { metricId: "HKQuantityTypeIdentifierStepCount", range: "all" }, () => {}, fakeView());
+    const btn = findByText(el, "Kopieren");
+    btn._click();
+    await vi.waitFor(() => expect(btn.text).toBe("Kopiert"));
+    expect(btn.classes.has("is-copied")).toBe(true);
     vi.unstubAllGlobals();
   });
 
