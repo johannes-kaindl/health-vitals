@@ -37,6 +37,32 @@ describe("buildOverviewVM", () => {
     const body = vm.sections.find((s) => s.category === "body");
     expect(body!.categoryLabel).toBe("Körper");
   });
+
+  it("ein Favoriten-Wechsel rechnet keine Kachel neu", () => {
+    // Der Grund für die Memo: Favoriten entscheiden nur, in welchen Topf eine Kachel
+    // fällt. Identische Objektreferenz = die teure Aufrollung lief nicht erneut.
+    const c = cache();
+    const before = buildOverviewVM(c, [], dims);
+    const steps = before.sections.flatMap((s) => s.tiles).find((t) => t.id.endsWith("StepCount"));
+    const after = buildOverviewVM(c, ["HKQuantityTypeIdentifierStepCount"], dims);
+    expect(after.favorites[0]).toBe(steps);
+  });
+
+  it("ein neuer Cache erzeugt frische Kacheln", () => {
+    // Nach einem Import ist der Cache ein neues Objekt — sonst zeigte die Übersicht
+    // weiter die Zahlen von vorher.
+    const first = buildOverviewVM(cache(), [], dims);
+    const second = buildOverviewVM(cache(), [], dims);
+    expect(second.sections[0].tiles[0]).not.toBe(first.sections[0].tiles[0]);
+    expect(second.sections[0].tiles[0]).toEqual(first.sections[0].tiles[0]);
+  });
+
+  it("andere Sparkline-Maße liefern eigene Geometrie", () => {
+    const c = cache();
+    const small = buildOverviewVM(c, [], { width: 60, height: 24, padding: 2 });
+    const large = buildOverviewVM(c, [], dims);
+    expect(large.sections[0].tiles[0].spark).not.toEqual(small.sections[0].tiles[0].spark);
+  });
 });
 
 describe("buildDetailVM", () => {

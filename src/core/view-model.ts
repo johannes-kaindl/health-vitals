@@ -78,7 +78,38 @@ function buildTable(points: RollupPoint[], policy: Policy, unit: string, g: Gran
 
 export const CATEGORY_ORDER: Category[] = ["activity", "heart", "body", "sleep", "nutrition", "other"];
 
+/** Kachel-Memo, gekeyt auf die Cache-Identität. `tileFor` rollt die vollständige Historie
+ *  einer Metrik auf und baut daraus die Sparkline-Geometrie — bei ~60 Metriken lief das
+ *  bislang bei JEDEM Übersicht-Render komplett neu, also auch bei jedem Favoriten-Toggle
+ *  und jeder Rückkehr auf den Tab. Das Ergebnis hängt aber nur an (cache, id, dims), nicht
+ *  an den Favoriten: die ändern ausschließlich, in welchen Topf eine fertige Kachel fällt.
+ *
+ *  WeakMap auf dem Cache-Objekt: Ein Import ersetzt den Cache durch ein neues Objekt, damit
+ *  verfehlt jeder Lookup den alten Eintrag (korrekte Invalidierung) und der alte Teilbaum
+ *  wird einsammelbar — kein Eviktions-Handling nötig. Die Kachel-Texte kommen aus `t()`;
+ *  ein Sprachwechsel verlangt in diesem Plugin ohnehin einen Obsidian-Neustart, der das
+ *  Modul samt Memo neu lädt. */
+const tileMemo = new WeakMap<HealthCache, Map<string, TileVM>>();
+
+/** Dims gehören in den Schlüssel, obwohl heute nur ein Aufrufer mit einer festen Größe
+ *  existiert: Sie stecken in der zurückgegebenen Geometrie, ein zweiter Aufrufer mit
+ *  anderen Maßen bekäme sonst still die fremde Sparkline. */
+function tileKey(id: string, d: ChartDims): string {
+  return `${id}|${d.width}x${d.height}+${d.padding}`;
+}
+
 function tileFor(cache: HealthCache, id: string, sparkDims: ChartDims): TileVM {
+  let byKey = tileMemo.get(cache);
+  if (!byKey) { byKey = new Map(); tileMemo.set(cache, byKey); }
+  const key = tileKey(id, sparkDims);
+  const hit = byKey.get(key);
+  if (hit) return hit;
+  const tile = computeTile(cache, id, sparkDims);
+  byKey.set(key, tile);
+  return tile;
+}
+
+function computeTile(cache: HealthCache, id: string, sparkDims: ChartDims): TileVM {
   const series = cache.metrics[id];
   const info = describeMetric(id, series.policy);
   const range = cache.dateRange ?? { from: "0000-01-01", to: "9999-12-31" };
