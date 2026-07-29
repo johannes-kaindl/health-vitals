@@ -365,6 +365,44 @@ als Versehen gelesen werden:
   ist generiert und wird laut Dach-`AGENTS.md` nie von Hand editiert — sie zieht beim
   nächsten `drift-audit` nach.
 
+## Nachtrag (2026-07-29): die offen gebliebenen Punkte sind geschlossen
+
+Nachgezogen in einem eigenen Lauf, ohne neue Funktionalität:
+
+- **Kopier-Feedback am Knopf** ist jetzt umgesetzt (`flashCopied` neben
+  `copyToClipboard`), die Notice entfällt. Zwei bewusste Abweichungen von der Vorlage aus
+  `json_viewer`: Der Timer wird pro Knopf zurückgesetzt — sonst stellt bei zwei Klicks kurz
+  hintereinander der Timer des ersten den Knopf zurück, während die Quittung des zweiten
+  noch stehen sollte — und der Knopf trägt eine Mindestbreite, damit er beim Textwechsel
+  nicht springt.
+- **Ein Aufklapp-Speicher statt zweier.** Die Übersicht nutzt jetzt ebenfalls
+  `CollapsibleStorage` (`overview-cat:<key>`), der Zustand überlebt den Neustart.
+  Nicht offensichtlich dabei: Das Setzen des `open`-Attributs stößt selbst ein
+  `toggle`-Event an, sodass jeder Render den unveränderten Zustand erneut nach `data.json`
+  geschrieben hätte — ein Test pinnt, dass ein reiner Render nichts schreibt.
+- **`npm run lint` läuft mit `--max-warnings 0`.** Die 81 Warnungen waren allesamt
+  `no-explicit-any` in `tests/obsidian/**`, dort wo Testcode den bewusst `any`-typisierten
+  Mock annotiert; die Regel ist für diese Gruppe abgeschaltet, mit derselben Begründung wie
+  die bereits abgeschaltete `unsafe-*`-Familie. Gegengeprüft: Ein künstlich in `src/`
+  eingefügtes `any` bricht den Lauf mit Exit 1 ab.
+- **`KIT-MATRIX.md` bleibt offen** — die Datei ist generiert und wird laut Dach-`AGENTS.md`
+  nie von Hand editiert; sie zieht beim nächsten `drift-audit` nach.
+
+Zwei Slice-2-Follow-ups sind im selben Lauf mitgegangen: die Übersicht memoisiert ihre
+Kacheln (die Berechnung hängt nicht an den Favoriten, nur ihre Einsortierung tut das), und
+Kachel wie Stern sind per Tastatur bedienbar. Zur Tastaturbedienung gehört die
+Fokus-Nachführung nach dem Re-Render — ohne sie landet der Fokus auf dem Body und man
+müsste sich zu jedem weiteren Stern neu durchtabben.
+
+**Nebenbefund aus derselben Runde:** Die im Andock-Todo notierten falschen VENDOR-shas
+waren nur die halbe Wahrheit. Beim Gegenprüfen der Dateiinhalte gegen die Tag-Commits zeigte
+sich, dass `src/vendor/kit/i18n.ts` gar kein Verbatim-Snapshot mehr war — zwei
+Kommentarblöcke waren lokal umformuliert, ausgerechnet einer davon zu „VERBATIM-Kopie […]
+Nicht abändern". Der Code war identisch, aber ein Drift-Audit prüft über Hashes: Auch eine
+rein redaktionelle Handänderung ist dort ein Treffer. **Die Lehre ist allgemeiner als der
+Fall:** Wer eine sha korrigiert, sollte den Inhalt gegen genau diese sha stellen, sonst
+bestätigt er nur die Metadaten und lässt den eigentlichen Drift stehen.
+
 ## Nachtrag Smoke-Test (2026-07-28): Wochenmarkierung war unsichtbar
 
 Der manuelle Durchklick meldete „Montagseinfärbungen waren nicht da". Die Untersuchung ergab:

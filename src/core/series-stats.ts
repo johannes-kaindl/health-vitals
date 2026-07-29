@@ -1,5 +1,5 @@
 import type { DayBucket, MeasureBucket, Policy, SumBucket, DurationBucket } from "./types";
-import type { ResolvedRange } from "./rollup";
+import { addMeasure, emptyMeasureAcc, measureAvg, type ResolvedRange } from "./rollup";
 
 export interface SeriesStats {
   policy: Policy;
@@ -10,18 +10,16 @@ export interface SeriesStats {
 export function computeStats(daily: Record<string, DayBucket>, policy: Policy, r: ResolvedRange): SeriesStats {
   const days = Object.keys(daily).filter((d) => d >= r.from && d <= r.to).sort();
   if (policy === "measure") {
-    let wSum = 0, count = 0, min = Infinity, max = -Infinity;
-    for (const d of days) {
-      const mb = daily[d] as MeasureBucket;
-      wSum += mb.avg * mb.count; count += mb.count;
-      min = Math.min(min, mb.min); max = Math.max(max, mb.max);
-    }
+    const acc = emptyMeasureAcc();
+    for (const d of days) addMeasure(acc, daily[d] as MeasureBucket);
     const last = days.length ? (daily[days[days.length - 1]] as MeasureBucket).avg : undefined;
     return {
       policy,
-      avg: count ? wSum / count : undefined,
-      min: days.length ? min : undefined,
-      max: days.length ? max : undefined,
+      avg: measureAvg(acc),
+      // min/max hängen an `days.length`, nicht an acc.count: ohne Tage im Zeitraum
+      // stünden dort die Initialwerte ±Infinity.
+      min: days.length ? acc.min : undefined,
+      max: days.length ? acc.max : undefined,
       last,
     };
   }

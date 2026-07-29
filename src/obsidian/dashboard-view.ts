@@ -41,10 +41,6 @@ export class DashboardView extends ItemView {
   private detail: DetailState = { metricId: null, range: "3M" };
   private panels = new Map<TabId, HTMLElement>();
   private tabButtons = new Map<TabId, HTMLElement>();
-  // Aufklapp-Zustand der Übersicht-Kategorien — im View gehalten, damit er den
-  // Re-Render (z.B. nach Favoriten-Toggle) überlebt (Mount-once-Invariante).
-  private expandedCats = new Set<string>();
-  private overviewSeeded = false;
   private importState: ImportState = IDLE;
   private importCtrl: ImportController | null = null;
 
@@ -64,16 +60,6 @@ export class DashboardView extends ItemView {
   }
 
   refreshOverview(): void { if (this.active === "overview") this.renderActive(); }
-
-  /** Set der aufgeklappten Kategorie-Namen — von renderOverview gelesen und (per toggle) gepflegt. */
-  expandedCategories(): Set<string> { return this.expandedCats; }
-
-  /** Führt `seed` genau einmal aus (erster Übersicht-Render) — für den Default-Aufklapp-Zustand. */
-  seedExpandedOnce(seed: () => void): void {
-    if (this.overviewSeeded) return;
-    this.overviewSeeded = true;
-    seed();
-  }
 
   async onOpen(): Promise<void> {
     this.cache = await this.host.loadCache();

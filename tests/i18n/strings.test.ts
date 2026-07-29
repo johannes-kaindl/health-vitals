@@ -45,7 +45,9 @@ describe("strings", () => {
   });
 
   it("Platzhalter-Keys tragen ihren {0}-Slot in beiden Sprachen", () => {
-    for (const k of ["export.copied", "export.saved", "export.saveFailed"]) {
+    // export.copied steht hier bewusst nicht mehr: Die Quittung sitzt jetzt als reines
+    // "Kopiert" am Knopf, die Zeilenzahl trägt der Sektionstitel daneben.
+    for (const k of ["export.saved", "export.saveFailed"]) {
       expect(EN[k]).toContain("{0}");
       expect(DE[k]).toContain("{0}");
     }

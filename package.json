@@ -8,9 +8,9 @@
     "build": "tsc --noEmit && node esbuild.config.mjs --production",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint .",
-    "lint:obsidian": "eslint .",
-    "lint:portal": "eslint src --config eslint.portal.config.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "lint:obsidian": "eslint . --max-warnings 0",
+    "lint:portal": "eslint src --config eslint.portal.config.mjs --max-warnings 0",
     "deploy": "npm run build && cp main.js manifest.json styles.css \"${OBSIDIAN_PLUGIN_DIR:?set OBSIDIAN_PLUGIN_DIR}\"/",
     "version-bump": "node scripts/version-bump.mjs",
     "release": "node scripts/release.mjs"
