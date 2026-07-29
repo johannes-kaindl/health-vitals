@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Weitere interne Testlücke aus derselben Ursache wie in 0.4.1, die auch dort das
+  Release-Gate nach dem Tag scheitern ließ. Damit ist 0.4.2 die erste Version dieser
+  Reihe, die als GitHub-Release erscheint; die Funktionalität von 0.4.0 ist unverändert
+  enthalten.
+
 ## [0.4.1] — 2026-07-29
 
 ### Fixed
