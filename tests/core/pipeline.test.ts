@@ -23,10 +23,24 @@ describe("aggregateStream (Fixture, end-to-end)", () => {
       const hr = cache.metrics["HKQuantityTypeIdentifierHeartRate"].daily["2022-11-25"] as MeasureBucket;
       expect(hr).toEqual({ min: 60, max: 90, avg: 75, count: 2 });
 
-      const sleep = cache.metrics["HKCategoryTypeIdentifierSleepAnalysis"].daily["2022-11-25"] as DurationBucket;
-      expect(sleep).toEqual({ minutes: 60, count: 1 });
+      // Schlaf: keine Serie mehr unter dem Apple-Identifier, sondern zwei abgeleitete.
+      expect(cache.metrics["HKCategoryTypeIdentifierSleepAnalysis"]).toBeUndefined();
 
-      expect(cache.recordCount).toBe(7);
+      // Die Nacht gehört dem Aufwachtag (26.), nicht dem Einschlaftag (25.).
+      const asleep = cache.metrics["SleepAsleep"].daily["2022-11-26"] as DurationBucket;
+      const inBed = cache.metrics["SleepInBed"].daily["2022-11-26"] as DurationBucket;
+      expect(cache.metrics["SleepAsleep"].daily["2022-11-25"]).toBeUndefined();
+
+      // 23:30–00:30 (Watch) + dieselbe Stunde nochmal von AutoSleep + 00:30–02:00 (Deep)
+      // → 150 min, nicht 210. Und die Liegezeit steht daneben statt obendrauf.
+      expect(asleep).toEqual({ minutes: 150, count: 4 });
+      expect(inBed).toEqual({ minutes: 480, count: 4 });
+      expect(cache.sleepStages?.["2022-11-26"]).toEqual({
+        core: 60, deep: 90, rem: 0, unspecified: 0, awake: 0,
+      });
+
+      expect(cache.version).toBe(2);
+      expect(cache.recordCount).toBe(10);
       expect(cache.skippedCount).toBe(1);
       expect(cache.dateRange).toEqual({ from: "2022-11-25", to: "2022-11-26" });
       expect(cache.workouts).toEqual([
