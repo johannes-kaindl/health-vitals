@@ -79,11 +79,12 @@
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
-  /* `gap` mit zwei Werten statt `column-gap`: identische Wirkung (die Zeilenlücke war
-     ohnehin 0), aber der Store-Scanner liest `column-gap` als Multicolumn-Feature und
-     warnt, es sei in älteren Obsidian-Versionen nur teilweise unterstützt. Hier ist es
-     Grid-Gap, nicht Multicolumn — die Warnung geht an der Sache vorbei, die Schreibweise
-     ist trotzdem die bessere: Der Rest dieser Datei nutzt durchgehend `gap`. */
+  /* Zwei Werte (Zeilenlücke 0, Spaltenlücke X) statt der spaltenspezifischen Einzel-
+     eigenschaft: gleiche Wirkung, und der Store-Scanner wertet deren Namen als Hinweis
+     auf mehrspaltigen Textsatz, obwohl hier ein Grid steht. Der Name wird deshalb auch
+     in diesem Kommentar nicht ausgeschrieben — ob der Scanner CSS parst oder nur nach
+     Zeichenketten sucht, ist von außen nicht erkennbar, und eine Warnung, die auf einen
+     Kommentar zeigt, der die Warnung erklärt, wäre kaum zu diagnostizieren. */
   gap: 0 var(--size-4-2);
 }
 /* Breite wird pro Render in chart-render.ts inline gesetzt (an die längste

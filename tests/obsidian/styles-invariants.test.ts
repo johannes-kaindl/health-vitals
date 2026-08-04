@@ -40,8 +40,13 @@ describe("styles.css — Store-Scanner-Vertraeglichkeit", () => {
   // aus der Suche, deshalb wird die Warnung nicht ausgesessen, sondern ferngehalten.
   //
   // `gap` mit zwei Werten leistet dasselbe und ist im Rest der Datei ohnehin die Norm.
-  it("verwendet kein column-gap (Scanner liest es als Multicolumn)", () => {
-    expect(CSS).not.toMatch(/(^|[;{\s])column-gap\s*:/);
+  // Bewusst auf das blosse Vorkommen geprueft, nicht auf die Deklaration: Ob der Scanner
+  // CSS parst oder nur nach Zeichenketten sucht, ist von aussen nicht erkennbar. Die
+  // erste Fassung dieses Tests verlangte einen Doppelpunkt — und liess damit genau den
+  // Fall durch, der beim naechsten Release auflief: den Begriff im Kommentar, der die
+  // Aenderung erklaert. Aufgefallen erst beim Nachsehen im ausgelieferten Asset.
+  it("nennt column" + "-gap nirgends, auch nicht im Kommentar", () => {
+    expect(CSS).not.toContain("column" + "-gap");
   });
 
   it("kein echtes Multicolumn-Layout im Stylesheet", () => {
