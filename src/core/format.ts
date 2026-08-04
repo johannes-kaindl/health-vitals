@@ -1,6 +1,7 @@
 import { localeTag } from "../i18n/strings";
 import { t } from "../vendor/kit/i18n";
 import type { Granularity } from "./rollup";
+import type { Policy } from "./types";
 
 export function formatValue(n: number, unit: string): string {
   const rounded = Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10;
@@ -8,12 +9,45 @@ export function formatValue(n: number, unit: string): string {
   return unit ? `${num} ${unit}` : num;
 }
 
-// Dauer in Minuten (evtl. mit Nachkommastellen) → lesbar: "X min" bzw. "Xh Ym".
+// Dauer in Minuten (evtl. mit Nachkommastellen) → lesbar: "X min", "Xh Ym", "X h".
+//
+// Ab einem Tag entfallen die Minuten. Eine Jahressumme Schlaf sind gut 100.000
+// Minuten; als "1799h 12m" ausgeschrieben behauptet die Anzeige eine Genauigkeit,
+// die bei dieser Größenordnung niemanden interessiert, und wird dabei unlesbar.
+const MINUTES_PER_DAY = 1440;
+
 export function formatDuration(min: number): string {
   const total = Math.round(min);
   if (total === 0) return min > 0 ? "< 1 min" : "0 min";
   if (total < 60) return `${total} min`;
-  return `${Math.floor(total / 60)}h ${total % 60}m`;
+  if (total < MINUTES_PER_DAY) return `${Math.floor(total / 60)}h ${total % 60}m`;
+  return `${Math.round(total / 60).toLocaleString(localeTag())} h`;
+}
+
+/**
+ * Der Wert einer Metrik in der Form, die zu ihrer Policy passt.
+ *
+ * `duration`-Serien tragen Minuten. Sie als nackte Zahl mit Einheit auszugeben
+ * ("107.952 min") ist zwar korrekt, aber für Menschen unbrauchbar — und auf einer
+ * Achse ohne Einheit sogar irreführend: "3.608" liest sich im Deutschen wie eine
+ * Dezimalzahl, obwohl der Punkt hier Tausender trennt.
+ *
+ * Gilt bewusst NICHT für den CSV-Export — der braucht den Rohwert (siehe `rawCell`
+ * in view-model.ts).
+ */
+export function formatByPolicy(n: number, unit: string, policy: Policy): string {
+  return policy === "duration" ? formatDuration(n) : formatValue(n, unit);
+}
+
+/**
+ * Wie `formatByPolicy`, aber für Achsenbeschriftungen: Die Null trägt dort keine
+ * Einheit. Sonst steht "0 min" unter "30 h" und "60 h" — die Achse behauptet damit
+ * einen Einheitenwechsel, den es nicht gibt, und der kleinste Wert sieht aus, als
+ * gehöre er zu einer anderen Skala als der Rest.
+ */
+export function formatAxisTick(n: number, unit: string, policy: Policy): string {
+  if (policy === "duration" && Math.round(n) === 0) return "0";
+  return formatByPolicy(n, unit, policy);
 }
 
 /**

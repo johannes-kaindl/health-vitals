@@ -1,6 +1,6 @@
 // scripts/release.mjs
-// Ein-Befehl-Release (PROF-OBS-09): bump → changelog → commit → tag → push (Codeberg) →
-// build → Codeberg-Release. Das GitHub-Release entsteht eigenständig über den Mirror→Action.
+// Ein-Befehl-Release (PROF-OBS-09): bump → changelog → commit → tag → push (Forgejo + GitHub)
+// → build → Forgejo-Release. Das GitHub-Release baut die Action, die der mitgepushte Tag auslöst.
 //   npm run release 0.8.0               # vollständiger Release
 //   npm run release -- 0.8.0 --dry-run  # nur loggen, nichts schreiben/pushen
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -62,29 +62,56 @@ if (!tagExists) {
   run("git", ["add", "package.json", "manifest.json", "versions.json", "CHANGELOG.md"]); // 4. stage
   run("git", ["commit", "-m", `chore(release): ${target}`]);  //    commit (kein Trailer)
   run("git", ["tag", "-a", target, "-m", target]);            // 5. annotierter Tag
-  run("git", ["push", "origin", "HEAD", "--follow-tags"]);    // 6. Push nach Codeberg
+  run("git", ["push", "origin", "HEAD", "--follow-tags"]);    // 6. Push nach Forgejo (origin)
+  pushToGithubMirror();                                        // 6b. Dual-Push → triggert release.yml
 } else {
-  console.log(`release: Tag ${target} existiert bereits → Resume (nur Build + Codeberg-Release).`);
+  console.log(`release: Tag ${target} existiert bereits → Resume (nur Build + Forgejo-Release).`);
 }
 
 // 7. Build.
 run("npm", ["run", "build"]);
 
-// 8. Codeberg-Release.
+// 8. Forgejo-Release.
 const notes = changelogSection(target);
 const assets = ["main.js", "manifest.json", "styles.css"]
   .filter((f) => existsSync(f))
   .map((name) => ({ name, body: readFileSync(name) }));
 if (dryRun) {
-  console.log(`[dry-run] Codeberg-Release ${repo} ${target} mit Assets: ${assets.map((a) => a.name).join(", ")}`);
+  console.log(`[dry-run] Forgejo-Release ${repo} ${target} mit Assets: ${assets.map((a) => a.name).join(", ")}`);
 } else {
   const token = readFileSync(tokenPath, "utf8").trim();
   const out = await createForgeRelease({ fetch, token, repo, tag: target, notes, assets });
-  console.log(`release: Codeberg-Release ${out.htmlUrl}`);
+  console.log(`release: Forgejo-Release ${out.htmlUrl}`);
 }
-console.log(`release: ${target} fertig. GitHub-Release folgt automatisch via Mirror→Action.`);
+console.log(`release: ${target} fertig. Das GitHub-Release baut die Action aus dem mitgepushten Tag.`);
 
 // --- Helfer ---
+
+/**
+ * Pusht Branch und Tag zusätzlich ans `github`-Remote. Das ist der einzige Weg, auf dem
+ * der Tag die Release-Action erreicht: Auf der Forgejo-Instanz läuft kein Runner, und
+ * seit dem Codeberg-Ausstieg gibt es auch keinen nativen Mirror mehr, der den Tag
+ * weiterreichen würde. Ohne diesen Push entstünde ein Forgejo-Release, dem still das
+ * GitHub-Release fehlt — und der Community-Store bekäme die Version nie zu sehen.
+ *
+ * Fehlt das Remote, bricht das Release NICHT ab: Der Forgejo-Teil ist zu dem Zeitpunkt
+ * schon veröffentlicht, ein harter Abbruch hinterließe einen halben Release ohne Hinweis
+ * darauf, was noch zu tun ist.
+ */
+function pushToGithubMirror() {
+  const remotes = sh("git", ["remote"]).split("\n");
+  if (!remotes.includes("github")) {
+    console.warn("release: WARNUNG — kein `github`-Remote. Ohne Push dorthin läuft die Release-Action");
+    console.warn("release: nicht und es entsteht kein GitHub-Release. Siehe Skill `plugin-release-setup`.");
+    return;
+  }
+  try {
+    run("git", ["push", "github", "HEAD", "--follow-tags"]);
+  } catch (err) {
+    console.warn(`release: WARNUNG — Push ans github-Remote fehlgeschlagen: ${err.message}`);
+    console.warn(`release: Nachholen mit \`git push github HEAD --follow-tags\`, sonst fehlt das GitHub-Release.`);
+  }
+}
 function rewriteChangelog(version) {
   const path = "CHANGELOG.md";
   const date = new Date().toISOString().slice(0, 10);
