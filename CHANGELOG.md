@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Die Schlafauswertung zählte Zeit mehrfach und zeigte dadurch teils unmögliche Werte**
+  (bis zu 33,6 Stunden Schlaf an einem Tag). Drei Ursachen, jede für sich ausreichend:
+  Die Liegezeit und die Schlafphasen darin wurden addiert; mehrere Geräte beschrieben
+  dieselbe Nacht und wurden jeweils voll gezählt; und zwei Nächte fielen auf denselben
+  Kalendertag, weil nach dem Startdatum gruppiert wurde. Überlappende Zeiträume werden
+  jetzt vereinigt statt summiert, und eine Nacht gehört dem Tag, an dem man aufwacht.
+- Die Liegezeit konnte kürzer ausfallen als die Schlafzeit, wenn nur die Uhr Phasen für
+  eine Nacht lieferte. Sie schließt die Schlafphasen jetzt ein.
+
+### Changed
+
+- **Schlaf erscheint als zwei gleichrangige Metriken** — „Schlaf" (tatsächlich
+  geschlafen) und „Liegezeit" —, statt als eine einzelne Zahl. Ein bestehender
+  Favorit auf „Schlaf" wird automatisch übernommen.
+- Dauerwerte werden als Stunden und Minuten angezeigt statt in Minuten (`7h 12m` statt
+  `432 min`, ab einem Tag `1.799 h`). Betrifft Kacheln, Achsenbeschriftung,
+  Statistikzeile und Werte-Tabelle; der CSV-Export behält unverändert die Rohwerte.
+  Die Achtsamkeits-Kachel trug dadurch bisher gar keine Einheit.
+- **Der gespeicherte Auswertungsstand wird beim ersten Start dieser Version verworfen**
+  und muss einmal neu eingelesen werden. Er lässt sich nicht umrechnen: Die dafür nötige
+  Unterscheidung zwischen Liegezeit und Schlafphase wurde beim Einlesen verworfen. Ein
+  Hinweis im Programm sagt es beim Öffnen.
+
 ## [0.4.2] — 2026-07-29
 
 ### Fixed
