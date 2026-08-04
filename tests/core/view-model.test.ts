@@ -197,7 +197,12 @@ describe("duration-Metriken werden als Dauer dargestellt, nicht als Minutenzahl"
     // zu unterscheiden, obwohl der Punkt Tausender trennt.
     const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
     expect(vm.axis.y.length).toBeGreaterThan(0);
-    for (const tick of vm.axis.y) expect(tick.label).toMatch(/\d\s?(min|h|m)\b/);
+    for (const tick of vm.axis.y) {
+      // Die Null ist die bewusste Ausnahme: Sie trägt keine Einheit, damit die Achse
+      // nicht "0 min" unter "60 h" schreibt (siehe eigener Test weiter unten).
+      if (tick.label === "0") continue;
+      expect(tick.label).toMatch(/\d\s?(min|h|m)\b/);
+    }
   });
 
   it("Statistik-Zeile ebenso", () => {
@@ -221,5 +226,26 @@ describe("duration-Metriken werden als Dauer dargestellt, nicht als Minutenzahl"
     // Sonst landet "7h 12m" in einer Tabellenkalkulation und ist dort Text.
     const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
     expect(vm.table.rowsRaw[0][1]).toBe("432");
+  });
+});
+
+describe("Y-Achse mischt keine Einheiten", () => {
+  it("die Null traegt keine Einheit, wenn die uebrigen Ticks Stunden zeigen", () => {
+    // Im Nachtest stand "0 min" unter "30 h" und "60 h" — der kleinste Wert sah aus,
+    // als gehoere er zu einer anderen Skala.
+    const c: HealthCache = {
+      version: 2, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+      dateRange: { from: "2026-01-01", to: "2026-01-07" },
+      metrics: {
+        SleepAsleep: {
+          unit: "min", policy: "duration",
+          daily: { "2026-01-01": { minutes: 60, count: 1 }, "2026-01-07": { minutes: 3600, count: 1 } },
+        },
+      },
+      workouts: [],
+    };
+    const vm = buildDetailVM(c, "SleepAsleep", "all", dims);
+    const zero = vm.axis.y.find((tick) => tick.label === "0" || tick.label.startsWith("0 "));
+    expect(zero?.label).toBe("0");
   });
 });

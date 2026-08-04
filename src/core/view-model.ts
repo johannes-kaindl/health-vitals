@@ -3,7 +3,7 @@ import { describeMetric, type Category } from "./metric-catalog";
 import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granularity } from "./rollup";
 import { buildChartGeometry, type ChartDims, type ChartGeometry } from "./chart-geometry";
 import { computeStats } from "./series-stats";
-import { formatByPolicy, formatTickLabel } from "./format";
+import { formatByPolicy, formatAxisTick, formatTickLabel } from "./format";
 import type { Policy } from "./types";
 import { t } from "../vendor/kit/i18n";
 import { localeTag } from "../i18n/strings";
@@ -173,7 +173,7 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
     })),
     y: chart.yTicks.map((tick) => ({
       topPct: (tick.y / dims.height) * 100,
-      label: formatByPolicy(tick.value, "", series.policy),
+      label: formatAxisTick(tick.value, "", series.policy),
     })),
   };
   const table = buildTable(points, series.policy, series.unit, r.granularity);

@@ -40,6 +40,17 @@ export function formatByPolicy(n: number, unit: string, policy: Policy): string 
 }
 
 /**
+ * Wie `formatByPolicy`, aber für Achsenbeschriftungen: Die Null trägt dort keine
+ * Einheit. Sonst steht "0 min" unter "30 h" und "60 h" — die Achse behauptet damit
+ * einen Einheitenwechsel, den es nicht gibt, und der kleinste Wert sieht aus, als
+ * gehöre er zu einer anderen Skala als der Rest.
+ */
+export function formatAxisTick(n: number, unit: string, policy: Policy): string {
+  if (policy === "duration" && Math.round(n) === 0) return "0";
+  return formatByPolicy(n, unit, policy);
+}
+
+/**
  * Achsenbeschriftung aus einem RollupPoint-Schlüssel.
  *   day   "2026-07-28" → "28.07." (de) / "07/28" (en)
  *   week  "2026-W30"   → "KW 30"  (de) / "W 30"  (en)
