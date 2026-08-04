@@ -93,10 +93,28 @@ Die Darstellung richtet sich nach der Art der Metrik:
 |---|---|---|---|
 | `sum` | Schritte, Kalorien | Tages-Summe | Balken |
 | `measure` | Gewicht, Puls | Ø mit Min/Max | Linie + Band |
-| `duration` | Schlaf, Achtsamkeit | Minuten-Summe | Balken |
+| `duration` | Achtsamkeit | Summe der Zeiträume | Balken |
 
 Bei Wochen-/Monatsbündelung wird entsprechend summiert bzw. gemittelt (nicht
 summiert) — ein Ø-Puls über einen Monat bleibt ein Mittelwert.
+
+Zeiten werden als Stunden und Minuten angezeigt (`7h 12m`), ab einem Tag nur noch
+als Stunden. Der CSV-Export enthält stattdessen die Rohwerte in Minuten.
+
+### Schlaf
+
+Schlaf wird nicht wie die übrigen Metriken aggregiert und erscheint als **zwei
+gleichrangige Werte**: „Schlaf" (tatsächlich geschlafene Zeit) und „Liegezeit".
+
+Der Grund ist die Beschaffenheit der Daten: Apple exportiert für dieselbe Nacht
+mehrfach dieselbe Zeit — die Liegezeit umschließt die Schlafphasen darin, und
+mehrere Geräte (iPhone, Uhr, Fremd-Apps) beschreiben dieselbe Nacht parallel.
+Aufaddiert ergibt das unmögliche Werte. Überlappende Zeiträume werden deshalb
+**vereinigt statt summiert**: doppelt erfasste Zeit zählt einmal.
+
+Eine Nacht gehört dem Tag, an dem man **aufwacht**. Schlaf, der ab 20:00 beginnt,
+zählt auf den Folgetag — sonst fielen die Nacht, die morgens endet, und die, die
+abends beginnt, auf denselben Kalendertag.
 
 ## Datenschutz
 
