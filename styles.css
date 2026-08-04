@@ -79,7 +79,12 @@
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
-  column-gap: var(--size-4-2);
+  /* `gap` mit zwei Werten statt `column-gap`: identische Wirkung (die Zeilenlücke war
+     ohnehin 0), aber der Store-Scanner liest `column-gap` als Multicolumn-Feature und
+     warnt, es sei in älteren Obsidian-Versionen nur teilweise unterstützt. Hier ist es
+     Grid-Gap, nicht Multicolumn — die Warnung geht an der Sache vorbei, die Schreibweise
+     ist trotzdem die bessere: Der Rest dieser Datei nutzt durchgehend `gap`. */
+  gap: 0 var(--size-4-2);
 }
 /* Breite wird pro Render in chart-render.ts inline gesetzt (an die längste
    Beschriftung angepasst, siehe Kommentar dort); dies ist nur der Fallback,

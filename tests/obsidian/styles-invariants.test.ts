@@ -32,3 +32,19 @@ describe("styles.css — Design-Invarianten", () => {
     expect(rule(".ah-chart-grid")).not.toMatch(/stroke-dasharray/);
   });
 });
+
+describe("styles.css — Store-Scanner-Vertraeglichkeit", () => {
+  // Der Community-Scanner klassifiziert `column-gap` als Multicolumn-Feature und warnt,
+  // es sei in aelteren Obsidian-Versionen nur teilweise unterstuetzt — auch dann, wenn es
+  // wie hier Grid-Gap ist. Ein durchgefallener Review nimmt das Plugin binnen 24 Stunden
+  // aus der Suche, deshalb wird die Warnung nicht ausgesessen, sondern ferngehalten.
+  //
+  // `gap` mit zwei Werten leistet dasselbe und ist im Rest der Datei ohnehin die Norm.
+  it("verwendet kein column-gap (Scanner liest es als Multicolumn)", () => {
+    expect(CSS).not.toMatch(/(^|[;{\s])column-gap\s*:/);
+  });
+
+  it("kein echtes Multicolumn-Layout im Stylesheet", () => {
+    expect(CSS).not.toMatch(/(^|[;{\s])(column-count|column-width|columns)\s*:/);
+  });
+});
