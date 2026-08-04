@@ -1,4 +1,4 @@
-import { formatValue, formatDuration, formatTickLabel } from "../../src/core/format";
+import { formatValue, formatDuration, formatByPolicy, formatTickLabel } from "../../src/core/format";
 import { setLang } from "../../src/vendor/kit/i18n";
 
 describe("formatDuration", () => {
@@ -94,5 +94,33 @@ describe("formatTickLabel", () => {
     const label = formatTickLabel("2026-07-01", "day");
     expect(label).toContain("07");
     expect(label).not.toContain("06");
+  });
+});
+
+describe("formatDuration — ab einem Tag ohne Minuten", () => {
+  it("bleibt unter 24 h bei Stunden und Minuten", () => {
+    expect(formatDuration(1439)).toBe("23h 59m");
+  });
+
+  it("gibt ab genau 24 h nur noch gerundete Stunden aus", () => {
+    // Eine Jahressumme Schlaf sind gut 100.000 Minuten. "1799h 12m" behauptet eine
+    // Genauigkeit, die bei der Größenordnung niemanden interessiert.
+    expect(formatDuration(1440)).toBe("24 h");
+    expect(formatDuration(107952)).toBe("1.799 h");
+  });
+});
+
+describe("formatByPolicy", () => {
+  it("formatiert duration als Dauer statt als nackte Zahl mit Einheit", () => {
+    expect(formatByPolicy(432, "min", "duration")).toBe("7h 12m");
+    // Der Wert stammt von der Y-Achse aus dem Smoke-Test, wo "3.608" stand und
+    // sich wie eine Dezimalzahl las. Über 24 h greift die Stundenform — auf einer
+    // Achse ist die kompakte Angabe ohnehin die passendere.
+    expect(formatByPolicy(3608, "", "duration")).toBe("60 h");
+  });
+
+  it("laesst sum und measure unveraendert", () => {
+    expect(formatByPolicy(8432, "count", "sum")).toBe("8.432 count");
+    expect(formatByPolicy(62.5, "bpm", "measure")).toBe("62,5 bpm");
   });
 });

@@ -171,3 +171,55 @@ describe("buildDetailVM — Achse und Tabelle", () => {
     expect(vm.table.rows).toEqual([]);
   });
 });
+
+describe("duration-Metriken werden als Dauer dargestellt, nicht als Minutenzahl", () => {
+  const sleepCache: HealthCache = {
+    version: 2, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    dateRange: { from: "2026-01-05", to: "2026-01-05" },
+    metrics: {
+      SleepAsleep: {
+        unit: "min", policy: "duration",
+        daily: { "2026-01-05": { minutes: 432, count: 7 } },
+      },
+    },
+    workouts: [],
+  };
+
+  it("Kachel zeigt Stunden und Minuten statt der rohen Minutenzahl", () => {
+    const vm = buildOverviewVM(sleepCache, [], { width: 60, height: 24, padding: 2 });
+    const tile = vm.sections.flatMap((s) => s.tiles).find((t) => t.id === "SleepAsleep");
+    expect(tile?.valueText).toBe("7h 12m");
+    expect(tile?.valueText).not.toContain("432");
+  });
+
+  it("Y-Achse traegt keine nackten Zahlen mehr", () => {
+    // Im Smoke-Test stand dort "3.608" — im Deutschen nicht von einer Dezimalzahl
+    // zu unterscheiden, obwohl der Punkt Tausender trennt.
+    const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
+    expect(vm.axis.y.length).toBeGreaterThan(0);
+    for (const tick of vm.axis.y) expect(tick.label).toMatch(/\d\s?(min|h|m)\b/);
+  });
+
+  it("Statistik-Zeile ebenso", () => {
+    // Auf "min" allein zu prüfen genügt hier NICHT: "432 min" — also genau der
+    // unerwünschte Zustand — enthält es auch. Der Test muss die rohe Minutenzahl
+    // ausschließen, sonst ist er grün, ohne den Fehler sehen zu können.
+    const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
+    const values = vm.stats.map((s) => s.value).filter((v) => v !== "—");
+    expect(values.length).toBeGreaterThan(0);
+    expect(values).toContain("7h 12m");
+    for (const value of values) expect(value).not.toBe("432 min");
+  });
+
+  it("Tabellenkopf wiederholt die Einheit nicht, wenn die Zelle sie schon traegt", () => {
+    const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
+    expect(vm.table.headers[1]).not.toContain("min");
+    expect(vm.table.rows[0][1]).toBe("7h 12m");
+  });
+
+  it("CSV behaelt den Rohwert — die Formatierung darf nicht in den Export lecken", () => {
+    // Sonst landet "7h 12m" in einer Tabellenkalkulation und ist dort Text.
+    const vm = buildDetailVM(sleepCache, "SleepAsleep", "all", dims);
+    expect(vm.table.rowsRaw[0][1]).toBe("432");
+  });
+});

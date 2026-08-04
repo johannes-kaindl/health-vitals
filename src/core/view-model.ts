@@ -3,7 +3,7 @@ import { describeMetric, type Category } from "./metric-catalog";
 import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granularity } from "./rollup";
 import { buildChartGeometry, type ChartDims, type ChartGeometry } from "./chart-geometry";
 import { computeStats } from "./series-stats";
-import { formatValue, formatTickLabel } from "./format";
+import { formatByPolicy, formatTickLabel } from "./format";
 import type { Policy } from "./types";
 import { t } from "../vendor/kit/i18n";
 import { localeTag } from "../i18n/strings";
@@ -39,13 +39,16 @@ function colDateKey(g: Granularity): string {
 }
 
 /** Die Einheit steht im Kopf, nie in der Zelle: sonst wiederholt sie sich
- *  hundertfach und macht die Werte für Weiterverarbeitung unbrauchbar. */
-function withUnit(label: string, unit: string): string {
-  return unit ? `${label} (${unit})` : label;
+ *  hundertfach und macht die Werte für Weiterverarbeitung unbrauchbar.
+ *
+ *  Ausnahme `duration`: Dort trägt die Zelle selbst schon "7h 12m", eine
+ *  Kopfzeile "(min)" darüber widerspräche dem sichtbaren Inhalt. */
+function withUnit(label: string, unit: string, policy: Policy): string {
+  return unit && policy !== "duration" ? `${label} (${unit})` : label;
 }
 
-function fmtCell(n: number | undefined): string {
-  return n === undefined ? "—" : formatValue(n, "");
+function fmtCell(n: number | undefined, policy: Policy): string {
+  return n === undefined ? "—" : formatByPolicy(n, "", policy);
 }
 
 /** Rohwert fürs CSV: Punkt-Dezimaltrenner, drei Nachkommastellen. formatValue
@@ -61,17 +64,17 @@ function buildTable(points: RollupPoint[], policy: Policy, unit: string, g: Gran
     return {
       headers: [
         dateCol,
-        withUnit(t("stat.avg"), unit),
-        withUnit(t("stat.min"), unit),
-        withUnit(t("stat.max"), unit),
+        withUnit(t("stat.avg"), unit, policy),
+        withUnit(t("stat.min"), unit, policy),
+        withUnit(t("stat.max"), unit, policy),
       ],
-      rows: points.map((p) => [p.key, fmtCell(p.value), fmtCell(p.min), fmtCell(p.max)]),
+      rows: points.map((p) => [p.key, fmtCell(p.value, policy), fmtCell(p.min, policy), fmtCell(p.max, policy)]),
       rowsRaw: points.map((p) => [p.key, rawCell(p.value), rawCell(p.min), rawCell(p.max)]),
     };
   }
   return {
-    headers: [dateCol, withUnit(t("table.colValue"), unit)],
-    rows: points.map((p) => [p.key, fmtCell(p.value)]),
+    headers: [dateCol, withUnit(t("table.colValue"), unit, policy)],
+    rows: points.map((p) => [p.key, fmtCell(p.value, policy)]),
     rowsRaw: points.map((p) => [p.key, rawCell(p.value)]),
   };
 }
@@ -119,7 +122,7 @@ function computeTile(cache: HealthCache, id: string, sparkDims: ChartDims): Tile
   const headline = series.policy === "measure" ? stats.avg ?? 0 : stats.avgPerDay ?? 0;
   return {
     id, name: info.name, category: info.category,
-    valueText: formatValue(headline, series.unit),
+    valueText: formatByPolicy(headline, series.unit, series.policy),
     spark: buildChartGeometry(points, info.chartKind, sparkDims),
   };
 }
@@ -170,22 +173,22 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
     })),
     y: chart.yTicks.map((tick) => ({
       topPct: (tick.y / dims.height) * 100,
-      label: formatValue(tick.value, ""),
+      label: formatByPolicy(tick.value, "", series.policy),
     })),
   };
   const table = buildTable(points, series.policy, series.unit, r.granularity);
   const s = computeStats(series.daily, series.policy, r);
   const stats: StatRow[] = series.policy === "measure"
     ? [
-        { label: t("stat.avg"), value: s.avg !== undefined ? formatValue(s.avg, series.unit) : "—" },
-        { label: t("stat.min"), value: s.min !== undefined ? formatValue(s.min, series.unit) : "—" },
-        { label: t("stat.max"), value: s.max !== undefined ? formatValue(s.max, series.unit) : "—" },
-        { label: t("stat.last"), value: s.last !== undefined ? formatValue(s.last, series.unit) : "—" },
+        { label: t("stat.avg"), value: s.avg !== undefined ? formatByPolicy(s.avg, series.unit, series.policy) : "—" },
+        { label: t("stat.min"), value: s.min !== undefined ? formatByPolicy(s.min, series.unit, series.policy) : "—" },
+        { label: t("stat.max"), value: s.max !== undefined ? formatByPolicy(s.max, series.unit, series.policy) : "—" },
+        { label: t("stat.last"), value: s.last !== undefined ? formatByPolicy(s.last, series.unit, series.policy) : "—" },
       ]
     : [
-        { label: t("stat.avgPerDay"), value: s.avgPerDay !== undefined ? formatValue(s.avgPerDay, series.unit) : "—" },
-        { label: t("stat.maxDay"), value: s.maxDay !== undefined ? formatValue(s.maxDay, series.unit) : "—" },
-        { label: t("stat.total"), value: s.total !== undefined ? formatValue(s.total, series.unit) : "—" },
+        { label: t("stat.avgPerDay"), value: s.avgPerDay !== undefined ? formatByPolicy(s.avgPerDay, series.unit, series.policy) : "—" },
+        { label: t("stat.maxDay"), value: s.maxDay !== undefined ? formatByPolicy(s.maxDay, series.unit, series.policy) : "—" },
+        { label: t("stat.total"), value: s.total !== undefined ? formatByPolicy(s.total, series.unit, series.policy) : "—" },
       ];
   const rangeLabel = points.length ? `${points[0].key} – ${points[points.length - 1].key}` : "";
   return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats, axis, table };
