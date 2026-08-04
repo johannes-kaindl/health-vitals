@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Eine CSS-Eigenschaft (`column-gap`) durch die gleichwertige Kurzform (`gap`) ersetzt.
+  Rein intern, ohne sichtbare Wirkung: Die Regel beschreibt den Spaltenabstand eines
+  Grid-Layouts, wurde von der automatischen Store-Prüfung aber als mehrspaltiger Textsatz
+  gewertet und als möglicherweise unvollständig unterstützt gemeldet.
+
 ## [0.5.0] — 2026-08-04
 
 ### Fixed
