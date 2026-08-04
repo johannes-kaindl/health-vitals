@@ -28,7 +28,11 @@ const CATALOG: Record<string, CatalogEntry> = {
   HKQuantityTypeIdentifierBodyFatPercentage: { category: "body" },
   HKQuantityTypeIdentifierHeight: { category: "body" },
   HKQuantityTypeIdentifierBodyTemperature: { category: "body" },
-  HKCategoryTypeIdentifierSleepAnalysis: { category: "sleep" },
+  // Kein Eintrag für HKCategoryTypeIdentifierSleepAnalysis mehr: Schlaf erscheint
+  // seit Cache-Version 2 nicht mehr unter dem Apple-Identifier, sondern als die
+  // beiden abgeleiteten Serien darunter (siehe core/sleep-session.ts).
+  SleepAsleep: { category: "sleep" },
+  SleepInBed: { category: "sleep" },
   HKCategoryTypeIdentifierMindfulSession: { category: "sleep" },
   HKQuantityTypeIdentifierDietaryWater: { category: "nutrition" },
   HKQuantityTypeIdentifierDietaryEnergyConsumed: { category: "nutrition" },

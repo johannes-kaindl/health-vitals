@@ -1,5 +1,6 @@
-import { Plugin, WorkspaceLeaf, normalizePath, getLanguage } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, normalizePath, getLanguage } from "obsidian";
 import type { HealthCache } from "./core/types";
+import { METRIC_SLEEP_ASLEEP } from "./core/sleep-session";
 import type { ImportState } from "./core/import-state";
 import { ImportController } from "./obsidian/import-controller";
 import { pickHealthExport } from "./obsidian/file-picker";
@@ -8,6 +9,8 @@ import { pickLang, setLang } from "./vendor/kit/i18n";
 import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
+/** Muss mit `HealthCache["version"]` übereinstimmen — ältere Caches werden verworfen. */
+const CACHE_VERSION = 2;
 
 interface PluginData {
   favorites: string[];
@@ -27,6 +30,22 @@ const DEFAULT_DATA: PluginData = {
 // mehr, sondern den Endzustand der vorherigen.
 function freshDefaultData(): PluginData {
   return { ...DEFAULT_DATA, favorites: [...DEFAULT_DATA.favorites], collapsed: { ...DEFAULT_DATA.collapsed } };
+}
+
+/**
+ * Der Schlaf-Favorit zeigte auf den Apple-Identifier, den es seit Cache-Version 2
+ * nicht mehr gibt. Ohne Umschreiben verschwände die Kachel wortlos, und der Stern
+ * ließe sich nicht einmal neu setzen — die alte ID taucht in keiner Liste mehr auf.
+ * Ziel ist `SleepAsleep`: Wer „Schlaf" favorisiert hat, meinte die geschlafene Zeit,
+ * nicht die Zeit im Bett.
+ */
+function migrateFavorites(favorites: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const id of favorites) {
+    const mapped = id === "HKCategoryTypeIdentifierSleepAnalysis" ? METRIC_SLEEP_ASLEEP : id;
+    if (!out.includes(mapped)) out.push(mapped);
+  }
+  return out;
 }
 
 /** `typeof null === "object"` — die Null-Prüfung ist der eigentliche Punkt hier. */
@@ -70,7 +89,7 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     const base = freshDefaultData();
     const fmt = loaded?.exportFormat;
     this.data = {
-      favorites: Array.isArray(loaded?.favorites) ? [...loaded.favorites] : base.favorites,
+      favorites: Array.isArray(loaded?.favorites) ? migrateFavorites(loaded.favorites) : base.favorites,
       exportFolder: typeof loaded?.exportFolder === "string" ? loaded.exportFolder : base.exportFolder,
       exportFormat: fmt === "md" || fmt === "csv" ? fmt : base.exportFormat,
       collapsed: isPlainObject(loaded?.collapsed) ? { ...loaded.collapsed } : base.collapsed,
@@ -124,7 +143,18 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   async loadCache(): Promise<HealthCache | null> {
     try {
       const raw = await this.app.vault.adapter.read(this.cachePath());
-      return JSON.parse(raw) as HealthCache;
+      const cache = JSON.parse(raw) as HealthCache;
+      // Ein Cache der Version 1 enthält aufaddierte Schlafzeiten (bis zu 33,6 h am
+      // Tag). Umrechnen geht nicht: Die Unterscheidung zwischen Liegezeit und Phase
+      // wurde beim Import weggeworfen. Also verwerfen und neu einlesen lassen —
+      // stillschweigend weiterzuverwenden hieße, den Fehler zu konservieren.
+      if (cache?.version !== CACHE_VERSION) {
+        // Sichtbar machen: Ohne Hinweis stünde der Nutzer vor einem leeren Dashboard
+        // und hielte das für Datenverlust statt für eine nötige Neuberechnung.
+        new Notice(t("notice.cacheOutdated"), 10000);
+        return null;
+      }
+      return cache;
     } catch {
       return null;
     }

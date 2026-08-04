@@ -9,7 +9,14 @@
  <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Health" unit="kg" startDate="2022-11-25 16:31:00 +0200" endDate="2022-11-25 16:31:00 +0200" value="90.1">
   <MetadataEntry key="HKWasUserEntered" value="1"/>
  </Record>
+ <!-- Eine Nacht, wie sie real exportiert wird: das iPhone meldet die Liegezeit, die
+      Watch die Phasen darin, eine Drittanbieter-App dieselbe Phase noch einmal.
+      Mit nur EINEM Record wären überzählte und korrekte Aggregation identisch — das
+      Fixture könnte den Defekt dann gar nicht zeigen. -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="iPhone" value="HKCategoryValueSleepAnalysisInBed" startDate="2022-11-25 23:00:00 +0200" endDate="2022-11-26 07:00:00 +0200"/>
  <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Watch" value="HKCategoryValueSleepAnalysisAsleepCore" startDate="2022-11-25 23:30:00 +0200" endDate="2022-11-26 00:30:00 +0200"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="AutoSleep" value="HKCategoryValueSleepAnalysisAsleepCore" startDate="2022-11-25 23:30:00 +0200" endDate="2022-11-26 00:30:00 +0200"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Watch" value="HKCategoryValueSleepAnalysisAsleepDeep" startDate="2022-11-26 00:30:00 +0200" endDate="2022-11-26 02:00:00 +0200"/>
  <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" unit="count" startDate="2022-11-27 07:00:00 +0200" endDate="2022-11-27 07:05:00 +0200"/>
  <Workout workoutActivityType="HKWorkoutActivityTypeTraditionalStrengthTraining" duration="30.5" durationUnit="min" startDate="2022-11-25 18:00:00 +0200" endDate="2022-11-25 18:30:30 +0200">
   <MetadataEntry key="x" value="y"/>
