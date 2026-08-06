@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/check-no-abs-paths.mjs && node scripts/check-no-nul-bytes.mjs && vitest run",
     "lint": "eslint . --max-warnings 0",
+    "gate": "npm run typecheck && npm test && npm run lint && npm run build",
     "lint:obsidian": "eslint . --max-warnings 0",
     "lint:portal": "eslint src --config eslint.portal.config.mjs --max-warnings 0",
     "deploy": "npm run build && cp main.js manifest.json styles.css \"${OBSIDIAN_PLUGIN_DIR:?set OBSIDIAN_PLUGIN_DIR}\"/",
