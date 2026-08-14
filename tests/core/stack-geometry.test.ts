@@ -19,6 +19,10 @@ describe("buildStackGeometry", () => {
 
     const segs = geom.stacks[0].segments;
     expect(segs.map((s) => s.stage)).toEqual(["deep", "core", "rem"]);
+    // Jedes Segment traegt seinen Minutenwert mit: Der Tooltip nennt die Dauer, und
+    // aus Pixelhoehen laesst sie sich nicht zurueckrechnen, ohne die Skala erneut
+    // zu kennen — das waere dieselbe Rechnung an einer zweiten Stelle.
+    expect(segs.map((s) => s.minutes)).toEqual([60, 120, 60]);
     // Höhen im Verhältnis der Minuten: 1/4, 1/2, 1/4 von 80.
     expect(segs.map((s) => s.h)).toEqual([20, 40, 20]);
     // Lückenlos: jedes Segment beginnt, wo das vorige endet.

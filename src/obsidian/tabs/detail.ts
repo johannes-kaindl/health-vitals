@@ -2,8 +2,10 @@ import { Notice } from "obsidian";
 import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
 import type { DetailVM, TableVM } from "../../core/view-model";
-import { buildDetailVM } from "../../core/view-model";
-import { renderChart } from "../chart-render";
+import { buildDetailVM, buildSleepStagesVM } from "../../core/view-model";
+import type { SleepStagesVM } from "../../core/view-model";
+import { METRIC_SLEEP_ASLEEP } from "../../core/sleep-session";
+import { renderChart, renderStackChart } from "../chart-render";
 import type { DashboardView, ExportFormat } from "../dashboard-view";
 import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
@@ -55,6 +57,14 @@ export function renderDetail(
     const cell = stats.createDiv({ cls: "ah-stat-cell" });
     cell.createSpan({ cls: "ah-stat-label", text: row.label });
     cell.createSpan({ cls: "ah-stat-value", text: row.value });
+  }
+
+  // Nur beim Schlaf selbst, nicht bei der Liegezeit: Der Stapel misst Schlafzeit,
+  // der Balken darüber Liegezeit — zwei Höhen, die dasselbe zu messen scheinen und
+  // es nicht tun. Fehlen Phasen im Zeitraum, entfällt die Sektion ganz.
+  if (state.metricId === METRIC_SLEEP_ASLEEP) {
+    const stagesVm = buildSleepStagesVM(cache, state.range, CHART_DIMS);
+    if (!stagesVm.empty) renderStagesSection(el, stagesVm);
   }
 
   // Kein Export von nichts: ohne Punkte im Zeitraum entfällt die Sektion ganz.
@@ -163,5 +173,17 @@ function renderValuesTable(parent: HTMLElement, table: TableVM): void {
   for (const row of table.rows) {
     const tr = tbody.createEl("tr");
     for (const cell of row) tr.createEl("td", { text: cell });
+  }
+}
+
+function renderStagesSection(el: HTMLElement, vm: SleepStagesVM): void {
+  const box = el.createDiv({ cls: "ah-stages" });
+  box.createEl("h3", { text: t("sleep.stagesTitle") });
+  renderStackChart(box, vm);
+  const stats = box.createDiv({ cls: "ah-stat-row" });
+  for (const row of vm.stats) {
+    const cell = stats.createDiv({ cls: "ah-stat-cell" });
+    cell.createSpan({ cls: "ah-stat-label", text: row.label });
+    cell.createSpan({ cls: "ah-stat-value", text: row.value });
   }
 }

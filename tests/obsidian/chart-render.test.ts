@@ -1,19 +1,25 @@
-import { renderChart } from "../../src/obsidian/chart-render";
-import { buildChartGeometry } from "../../src/core/chart-geometry";
+import { renderChart, renderStackChart } from "../../src/obsidian/chart-render";
+import { buildChartGeometry, buildStackGeometry } from "../../src/core/chart-geometry";
+import type { StagePoint } from "../../src/core/sleep-stages";
 import type { RollupPoint } from "../../src/core/rollup";
 
 function fakeEl(): any {
   const el: any = { children: [] as any[], cls: "", text: "", style: {},
     createSvg(tag: string, o?: any) {
       const c = fakeEl(); c.tag = tag; c.attrs = (o && o.attr) || {}; c.cls = (o && o.cls) || "";
+      c.text = (o && o.text) || "";
       el.children.push(c); return c;
     },
-    createDiv(o?: any) { const c = fakeEl(); c.cls = (o && o.cls) || ""; el.children.push(c); return c; },
+    createDiv(o?: any) {
+      const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
+      el.children.push(c); return c;
+    },
     createSpan(o?: any) {
       const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
       el.children.push(c); return c;
     },
     setCssStyles(styles: Record<string, string>) { Object.assign(el.style, styles); },
+    setText(v: string) { el.text = v; },
   };
   return el;
 }
@@ -142,5 +148,68 @@ describe("renderChart mit Achsen", () => {
     const el = fakeEl();
     renderChart(el, geom, { grid: true });
     expect(collectByCls(el, "ah-chart-week")).toHaveLength(0);
+  });
+});
+
+describe("renderStackChart", () => {
+  const DIMS = { width: 100, height: 100, padding: 10 };
+  function stagePoint(key: string, s: Partial<Record<"deep" | "core" | "rem" | "unspecified", number>>): StagePoint {
+    return { key, stages: { deep: 0, core: 0, rem: 0, unspecified: 0, ...s }, nights: 1, awakeAvg: 0 };
+  }
+  const geom = buildStackGeometry(
+    [stagePoint("2026-01-05", { deep: 60, core: 240 })], DIMS, { granularity: "day" },
+  );
+  const vm = {
+    empty: false, chart: geom, axis: { x: [{ leftPct: 20, label: "5.1." }], y: [{ topPct: 0, label: "5h 0m" }] },
+    legend: [{ stage: "deep" as const, label: "Tief" }, { stage: "core" as const, label: "Kern" }],
+    note: null, stats: [],
+  };
+
+  it("zeichnet je Phase ein <rect> mit eigener Klasse", () => {
+    const parent = fakeEl();
+    renderStackChart(parent, vm);
+
+    // Die Farbklasse tragen Segment UND Legenden-Swatch — sonst zeigte die Legende
+    // eine andere Farbe als das Chart. Hier zaehlen nur die Segmente.
+    const rects = collectByCls(parent, "ah-chart-stack");
+    expect(rects.map((r: any) => r.tag)).toEqual(["rect", "rect"]);
+    expect(collectByCls(parent, "ah-stage-deep").filter((n: any) => n.tag === "rect")).toHaveLength(1);
+    expect(collectByCls(parent, "ah-stage-core").filter((n: any) => n.tag === "rect")).toHaveLength(1);
+  });
+
+  it("benennt jedes Segment im <title>, damit die Aussage nicht allein an der Farbe haengt", () => {
+    const parent = fakeEl();
+    renderStackChart(parent, vm);
+
+    // WCAG 1.4.1: Farbe darf nicht der einzige Traeger der Information sein.
+    expect(findText(parent, "Tief: 1h 0m")).toBe(true);
+    expect(findText(parent, "Kern: 4h 0m")).toBe(true);
+  });
+
+  it("rendert die Legende mit genau den uebergebenen Phasen", () => {
+    const parent = fakeEl();
+    renderStackChart(parent, vm);
+
+    const items = collectByCls(parent, "ah-legend-item");
+    expect(items).toHaveLength(2);
+    expect(findText(parent, "Kern")).toBe(true);
+  });
+
+  it("zeigt die Hinweiszeile nur, wenn das View-Model eine liefert", () => {
+    const without = fakeEl();
+    renderStackChart(without, vm);
+    expect(findByCls(without, "ah-stage-note")).toBeNull();
+
+    const with_ = fakeEl();
+    renderStackChart(with_, { ...vm, note: "In 67 % der Nächte …" });
+    expect(findText(with_, "In 67 % der Nächte …")).toBe(true);
+  });
+
+  it("uebernimmt Achsen-Labels und Wochenlinien wie das Detail-Chart", () => {
+    const parent = fakeEl();
+    renderStackChart(parent, vm);
+
+    expect(findText(parent, "5h 0m")).toBe(true);
+    expect(collectByCls(parent, "ah-chart-week")).toHaveLength(1);
   });
 });

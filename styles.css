@@ -161,3 +161,41 @@
   background: var(--background-modifier-success);
   color: var(--text-normal);
 }
+
+/* Schlafphasen — gestapelte Balken.
+   Eine Regel je Phase faerbt Segment (fill) UND Legenden-Swatch (background-color):
+   Die Legende ist nur dann eine, wenn sie exakt die Farbe des Charts zeigt; zwei
+   getrennte Deklarationen laufen beim naechsten Eingriff auseinander.
+   Die Farbwahl folgt der Schlaftiefe (blau → cyan → violett) und laesst die
+   unbestimmte Zeit bewusst neutral: sie ist keine Phase, sondern deren Fehlen. */
+.ah-stage-deep { fill: var(--color-blue); background-color: var(--color-blue); }
+.ah-stage-core { fill: var(--color-cyan); background-color: var(--color-cyan); }
+.ah-stage-rem { fill: var(--color-purple); background-color: var(--color-purple); }
+.ah-stage-unspecified {
+  fill: var(--background-modifier-border);
+  background-color: var(--background-modifier-border);
+}
+
+.ah-stages { margin-top: var(--size-4-6); }
+.ah-stages h3 { margin-bottom: var(--size-4-2); }
+
+.ah-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-3);
+  margin-top: var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.ah-legend-item { display: flex; align-items: center; gap: var(--size-4-1); }
+.ah-legend-swatch {
+  width: var(--size-4-3);
+  height: var(--size-4-3);
+  border-radius: var(--radius-s);
+}
+
+.ah-stage-note {
+  margin-top: var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}

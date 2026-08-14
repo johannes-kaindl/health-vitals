@@ -53,3 +53,38 @@ describe("styles.css — Store-Scanner-Vertraeglichkeit", () => {
     expect(CSS).not.toMatch(/(^|[;{\s])(column-count|column-width|columns)\s*:/);
   });
 });
+
+describe("styles.css — Schlafphasen", () => {
+  const STAGES = ["deep", "core", "rem", "unspecified"];
+
+  it("jede Phase hat eine eigene Fuellfarbe aus einer Theme-Variablen", () => {
+    for (const stage of STAGES) {
+      const decl = rule(`.ah-stage-${stage}`);
+      expect(decl, stage).toMatch(/fill:\s*var\(--/);
+    }
+  });
+
+  it("keine Phase traegt eine hartkodierte Farbe", () => {
+    // PROF-OBS / UI-STANDARD: das Plugin muss in jedem Theme funktionieren, und der
+    // Store-Scanner liest die Deklaration, nicht den Kommentar daneben.
+    for (const stage of STAGES) {
+      expect(rule(`.ah-stage-${stage}`), stage).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+    }
+  });
+
+  it("die vier Phasen sind paarweise verschieden eingefaerbt", () => {
+    // Zwei Phasen mit derselben Variablen waeren im Stapel nicht trennbar — und der
+    // Fehler faellt am Bildschirm erst auf, wenn beide zufaellig aneinandergrenzen.
+    const fills = STAGES.map((s) => (rule(`.ah-stage-${s}`).match(/fill:\s*([^;]+)/) ?? [])[1]?.trim());
+    expect(new Set(fills).size).toBe(STAGES.length);
+  });
+
+  it("der Legenden-Swatch erbt dieselbe Farbe wie das Segment", () => {
+    // Die Legende ist nur dann eine Legende, wenn sie die Farbe des Charts zeigt.
+    // Deshalb faerbt EINE Regel je Phase beides ein — geteilt ueber `fill` plus
+    // `background-color` im selben Block, nicht zwei Deklarationen, die auseinanderlaufen.
+    for (const stage of STAGES) {
+      expect(rule(`.ah-stage-${stage}`), stage).toMatch(/background-color:\s*var\(--/);
+    }
+  });
+});

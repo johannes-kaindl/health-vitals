@@ -108,7 +108,13 @@ export function buildChartGeometry(
 // Gestapelte Balken (Schlafphasen)
 // ---------------------------------------------------------------------------
 
-export interface StackSegment { stage: StageKey; x: number; y: number; w: number; h: number; }
+export interface StackSegment {
+  stage: StageKey;
+  x: number; y: number; w: number; h: number;
+  /** Der zugrunde liegende Wert in Minuten — fuer Tooltips, damit niemand ihn
+   *  aus der Pixelhoehe zurueckrechnen muss. */
+  minutes: number;
+}
 export interface StackGeometry {
   width: number; height: number;
   stacks: Array<{ i: number; segments: StackSegment[] }>;
@@ -150,7 +156,7 @@ export function buildStackGeometry(
       // in Tooltips und Legendenzählungen als vorhandene Phase mitlaufen.
       if (v <= 0) continue;
       const yTop = scaleY(acc + v);
-      segments.push({ stage, x, y: yTop, w, h: scaleY(acc) - yTop });
+      segments.push({ stage, x, y: yTop, w, h: scaleY(acc) - yTop, minutes: v });
       acc += v;
     }
     return { i, segments };
