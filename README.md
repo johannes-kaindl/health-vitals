@@ -7,6 +7,22 @@ Kein HealthKit-Zugriff — Obsidian läuft in Electron, HealthKit ist eine nativ
 iOS/macOS-API. Das Plugin arbeitet mit der Export-Datei, die du dir aus der
 Health-App schickst.
 
+## Features
+
+- Liest `Export.zip` oder eine entpackte `Export.xml` **streamend** ein — mehrere
+  Gigabyte, ohne dass der Speicher volläuft.
+- **Dashboard mit drei Tabs:** Übersicht (Kachel je Metrik mit Sparkline, Favoriten
+  anpinnbar), Detail (Zeitreihe mit Zeitraum-Presets und Werte-Tabelle), Workouts.
+- Aggregation passend zur Art der Metrik — Summe, Mittel mit Min/Max, oder Dauer.
+- **Schlaf wird vereinigt statt summiert**, damit doppelt erfasste Nächte keine
+  unmöglichen Werte ergeben.
+- Werte-Tabelle in die Zwischenablage kopieren oder als `.md`/`.csv` in einen
+  selbst gewählten Vault-Ordner schreiben.
+- Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
+  Obsidian-Theme-Variablen.
+- Zweisprachige Oberfläche (Deutsch/Englisch), folgt der UI-Sprache von Obsidian.
+- **Keine Netzwerkaufrufe** — alles bleibt auf deinem Rechner.
+
 ## Warum
 
 Apples `Export.xml` ist schnell **mehrere Gigabyte** groß (im Testfall 2,6 GB mit
@@ -14,21 +30,31 @@ Apples `Export.xml` ist schnell **mehrere Gigabyte** groß (im Testfall 2,6 GB m
 stürzen ab. Dieses Plugin parst **streamend** (SAX-artig, chunk-weise) und legt
 nur kompakte Tages-Aggregate ab — der Cache aus 5,7 Mio Records ist ~2,7 MB.
 
+## Voraussetzungen
+
+- **Obsidian 1.8.7** oder neuer.
+- **Desktop** — das Plugin ist `isDesktopOnly: true`; der Import mehrere Gigabyte
+  großer XML-Dateien ist nur dort sinnvoll.
+- Ein **Apple-Health-Export** (`Export.zip` oder entpackte `Export.xml`), erzeugt in
+  der Health-App auf dem iPhone. Ein iPhone ist damit nur zum Export nötig, nicht
+  zum Benutzen des Plugins.
+
 ## Installation
 
 **Aus dem Community-Store (empfohlen):** In Obsidian → *Einstellungen* →
 *Community-Plugins* → *Durchsuchen* → nach **„Health Vitals"** suchen →
 *Installieren* → *Aktivieren*.
 
-**Manuell:** Von der [Releases-Seite](https://github.com/johannes-kaindl/health-vitals/releases)
+**Manuell (manual install):** Von der
+[Releases-Seite](https://github.com/johannes-kaindl/health-vitals/releases)
 `main.js`, `manifest.json` und `styles.css` des neuesten Releases herunterladen und in den
 Ordner `<Vault>/.obsidian/plugins/health-vitals/` legen, dann in *Einstellungen* →
 *Community-Plugins* aktivieren.
 
-Das Plugin ist **Desktop-only** (`isDesktopOnly: true`) — der Import mehrere Gigabyte
-großer XML-Dateien ist nur auf dem Desktop sinnvoll.
+**Aus dem Quelltext (from source):** Repository klonen, `npm install && npm run build`,
+dann `main.js`, `manifest.json` und `styles.css` in denselben Ordner kopieren.
 
-## Nutzung
+## Verwendung
 
 1. In der **Health-App** (iPhone): Profil → *Alle Gesundheitsdaten exportieren*
    → die entstehende `Export.zip` auf den Rechner bringen.
@@ -48,21 +74,7 @@ Die Oberfläche ist zweisprachig (Deutsch/Englisch) und folgt automatisch der
 UI-Sprache von Obsidian — deutsche Obsidian-Oberfläche zeigt Deutsch, jede andere
 Englisch. Es gibt dafür keine eigene Einstellung.
 
-### Zugriff außerhalb des Vaults
-
-Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
-den du im Dateidialog auswählst. Das ist nötig, weil ein Apple-Health-Export
-mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Diese
-Export-Datei selbst wird ausschließlich gelesen — nichts davon wird
-geschrieben, verschoben oder irgendwohin gesendet. Die daraus ausgewerteten
-Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
-
-Getrennt davon kann das Detail-Tab auf Wunsch Werte-Tabellen **innerhalb**
-des Vaults als Datei ablegen — das ist kein Zugriff außerhalb des Vaults,
-sondern ein gewöhnlicher Schreibvorgang in einen von dir gewählten Ordner
-deines Vaults. Details dazu unter „Datenschutz".
-
-## Dashboard
+### Dashboard
 
 Command-Palette → **„Health Vitals: Dashboard öffnen"** (oder das Ribbon-Icon).
 Das Dashboard lädt `health-cache.json` **lazy** beim Öffnen — der Vault-Start
@@ -84,6 +96,38 @@ bleibt unbelastet. Drei Tabs:
 Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
 Obsidian-Theme-Variablen — sie passen sich also jedem Theme (hell/dunkel/
 Community) an.
+
+### Zugriff außerhalb des Vaults
+
+Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
+den du im Dateidialog auswählst. Das ist nötig, weil ein Apple-Health-Export
+mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Diese
+Export-Datei selbst wird ausschließlich gelesen — nichts davon wird
+geschrieben, verschoben oder irgendwohin gesendet. Die daraus ausgewerteten
+Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
+
+Getrennt davon kann das Detail-Tab auf Wunsch Werte-Tabellen **innerhalb**
+des Vaults als Datei ablegen — das ist kein Zugriff außerhalb des Vaults,
+sondern ein gewöhnlicher Schreibvorgang in einen von dir gewählten Ordner
+deines Vaults. Details dazu unter „Datenschutz".
+
+## Konfiguration
+
+Das Plugin hat **keinen Einstellungen-Tab**. Was es sich merkt, stellst du direkt
+dort ein, wo es wirkt — im Dashboard:
+
+| Einstellung | Wo | Bedeutung |
+|---|---|---|
+| Favoriten | Stern auf einer Kachel (Übersicht) | Angepinnte Metriken stehen oben |
+| Aufklapp-Zustand | Kategorie-Gruppen (Übersicht) | Welche Gruppen offen bleiben |
+| Export-Ordner | Detail-Tab, Ordnerfeld mit Autocomplete | Zielordner der Werte-Tabelle |
+| Export-Format | Detail-Tab | `.md` oder `.csv` |
+
+Gespeichert wird das in der `data.json` im Plugin-Ordner — nicht im Cache, der beim
+nächsten Import überschrieben wird. Die Sprache der Oberfläche ist bewusst keine
+Einstellung: sie folgt Obsidian.
+
+## Funktionsweise
 
 ### Wie Metriken aggregiert werden
 
