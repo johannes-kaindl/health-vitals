@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Schlafphasen als gestapeltes Balkendiagramm.** Wählt man im Detail-Bereich die Metrik
+  „Schlaf", erscheint unter dem Verlauf eine neue Sektion: je Nacht ein Balken, dessen
+  Segmente Tief-, Kern- und REM-Schlaf übereinander zeigen. Die Balkenhöhe bleibt dabei
+  die Schlafdauer, kurze und lange Nächte sind also weiterhin unterscheidbar. Über einen
+  längeren Zeitraum zeigt ein Balken die **durchschnittliche** Nacht der Woche bzw. des
+  Monats — nicht deren Summe, sonst beantwortete die Grafik eine andere Frage als die,
+  die sie stellt.
+- Die durchschnittliche Wachzeit innerhalb der Nächte steht als Kennzahl unter dem
+  Phasen-Diagramm. Sie fließt bewusst nicht in den Stapel ein: Wachzeit ist kein Schlaf.
+- Ältere Exporte kennen nur „Schlaf" ohne Aufschlüsselung — vor watchOS 9 liefert Apple
+  keine Phasen. Solche Nächte erscheinen als neutral eingefärbtes Segment „Unbestimmt";
+  überwiegen sie im gewählten Zeitraum, nennt eine Zeile unter der Grafik ihren Anteil,
+  damit der einfarbige Bereich als Gerätegrenze lesbar ist und nicht als Fehler.
+
+
 ## [0.5.1] — 2026-08-04
 
 ### Fixed
