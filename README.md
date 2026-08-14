@@ -1,194 +1,190 @@
 # Health Vitals
 
-Obsidian-Plugin, das **Apple-Health-Exports** einliest und die Daten im Vault
-durchsuchbar und visualisierbar macht.
+An Obsidian plugin that reads **Apple Health exports** and makes the data searchable
+and visualizable inside your vault.
 
-Kein HealthKit-Zugriff — Obsidian läuft in Electron, HealthKit ist eine native
-iOS/macOS-API. Das Plugin arbeitet mit der Export-Datei, die du dir aus der
-Health-App schickst.
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/gitea/v/release/jkaindl/health-vitals?gitea_url=https%3A%2F%2Fgit.jkaindl.de&label=release)](https://git.jkaindl.de/jkaindl/health-vitals/releases)
+[![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop%20only-purple)](https://obsidian.md)
+
+*Auch auf Deutsch verfügbar: [`README.de.md`](README.de.md).*
+
+No HealthKit access — Obsidian runs in Electron, and HealthKit is a native iOS/macOS
+API. This plugin works with the export file you send yourself from the Health app.
 
 ## Features
 
-- Liest `Export.zip` oder eine entpackte `Export.xml` **streamend** ein — mehrere
-  Gigabyte, ohne dass der Speicher volläuft.
-- **Dashboard mit drei Tabs:** Übersicht (Kachel je Metrik mit Sparkline, Favoriten
-  anpinnbar), Detail (Zeitreihe mit Zeitraum-Presets und Werte-Tabelle), Workouts.
-- Aggregation passend zur Art der Metrik — Summe, Mittel mit Min/Max, oder Dauer.
-- **Schlaf wird vereinigt statt summiert**, damit doppelt erfasste Nächte keine
-  unmöglichen Werte ergeben.
-- Werte-Tabelle in die Zwischenablage kopieren oder als `.md`/`.csv` in einen
-  selbst gewählten Vault-Ordner schreiben.
-- Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
-  Obsidian-Theme-Variablen.
-- Zweisprachige Oberfläche (Deutsch/Englisch), folgt der UI-Sprache von Obsidian.
-- **Keine Netzwerkaufrufe** — alles bleibt auf deinem Rechner.
+- Reads `Export.zip` or an unpacked `Export.xml` **as a stream** — several gigabytes
+  without filling up memory.
+- **A dashboard with three tabs:** Overview (one tile per metric with a sparkline,
+  favourites pinnable), Detail (time series with period presets and a value table),
+  Workouts.
+- Aggregation that matches the kind of metric — sum, mean with min/max, or duration.
+- **Sleep is merged, not summed**, so nights recorded twice don't add up to impossible
+  values.
+- Copy the value table to the clipboard, or write it as `.md`/`.csv` into a vault
+  folder of your choice.
+- Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
+  own theme variables.
+- Bilingual interface (German/English), following Obsidian's UI language.
+- **No network calls** — everything stays on your machine.
 
-## Warum
+## Why
 
-Apples `Export.xml` ist schnell **mehrere Gigabyte** groß (im Testfall 2,6 GB mit
-5,7 Mio Records). Übliche XML-Parser laden das komplett in den Speicher und
-stürzen ab. Dieses Plugin parst **streamend** (SAX-artig, chunk-weise) und legt
-nur kompakte Tages-Aggregate ab — der Cache aus 5,7 Mio Records ist ~2,7 MB.
+Apple's `Export.xml` easily reaches **several gigabytes** (2.6 GB with 5.7 million
+records in the test case). Ordinary XML parsers load all of it into memory and crash.
+This plugin parses **as a stream** (SAX-style, chunk by chunk) and stores nothing but
+compact daily aggregates — the cache built from 5.7 million records is ~2.7 MB.
 
-## Voraussetzungen
+## Requirements
 
-- **Obsidian 1.8.7** oder neuer.
-- **Desktop** — das Plugin ist `isDesktopOnly: true`; der Import mehrere Gigabyte
-  großer XML-Dateien ist nur dort sinnvoll.
-- Ein **Apple-Health-Export** (`Export.zip` oder entpackte `Export.xml`), erzeugt in
-  der Health-App auf dem iPhone. Ein iPhone ist damit nur zum Export nötig, nicht
-  zum Benutzen des Plugins.
+- **Obsidian 1.8.7** or newer.
+- **Desktop** — the plugin is `isDesktopOnly: true`; importing multi-gigabyte XML files
+  only makes sense there.
+- An **Apple Health export** (`Export.zip` or an unpacked `Export.xml`), created in the
+  Health app on an iPhone. So an iPhone is only needed to produce the export, not to
+  use the plugin.
 
-## Installation
+## Install
 
-**Aus dem Community-Store (empfohlen):** In Obsidian → *Einstellungen* →
-*Community-Plugins* → *Durchsuchen* → nach **„Health Vitals"** suchen →
-*Installieren* → *Aktivieren*.
+**From the community store (recommended):** in Obsidian → *Settings* →
+*Community plugins* → *Browse* → search for **"Health Vitals"** → *Install* →
+*Enable*.
 
-**Manuell (manual install):** Von der
-[Releases-Seite](https://github.com/johannes-kaindl/health-vitals/releases)
-`main.js`, `manifest.json` und `styles.css` des neuesten Releases herunterladen und in den
-Ordner `<Vault>/.obsidian/plugins/health-vitals/` legen, dann in *Einstellungen* →
-*Community-Plugins* aktivieren.
+**Manual install:** download `main.js`, `manifest.json` and `styles.css` of the latest
+release from the
+[releases page](https://github.com/johannes-kaindl/health-vitals/releases), put them
+into `<vault>/.obsidian/plugins/health-vitals/`, then enable the plugin under
+*Settings* → *Community plugins*.
 
-**Aus dem Quelltext (from source):** Repository klonen, `npm install && npm run build`,
-dann `main.js`, `manifest.json` und `styles.css` in denselben Ordner kopieren.
+**From source:** clone the repository, run `npm install && npm run build`, then copy
+`main.js`, `manifest.json` and `styles.css` into the same folder.
 
-## Verwendung
+## Usage
 
-1. In der **Health-App** (iPhone): Profil → *Alle Gesundheitsdaten exportieren*
-   → die entstehende `Export.zip` auf den Rechner bringen.
-2. In Obsidian: Ribbon-Icon **Health Vitals Dashboard** (oder Command-Palette →
-   **„Health Vitals: Dashboard öffnen"**).
-3. Im Dashboard **„Export auswählen"** klicken und die `Export.zip` (oder eine
-   entpackte `Export.xml`) im Dateidialog wählen.
+1. In the **Health app** (iPhone): Profile → *Export all health data* → move the
+   resulting `Export.zip` to your computer.
+2. In Obsidian: the **Health Vitals Dashboard** ribbon icon (or the command palette →
+   **"Health Vitals: Open dashboard"**).
+3. Click **"Choose export"** in the dashboard and pick the `Export.zip` (or an unpacked
+   `Export.xml`) in the file dialog.
 
-Der Lauf dauert bei großen Exports einige Minuten. Fortschritt, Phase und ein
-Abbrechen-Button stehen währenddessen im Dashboard; danach öffnet sich die
-Übersicht automatisch.
+A large export takes a few minutes. Progress, current phase and a cancel button stay
+visible in the dashboard while it runs; the overview opens by itself afterwards.
 
-Ergebnis ist `health-cache.json` im Plugin-Verzeichnis: Tages-Aggregate je
-Metrik plus eine Workout-Liste.
+The result is `health-cache.json` in the plugin directory: daily aggregates per metric
+plus a list of workouts.
 
-Die Oberfläche ist zweisprachig (Deutsch/Englisch) und folgt automatisch der
-UI-Sprache von Obsidian — deutsche Obsidian-Oberfläche zeigt Deutsch, jede andere
-Englisch. Es gibt dafür keine eigene Einstellung.
+The interface is bilingual (German/English) and follows Obsidian's UI language
+automatically — a German Obsidian shows German, anything else shows English. There is
+no separate setting for it.
 
 ### Dashboard
 
-Command-Palette → **„Health Vitals: Dashboard öffnen"** (oder das Ribbon-Icon).
-Das Dashboard lädt `health-cache.json` **lazy** beim Öffnen — der Vault-Start
-bleibt unbelastet. Drei Tabs:
+Command palette → **"Health Vitals: Open dashboard"** (or the ribbon icon). The
+dashboard loads `health-cache.json` **lazily** when opened, so vault startup stays
+untouched. Three tabs:
 
-- **Übersicht** — Kachel je Metrik mit Kennzahl und Sparkline. Metriken lassen
-  sich per Stern als Favorit oben anpinnen (bleibt gespeichert); der Rest ist
-  nach Kategorie gruppiert und ausklappbar.
-- **Detail** — Klick auf eine Kachel öffnet die Zeitreihe: Zeitraum-Presets
-  1M / 3M / 1J / Alles, darunter die passenden Kennzahlen. Lange Zeiträume
-  werden automatisch gebündelt (Tage → Wochen → Monate), damit der Chart
-  lesbar bleibt. Darunter lässt sich eine Werte-Tabelle mit den zugrunde
-  liegenden Zeilen ausklappen; ihr Inhalt kann in die Zwischenablage
-  kopiert oder als Markdown- oder CSV-Datei in einen selbst gewählten
-  Vault-Ordner geschrieben werden (siehe „Datenschutz").
-- **Workouts** — Workouts pro Monat als Balken, darunter die letzten Einheiten
-  mit Typ, Datum und Dauer.
+- **Overview** — one tile per metric with a headline figure and a sparkline. Metrics
+  can be pinned to the top as favourites with a star (this is remembered); the rest is
+  grouped by category and collapsible.
+- **Detail** — clicking a tile opens the time series: period presets 1M / 3M / 1Y /
+  All, with the matching figures below. Long periods are bucketed automatically (days →
+  weeks → months) to keep the chart readable. Below that, a value table with the
+  underlying rows can be expanded; its contents can be copied to the clipboard or
+  written as a Markdown or CSV file into a vault folder of your choice (see
+  "Privacy").
+- **Workouts** — workouts per month as bars, with the most recent sessions listed
+  below by type, date and duration.
 
-Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
-Obsidian-Theme-Variablen — sie passen sich also jedem Theme (hell/dunkel/
-Community) an.
+Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
+theme variables — so they adapt to any theme (light/dark/community).
 
-### Zugriff außerhalb des Vaults
+### Access outside the vault
 
-Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
-den du im Dateidialog auswählst. Das ist nötig, weil ein Apple-Health-Export
-mehrere Gigabyte groß ist und nicht sinnvoll in einen Vault gehört. Diese
-Export-Datei selbst wird ausschließlich gelesen — nichts davon wird
-geschrieben, verschoben oder irgendwohin gesendet. Die daraus ausgewerteten
-Daten landen als `health-cache.json` im Plugin-Verzeichnis auf deinem Rechner.
+This plugin reads **one file outside your vault**: the health export you pick in the
+file dialog. That is necessary because an Apple Health export is several gigabytes and
+does not belong in a vault. That export file is only ever read — nothing about it is
+written, moved or sent anywhere. The data derived from it lands as
+`health-cache.json` in the plugin directory on your machine.
 
-Getrennt davon kann das Detail-Tab auf Wunsch Werte-Tabellen **innerhalb**
-des Vaults als Datei ablegen — das ist kein Zugriff außerhalb des Vaults,
-sondern ein gewöhnlicher Schreibvorgang in einen von dir gewählten Ordner
-deines Vaults. Details dazu unter „Datenschutz".
+Separately, the Detail tab can write value tables **inside** the vault as files on
+request — that is not access outside the vault, but an ordinary write into a folder you
+chose. Details under "Privacy".
 
-## Konfiguration
+## Configuration
 
-Das Plugin hat **keinen Einstellungen-Tab**. Was es sich merkt, stellst du direkt
-dort ein, wo es wirkt — im Dashboard:
+The plugin has **no settings tab**. What it remembers, you set where it takes effect —
+in the dashboard:
 
-| Einstellung | Wo | Bedeutung |
+| Setting | Where | Meaning |
 |---|---|---|
-| Favoriten | Stern auf einer Kachel (Übersicht) | Angepinnte Metriken stehen oben |
-| Aufklapp-Zustand | Kategorie-Gruppen (Übersicht) | Welche Gruppen offen bleiben |
-| Export-Ordner | Detail-Tab, Ordnerfeld mit Autocomplete | Zielordner der Werte-Tabelle |
-| Export-Format | Detail-Tab | `.md` oder `.csv` |
+| Favourites | Star on a tile (Overview) | Pinned metrics sit at the top |
+| Collapsed state | Category groups (Overview) | Which groups stay open |
+| Export folder | Detail tab, folder field with autocomplete | Target folder of the value table |
+| Export format | Detail tab | `.md` or `.csv` |
 
-Gespeichert wird das in der `data.json` im Plugin-Ordner — nicht im Cache, der beim
-nächsten Import überschrieben wird. Die Sprache der Oberfläche ist bewusst keine
-Einstellung: sie folgt Obsidian.
+That is stored in `data.json` in the plugin folder — not in the cache, which the next
+import overwrites. The interface language is deliberately not a setting: it follows
+Obsidian.
 
-## Funktionsweise
+## How it works
 
-### Wie Metriken aggregiert werden
+### How metrics are aggregated
 
-Die Darstellung richtet sich nach der Art der Metrik:
+The presentation follows the kind of metric:
 
-| Art | Beispiele | Aggregation | Chart |
+| Kind | Examples | Aggregation | Chart |
 |---|---|---|---|
-| `sum` | Schritte, Kalorien | Tages-Summe | Balken |
-| `measure` | Gewicht, Puls | Ø mit Min/Max | Linie + Band |
-| `duration` | Achtsamkeit | Summe der Zeiträume | Balken |
+| `sum` | Steps, calories | Daily sum | Bars |
+| `measure` | Weight, heart rate | Mean with min/max | Line + band |
+| `duration` | Mindfulness | Sum of intervals | Bars |
 
-Bei Wochen-/Monatsbündelung wird entsprechend summiert bzw. gemittelt (nicht
-summiert) — ein Ø-Puls über einen Monat bleibt ein Mittelwert.
+Weekly/monthly bucketing sums or averages accordingly (not sums) — a mean heart rate
+over a month stays a mean.
 
-Zeiten werden als Stunden und Minuten angezeigt (`7h 12m`), ab einem Tag nur noch
-als Stunden. Der CSV-Export enthält stattdessen die Rohwerte in Minuten.
+Durations are shown as hours and minutes (`7h 12m`), and as hours only beyond a day.
+The CSV export instead contains the raw values in minutes.
 
-### Schlaf
+### Sleep
 
-Schlaf wird nicht wie die übrigen Metriken aggregiert und erscheint als **zwei
-gleichrangige Werte**: „Schlaf" (tatsächlich geschlafene Zeit) und „Liegezeit".
+Sleep is not aggregated like the other metrics and appears as **two equally ranked
+values**: "asleep" (time actually slept) and "in bed".
 
-Der Grund ist die Beschaffenheit der Daten: Apple exportiert für dieselbe Nacht
-mehrfach dieselbe Zeit — die Liegezeit umschließt die Schlafphasen darin, und
-mehrere Geräte (iPhone, Uhr, Fremd-Apps) beschreiben dieselbe Nacht parallel.
-Aufaddiert ergibt das unmögliche Werte. Überlappende Zeiträume werden deshalb
-**vereinigt statt summiert**: doppelt erfasste Zeit zählt einmal.
+The reason lies in the data: Apple exports the same time several times over for the
+same night — time in bed encloses the sleep stages within it, and several devices
+(iPhone, watch, third-party apps) describe the same night in parallel. Added up, that
+yields impossible values. Overlapping intervals are therefore **merged rather than
+summed**: time recorded twice counts once.
 
-Eine Nacht gehört dem Tag, an dem man **aufwacht**. Schlaf, der ab 20:00 beginnt,
-zählt auf den Folgetag — sonst fielen die Nacht, die morgens endet, und die, die
-abends beginnt, auf denselben Kalendertag.
+A night belongs to the day you **wake up** on. Sleep starting from 20:00 counts towards
+the following day — otherwise the night that ends in the morning and the one that
+begins in the evening would fall on the same calendar day.
 
-## Datenschutz
+## Privacy
 
-Gesundheitsdaten sind besonders sensibel. Deshalb:
+Health data is particularly sensitive. Therefore:
 
-- **Alles bleibt lokal.** Das Plugin sendet nichts nach außen, es gibt keine
-  Netzwerkaufrufe.
-- `health-cache.json` ist **gitignored** — es landet nie versehentlich in
-  einem Repo. Es gibt keinen `import/`-Ordner mehr; der Export wird direkt
-  aus dem Dateidialog gelesen, ohne dass etwas ins Plugin-Verzeichnis
-  kopiert wird.
-- `isDesktopOnly: true` — der Import großer XML-Dateien ist nur auf dem Desktop
-  sinnvoll.
-- **Der Werte-Export im Detail-Tab schreibt in deinen Vault, aber nur wenn du
-  auf „Speichern" klickst.** Es gibt dort eine ausklappbare Werte-Tabelle mit
-  den Rohwerten der aktuellen Metrik und des aktuellen Zeitraums; ein Klick
-  auf „Speichern" legt sie als `.md`- oder `.csv`-Datei in einem von dir
-  gewählten Vault-Ordner ab (Ordnerfeld mit Autocomplete über deine
-  bestehenden Ordner). Der Dateiname setzt sich aus Metrikname sowie erstem
-  und letztem Zeitschlüssel der Tabelle zusammen. Existiert die Datei schon,
-  wird sie **nie überschrieben** — stattdessen hängt das Plugin eine
-  fortlaufende Nummer an (` 2`, ` 3`, …), bis ein freier Name gefunden ist.
-  Diese Export-Dateien liegen danach wie jede andere Notiz in deinem Vault:
-  wenn dein Vault synchronisiert oder versioniert wird, gilt das auch für sie.
+- **Everything stays local.** The plugin sends nothing anywhere; there are no network
+  calls.
+- `health-cache.json` is **gitignored** — it never ends up in a repository by accident.
+  There is no `import/` folder anymore; the export is read straight from the file
+  dialog, without anything being copied into the plugin directory.
+- `isDesktopOnly: true` — importing large XML files only makes sense on the desktop.
+- **The value export in the Detail tab writes into your vault, but only when you click
+  "Save".** There is an expandable value table there with the raw values of the current
+  metric and period; clicking "Save" puts them as a `.md` or `.csv` file into a vault
+  folder you chose (folder field with autocomplete over your existing folders). The file
+  name is composed of the metric name plus the first and last time key of the table. If
+  the file already exists, it is **never overwritten** — the plugin appends a running
+  number instead (` 2`, ` 3`, …) until it finds a free name. These export files then sit
+  in your vault like any other note: if your vault is synced or versioned, so are they.
 
-Wenn du deinen Vault synchronisierst, liegt `health-cache.json` im
-Plugin-Ordner unter `.obsidian/` und wird je nach Sync-Konfiguration
-mitgenommen — das ist bewusst deine Entscheidung.
+If you sync your vault, `health-cache.json` sits in the plugin folder under
+`.obsidian/` and comes along depending on your sync configuration — deliberately your
+decision.
 
-## Entwicklung
+## Development
 
 ```bash
 npm run dev        # esbuild watch
@@ -196,20 +192,20 @@ npm run build      # typecheck + production bundle → main.js
 npm test           # vitest
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint (obsidianmd, type-checked)
-npm run deploy     # build + copy nach $OBSIDIAN_PLUGIN_DIR
+npm run deploy     # build + copy to $OBSIDIAN_PLUGIN_DIR
 ```
 
-Der Code ist in eine **reine Kern-Schicht** (`src/core/` — Parser, Aggregation,
-Chart-Geometrie, ViewModels; ohne `obsidian`-Import, in Node testbar) und eine
-**Obsidian-Schicht** (`src/obsidian/` — View, SVG-Rendering, Dateizugriff)
-getrennt. Konventionen und Architektur-Notizen: `AGENTS.md`.
+The code is split into a **pure core layer** (`src/core/` — parser, aggregation, chart
+geometry, view models; no `obsidian` import, testable in Node) and an **Obsidian layer**
+(`src/obsidian/` — view, SVG rendering, file access). Conventions and architecture
+notes: `AGENTS.md`.
 
-**Hinweis für Beiträge:** Renderer-spezifisches Verhalten (SVG-DOM, `ItemView`,
-Web-Worker) ist in Node-Unit-Tests unsichtbar — Änderungen an der
-Obsidian-Schicht brauchen zusätzlich einen manuellen Test in echtem Obsidian.
+**Note for contributors:** renderer-specific behaviour (SVG DOM, `ItemView`, web
+workers) is invisible to Node unit tests — changes to the Obsidian layer need a manual
+test in real Obsidian on top.
 
-## Lizenz
+## License
 
 Copyright © 2026 Johannes Kaindl
 
-Lizenziert unter der [GNU AGPL v3.0 oder später](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE).
+Licensed under the [GNU AGPL v3.0 or later](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE).
