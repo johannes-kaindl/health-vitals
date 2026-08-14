@@ -1,9 +1,10 @@
 import type { HealthCache } from "./types";
 import { describeMetric, type Category } from "./metric-catalog";
 import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granularity } from "./rollup";
-import { buildChartGeometry, type ChartDims, type ChartGeometry } from "./chart-geometry";
+import { buildChartGeometry, buildStackGeometry, type ChartDims, type ChartGeometry, type StackGeometry } from "./chart-geometry";
+import { rollupSleepStages, STAGE_ORDER, type StageKey } from "./sleep-stages";
 import { computeStats } from "./series-stats";
-import { formatByPolicy, formatAxisTick, formatTickLabel } from "./format";
+import { formatByPolicy, formatAxisTick, formatTickLabel, formatDuration } from "./format";
 import type { Policy } from "./types";
 import { t } from "../vendor/kit/i18n";
 import { localeTag } from "../i18n/strings";
@@ -192,4 +193,62 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
       ];
   const rangeLabel = points.length ? `${points[0].key} – ${points[points.length - 1].key}` : "";
   return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats, axis, table };
+}
+
+/** Schwelle, ab der die Hinweiszeile erscheint: mehr als die Hälfte der Nächte
+ *  ohne Phasen-Aufschlüsselung. Darunter ist der graue Anteil ein Randfall, den
+ *  die Legende trägt; darüber prägt er das Bild und braucht die Einordnung. */
+const UNSPECIFIED_NOTE_THRESHOLD = 0.5;
+
+export interface SleepStagesVM {
+  empty: boolean;
+  chart: StackGeometry;
+  axis: AxisVM;
+  /** Nur die Phasen, die im Zeitraum wirklich vorkommen — in Stapelreihenfolge. */
+  legend: Array<{ stage: StageKey; label: string }>;
+  /** Einordnung, wenn unbestimmte Nächte überwiegen; sonst `null`. */
+  note: string | null;
+  stats: StatRow[];
+}
+
+const EMPTY_STAGES_VM = (dims: ChartDims): SleepStagesVM => ({
+  empty: true, chart: buildStackGeometry([], dims), axis: EMPTY_AXIS,
+  legend: [], note: null, stats: [],
+});
+
+export function buildSleepStagesVM(
+  cache: HealthCache, range: RangeKey, dims: ChartDims,
+): SleepStagesVM {
+  if (!cache.sleepStages || !cache.dateRange) return EMPTY_STAGES_VM(dims);
+  const r = resolveRange(range, cache.dateRange);
+  const rollup = rollupSleepStages(cache.sleepStages, r);
+  if (rollup.points.length === 0) return EMPTY_STAGES_VM(dims);
+
+  const chart = buildStackGeometry(rollup.points, dims, { granularity: r.granularity });
+  const axis: AxisVM = {
+    x: chart.xTicks.map((tick) => ({
+      leftPct: (tick.x / dims.width) * 100,
+      label: formatTickLabel(rollup.points[tick.i].key, r.granularity),
+    })),
+    y: chart.yTicks.map((tick) => ({
+      topPct: (tick.y / dims.height) * 100,
+      label: formatDuration(tick.value),
+    })),
+  };
+
+  // Die Legende folgt den Daten, nicht der Typdefinition: Vier Einträge unter einem
+  // einfarbigen Chart behaupten eine Aufschlüsselung, die das Gerät nie geliefert hat.
+  const present = new Set<StageKey>();
+  for (const stack of chart.stacks) for (const seg of stack.segments) present.add(seg.stage);
+  const legend = STAGE_ORDER.filter((s) => present.has(s))
+    .map((stage) => ({ stage, label: t("stage." + stage) }));
+
+  const note = rollup.unspecifiedShare > UNSPECIFIED_NOTE_THRESHOLD
+    ? t("sleep.stagesNote", Math.round(rollup.unspecifiedShare * 100))
+    : null;
+
+  const awakeAvg = rollup.points.reduce((sum, p) => sum + p.awakeAvg * p.nights, 0) / rollup.nights;
+  const stats: StatRow[] = [{ label: t("stat.awakeAvg"), value: formatDuration(awakeAvg) }];
+
+  return { empty: false, chart, axis, legend, note, stats };
 }
