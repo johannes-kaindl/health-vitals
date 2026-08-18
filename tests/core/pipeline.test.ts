@@ -45,6 +45,10 @@ describe("aggregateStream (Fixture, end-to-end)", () => {
       expect(cache.dateRange).toEqual({ from: "2022-11-25", to: "2022-11-26" });
       expect(cache.workouts).toEqual([
         { type: "HKWorkoutActivityTypeTraditionalStrengthTraining", start: "2022-11-25T18:00", durationMin: 30.5 },
+        { type: "HKWorkoutActivityTypeRunning", start: "2022-11-26T07:00", durationMin: 52,
+          distanceKm: 9.1, energyKcal: 612 },
+        { type: "HKWorkoutActivityTypeCycling", start: "2022-11-26T16:00", durationMin: 74,
+          distanceKm: 34.19856 },
       ]);
     }
   });

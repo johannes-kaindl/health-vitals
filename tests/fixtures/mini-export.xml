@@ -21,4 +21,14 @@
  <Workout workoutActivityType="HKWorkoutActivityTypeTraditionalStrengthTraining" duration="30.5" durationUnit="min" startDate="2022-11-25 18:00:00 +0200" endDate="2022-11-25 18:30:30 +0200">
   <MetadataEntry key="x" value="y"/>
  </Workout>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="52" durationUnit="min" startDate="2022-11-26 07:00:00 +0200" endDate="2022-11-26 07:52:00 +0200">
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" startDate="2022-11-26 07:00:00 +0200" endDate="2022-11-26 07:52:00 +0200" sum="9.1" unit="km"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2022-11-26 07:00:00 +0200" endDate="2022-11-26 07:52:00 +0200" sum="612" unit="kcal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierBasalEnergyBurned" startDate="2022-11-26 07:00:00 +0200" endDate="2022-11-26 07:52:00 +0200" sum="278" unit="kcal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierHeartRate" startDate="2022-11-26 07:00:00 +0200" endDate="2022-11-26 07:52:00 +0200" average="148" minimum="96" maximum="171" unit="count/min"/>
+  <MetadataEntry key="HKIndoorWorkout" value="0"/>
+ </Workout>
+ <Workout workoutActivityType="HKWorkoutActivityTypeCycling" duration="4440" durationUnit="s" startDate="2022-11-26 16:00:00 +0200" endDate="2022-11-26 17:14:00 +0200">
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceCycling" startDate="2022-11-26 16:00:00 +0200" endDate="2022-11-26 17:14:00 +0200" sum="21.25" unit="mi"/>
+ </Workout>
 </HealthData>
