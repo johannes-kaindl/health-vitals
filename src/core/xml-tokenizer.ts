@@ -4,6 +4,12 @@ export interface StartTag {
   selfClosing: boolean;
 }
 
+/** Start- und End-Tags in einem Strom. Ein `WorkoutStatistics` ist nur im Rahmen
+ *  seines offenen `<Workout>` deutbar — ohne `</Workout>` weiß niemand, wann der
+ *  Rahmen endet. Text-Knoten meldet der Tokenizer weiterhin nicht: Apple-Health-
+ *  Exporte tragen alle Nutzdaten in Attributen. */
+export type Token = ({ kind: "start" } & StartTag) | { kind: "end"; name: string };
+
 const ENTITIES: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
 
 export function decodeEntities(s: string): string {
@@ -48,19 +54,19 @@ function findDeclEnd(buf: string, lt: number): number {
   return -1;
 }
 
-function emitStartTag(inner: string, emit: (t: StartTag) => void): void {
+function emitStartTag(inner: string, emit: (t: Token) => void): void {
   let selfClosing = false;
   let s = inner;
   if (s.endsWith("/")) { selfClosing = true; s = s.slice(0, -1); }
   const nm = NAME_RE.exec(s);
   if (!nm) return;
-  emit({ name: nm[1], attrs: parseAttrs(s.slice(nm[0].length)), selfClosing });
+  emit({ kind: "start", name: nm[1], attrs: parseAttrs(s.slice(nm[0].length)), selfClosing });
 }
 
 export class XmlTokenizer {
   private buf = "";
 
-  feed(chunk: string, emit: (t: StartTag) => void): void {
+  feed(chunk: string, emit: (t: Token) => void): void {
     this.buf += chunk;
     const buf = this.buf;
     const n = buf.length;
@@ -73,6 +79,8 @@ export class XmlTokenizer {
       if (c === "/") {                            // Close-Tag
         const gt = buf.indexOf(">", lt);
         if (gt === -1) { i = lt; break; }
+        const nm = NAME_RE.exec(buf.slice(lt + 2, gt));
+        if (nm) emit({ kind: "end", name: nm[1] });
         i = gt + 1; continue;
       }
       if (c === "?") {                            // <?xml …?>
