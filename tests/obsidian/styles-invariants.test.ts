@@ -88,3 +88,30 @@ describe("styles.css — Schlafphasen", () => {
     }
   });
 });
+
+describe("styles.css — Chart-Masse haengen am Chart, nicht am Ort", () => {
+  // Der Fund aus dem Smoke-Test 2026-08-18: Das Phasen-Chart rendert vollstaendig und
+  // rechnerisch korrekt, ist aber unsichtbar — die einzige Regel, die einem Chart-SVG
+  // Masse gibt, hing an `.ah-detail-chart`, also am Container des Detail-Tabs. Eine neue
+  // Chart-Stelle mit eigenem Container erbt sie nicht. Kein Test konnte das sehen: die
+  // <rect>-Elemente entstehen, sie haben nur keine Flaeche.
+  it("die Chart-Klasse selbst traegt Breite, Hoehe und display", () => {
+    const chart = rule(".ah-chart");
+    expect(chart).toMatch(/width:/);
+    expect(chart).toMatch(/height:/);
+    expect(chart).toMatch(/display:/);
+  });
+
+  it("kein Tab-Container definiert mehr die Chart-Masse", () => {
+    // Sonst gilt die Kopplung weiter und die naechste Chart-Stelle faellt erneut hinein.
+    // Ausgenommen bleibt die Sparkline: ihre feste Hoehe ist ein bewusster Sonderfall,
+    // kein Ortsbezug — sie ueberschreibt die Basisregel absichtlich.
+    expect(CSS).not.toMatch(/\.ah-detail-chart\s+svg\s*\{/);
+  });
+
+  it("die Sparkline ueberschreibt die Basis, statt sie zu ersetzen", () => {
+    // Spezifitaet: `.ah-tile-spark svg` (0,1,1) schlaegt `.ah-chart` (0,1,0) — die feste
+    // 36px bleiben also gueltig, ohne dass die Reihenfolge im Stylesheet daran haengt.
+    expect(rule(".ah-tile-spark svg")).toMatch(/height:\s*36px/);
+  });
+});

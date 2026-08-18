@@ -35,9 +35,15 @@
 
 .ah-detail-head { display: flex; align-items: baseline; gap: var(--size-4-2); }
 .ah-detail-range { color: var(--text-faint); font-size: var(--font-ui-small); }
-.ah-detail-chart svg { width: 100%; height: auto; display: block; }
 .ah-detail-hint { color: var(--text-muted); padding: var(--size-4-4); text-align: center; }
 
+/* Ein Chart bringt seine Masse selbst mit — sie haengen an der Klasse, die jedes
+   Chart traegt, nicht am Container, in dem es gerade steckt. Vorher stand die Regel
+   auf `.ah-detail-chart`; der Workouts-Tab musste diese Klasse deshalb mitbenutzen,
+   obwohl er nicht der Detail-Tab ist, und das Phasen-Chart mit eigenem Container
+   rechnete korrekt, hatte aber keine Flaeche. Die Sparkline ueberschreibt die Hoehe
+   bewusst (`.ah-tile-spark svg`, hoehere Spezifitaet). */
+.ah-chart { width: 100%; height: auto; display: block; }
 .ah-chart-line { stroke: var(--interactive-accent); stroke-width: 2; fill: none; }
 .ah-chart-band { fill: var(--interactive-accent); opacity: 0.15; }
 .ah-chart-bar { fill: var(--interactive-accent); }
