@@ -35,13 +35,17 @@ export function summarizeWorkouts(workouts: WorkoutEntry[], recentLimit: number)
     .map((m) => ({ ...m, distanceKm: round2(m.distanceKm), energyKcal: round2(m.energyKcal) }))
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 
+  // Auch Zeilenwerte runden: Ein Workout kann schon über mehrere WorkoutStatistics-Elemente
+  // summiert ankommen (src/core/health-parser.ts:132,137), hat also Gleitkomma-Fehler, bevor
+  // eine Monatssumme gebildet wird. Rundung gehört dorthin, wo die Zahl entsteht, nicht in die
+  // Anzeige von Aufgabe 7 — sonst müssten CSV-Export, Tooltip, weitere Ansichten sie erneut mitbringen.
   const recent = [...workouts]
     .sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0))
     .slice(0, recentLimit)
     .map((w) => {
       const row: WorkoutRow = { type: w.type, date: w.start.slice(0, 10), durationMin: w.durationMin };
-      if (w.distanceKm !== undefined) row.distanceKm = w.distanceKm;
-      if (w.energyKcal !== undefined) row.energyKcal = w.energyKcal;
+      if (w.distanceKm !== undefined) row.distanceKm = round2(w.distanceKm);
+      if (w.energyKcal !== undefined) row.energyKcal = round2(w.energyKcal);
       return row;
     });
 

@@ -39,8 +39,19 @@ describe("summarizeWorkouts", () => {
     const s = summarizeWorkouts(wsWithMetrics, 10);
     const yoga = s.recent.find((r) => r.type === "Yoga")!;
     expect(yoga.distanceKm).toBeUndefined();
+    expect("distanceKm" in yoga).toBe(false);
     expect(yoga.energyKcal).toBe(142);
     const lauf = s.recent.find((r) => r.date === "2026-01-20")!;
     expect(lauf.distanceKm).toBe(7.25);
+  });
+
+  // Ein Workout kann schon selbst summiert sein (mehrere WorkoutStatistics), also
+  // entstehen Gleitkomma-Reste vor der Monatssumme, nicht erst durch sie.
+  it("glaettet auch Zeilenwerte, nicht nur Monatssummen", () => {
+    const s = summarizeWorkouts([
+      { type: "Running", start: "2026-03-01T08:00", durationMin: 30, distanceKm: 0.1 + 0.2, energyKcal: 320 },
+    ], 10);
+    expect(s.recent[0].distanceKm).toBe(0.3);
+    expect(s.monthly[0].distanceKm).toBe(0.3);
   });
 });
