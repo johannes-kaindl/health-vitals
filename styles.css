@@ -175,7 +175,20 @@
    Die Farbwahl folgt der Schlaftiefe (blau → cyan → violett) und laesst die
    unbestimmte Zeit bewusst neutral: sie ist keine Phase, sondern deren Fehlen. */
 .ah-stage-deep { fill: var(--color-blue); background-color: var(--color-blue); }
-.ah-stage-core { fill: var(--color-cyan); background-color: var(--color-cyan); }
+/* Kern traegt keine reine Akzentvariable, sondern eine mit der Textfarbe abgedunkelte:
+   `--color-cyan` allein kam in hellen Belegungen auf 1:2,29 gegen den Hintergrund und
+   verfehlte damit WCAG 1.4.11 (verlangt 3:1) — gemessen im vanilla Vault, nicht geschaetzt
+   (docs/SMOKE.md). Der Beimischung liegt dieselbe Gattungsregel zugrunde wie unten bei
+   `unspecified`: eine Textvariable schuldet Kontrast zum Grund, eine Akzentvariable nicht.
+   Der Anteil 75 % ist der groesste, der in ALLEN vier Belegungen (Standard/Kuro x hell/
+   dunkel) ueber 3:1 bleibt (3,55 hell, 10,9 dunkel) — und er haelt den Farbton, sodass
+   die Reihe blau -> tuerkis -> violett weiterhin die Schlaftiefe erzaehlt. Weniger Cyan
+   verbessert den Kontrast, laesst die Phase aber ins Grau von `unspecified` laufen: bei
+   65 % faellt der Farbabstand unter Deuteranopie von 6,8 auf 2,4. */
+.ah-stage-core {
+  fill: color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal));
+  background-color: color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal));
+}
 .ah-stage-rem { fill: var(--color-purple); background-color: var(--color-purple); }
 /* Unbestimmt bleibt neutral, muss aber sichtbar sein — bei „Alles" sind zwei Drittel
    der Flaeche diese Farbe. Zuerst stand hier `--background-modifier-border`: gemessen

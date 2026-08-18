@@ -145,6 +145,29 @@ That is stored in `data.json` in the plugin folder — not in the cache, which t
 import overwrites. The interface language is deliberately not a setting: it follows
 Obsidian.
 
+### Changing the sleep-stage colours
+
+The chart takes its colours from your theme's own variables, so it already follows any
+theme you install. If you want different ones anyway — colour vision differences are
+individual, and no default fits everyone — a **CSS snippet** does it without a settings
+tab (*Settings → Appearance → CSS snippets*):
+
+```css
+/* Every stage takes one rule: `fill` colours the bar segment, `background-color` the
+   swatch in the legend. Setting only one of them makes the legend lie. */
+.ah-stage-deep        { fill: var(--color-purple); background-color: var(--color-purple); }
+.ah-stage-core        { fill: var(--color-blue);   background-color: var(--color-blue); }
+.ah-stage-rem         { fill: var(--color-pink);   background-color: var(--color-pink); }
+.ah-stage-unspecified { fill: var(--text-muted);   background-color: var(--text-muted); }
+```
+
+One thing worth knowing when you pick: the accent colours of a theme (`--color-*`) owe
+you no contrast against the background — they are made for lines and highlights. On a
+light theme several of them land near 2:1, where WCAG asks for 3:1 on meaningful areas.
+Mixing an accent with the text colour keeps the hue and buys the contrast, which is what
+the default for "core" does:
+`color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal))`.
+
 ## How it works
 
 ### How metrics are aggregated

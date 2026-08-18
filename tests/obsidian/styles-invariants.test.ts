@@ -57,10 +57,15 @@ describe("styles.css — Store-Scanner-Vertraeglichkeit", () => {
 describe("styles.css — Schlafphasen", () => {
   const STAGES = ["deep", "core", "rem", "unspecified"];
 
-  it("jede Phase hat eine eigene Fuellfarbe aus einer Theme-Variablen", () => {
+  it("jede Phase hat eine eigene Fuellfarbe aus Theme-Variablen", () => {
+    // Geprueft wird die ABSICHT (der Wert stammt aus dem Theme), nicht die Form: seit
+    // 2026-08-18 ist `core` ein `color-mix(...)` aus zwei Variablen, weil `--color-cyan`
+    // allein in hellen Belegungen 2,29:1 erreichte. Ein Test auf "beginnt mit var(" haette
+    // diesen Fix blockiert, ohne dass an ihm etwas falsch waere — die Regel lautet "keine
+    // hartkodierten Farben", und die haelt ein color-mix aus Variablen ein.
     for (const stage of STAGES) {
       const decl = rule(`.ah-stage-${stage}`);
-      expect(decl, stage).toMatch(/fill:\s*var\(--/);
+      expect(decl, stage).toMatch(/fill:[^;]*var\(--/);
     }
   });
 
@@ -84,7 +89,7 @@ describe("styles.css — Schlafphasen", () => {
     // Deshalb faerbt EINE Regel je Phase beides ein — geteilt ueber `fill` plus
     // `background-color` im selben Block, nicht zwei Deklarationen, die auseinanderlaufen.
     for (const stage of STAGES) {
-      expect(rule(`.ah-stage-${stage}`), stage).toMatch(/background-color:\s*var\(--/);
+      expect(rule(`.ah-stage-${stage}`), stage).toMatch(/background-color:[^;]*var\(--/);
     }
   });
 });

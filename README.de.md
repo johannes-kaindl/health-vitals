@@ -151,6 +151,30 @@ Gespeichert wird das in der `data.json` im Plugin-Ordner — nicht im Cache, der
 nächsten Import überschrieben wird. Die Sprache der Oberfläche ist bewusst keine
 Einstellung: sie folgt Obsidian.
 
+### Die Farben der Schlafphasen ändern
+
+Das Chart nimmt seine Farben aus den Variablen deines Themes und folgt damit jedem Theme,
+das du installierst. Wer trotzdem andere will — Farbfehlsichtigkeiten sind individuell,
+und keine Voreinstellung passt allen —, ändert sie über ein **CSS-Snippet**, ganz ohne
+Einstellungs-Tab (*Einstellungen → Erscheinungsbild → CSS-Snippets*):
+
+```css
+/* Je Phase eine Regel: `fill` färbt das Balkensegment, `background-color` das Kästchen
+   in der Legende. Nur eines von beidem zu setzen macht die Legende zur Falschaussage. */
+.ah-stage-deep        { fill: var(--color-purple); background-color: var(--color-purple); }
+.ah-stage-core        { fill: var(--color-blue);   background-color: var(--color-blue); }
+.ah-stage-rem         { fill: var(--color-pink);   background-color: var(--color-pink); }
+.ah-stage-unspecified { fill: var(--text-muted);   background-color: var(--text-muted); }
+```
+
+Eines lohnt sich dabei zu wissen: Die Akzentfarben eines Themes (`--color-*`) schulden dir
+keinen Kontrast zum Hintergrund — sie sind für Linien und Hervorhebungen gedacht. In einem
+hellen Theme landen mehrere davon bei etwa 2:1, während WCAG für bedeutungstragende
+Flächen 3:1 verlangt. Eine Akzentfarbe mit der Textfarbe zu mischen erhält den Farbton und
+verschafft den Kontrast — genau das tut die Voreinstellung für „Kern":
+`color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal))`.
+
+
 ## Funktionsweise
 
 ### Wie Metriken aggregiert werden

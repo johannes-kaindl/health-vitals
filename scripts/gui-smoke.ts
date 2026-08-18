@@ -109,9 +109,30 @@ function skipped(name: string, reason: string): void {
 
 // --- Farbrechnung (Node-Seite) ----------------------------------------------
 
-/** Eine computed-style-Farbe („rgb(…)" / „rgba(…)") in Kanäle zerlegen. */
+/**
+ * Eine computed-style-Farbe in Kanäle zerlegen.
+ *
+ * Zwei Schreibweisen, weil der Renderer beide liefert: `rgb(…)`/`rgba(…)` für einfache
+ * Werte und **`color(srgb r g b [/ a])`** für alles, was aus `color-mix()` entsteht — mit
+ * Kanälen im Bereich 0…1 statt 0…255. Ohne den zweiten Fall meldete der Kontrast-Prüfpunkt
+ * am 2026-08-18 `?:1` für die Phase, die gerade auf `color-mix` umgestellt worden war: kein
+ * Wert, also kein Beleg, also rot. Das war richtig — aber gemessen hätte er trotzdem werden
+ * müssen.
+ */
 function parseColor(value: string | null): { r: number; g: number; b: number; a: number } | null {
   if (!value) return null;
+  const modern = /color\(srgb\s+([^)]+)\)/.exec(value);
+  if (modern) {
+    const [kanaele, alpha] = modern[1].split("/");
+    const parts = kanaele.trim().split(/\s+/).map(Number);
+    if (parts.length < 3 || parts.slice(0, 3).some((n) => Number.isNaN(n))) return null;
+    return {
+      r: parts[0] * 255,
+      g: parts[1] * 255,
+      b: parts[2] * 255,
+      a: alpha === undefined ? 1 : Number(alpha.trim()),
+    };
+  }
   const match = /rgba?\(([^)]+)\)/.exec(value);
   if (!match) return null;
   const parts = match[1].split(",").map((p) => Number(p.trim()));

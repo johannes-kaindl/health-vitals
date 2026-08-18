@@ -106,9 +106,21 @@ npm run smoke:gui -- --vault apple-health --section farben     → 3/4 grün
   ✗ Standard hell:   Kontrast   unspecified 6,69 · deep 4,95 · core 2,29 · rem 4,95
 ```
 
-**`--color-cyan` (Phase „Kern") verfehlt WCAG 1.4.11 in hellen Belegungen.** Die Zahl ist
-jetzt dem Plugin zurechenbar, weil nichts anderes mehr im Spiel ist. Die Farbwahl gehört
-korrigiert; die Entscheidung darüber liegt beim Maintainer (siehe § Offen).
+**`--color-cyan` (Phase „Kern") verfehlte WCAG 1.4.11 in hellen Belegungen.** Die Zahl war
+dem Plugin zurechenbar, weil nichts anderes mehr im Spiel war.
+
+**Behoben am selben Tag** (`color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal))`,
+entschieden am Bild aus vier gerenderten Varianten): derselbe Lauf meldet jetzt **4/4**,
+Kern liegt bei **3,55:1** hell und **10,72:1** dunkel. Der Anteil 75 % ist der größte, der
+in allen vier Belegungen über 3:1 bleibt — weniger Cyan verbessert den Kontrast weiter,
+lässt die Phase aber ins Grau von „unbestimmt" laufen (bei 65 % fällt der Farbabstand
+unter simulierter Deuteranopie von 6,8 auf 2,4).
+
+Der Fix deckte prompt einen Mangel im Treiber auf: `getComputedStyle` liefert für
+`color-mix` einen **`color(srgb …)`**-String mit Kanälen in 0…1, den der Farbparser nicht
+kannte. Der Prüfpunkt meldete daraufhin `core ?:1` und **rot** — kein Wert, kein Beleg.
+Das war die richtige Antwort, aber gemessen hätte er trotzdem werden müssen; der Parser
+kennt jetzt beide Schreibweisen.
 
 Nachgerechnet wurde bei der Gelegenheit auch die Farbfehlsichtigkeit: unter simulierter
 Deuteranopie/Protanopie liegen die Phasenpaare im **hellen** Theme bei ΔE 6,8–7,6. Die
@@ -144,8 +156,13 @@ dem Plugin zu. Daraus die Messplatz-Prüfung und die Trennung zwischen Bilanz un
 
 ## Offen
 
-- **`--color-cyan` in hellen Belegungen** (2,2–2,3:1) in einem vanilla Vault nachmessen.
-  Vorarbeit dazu liegt vor: Von allen Theme-Variablen halten nur `--color-red`,
+_(nichts)_
+
+## Erledigt
+
+- ✅ **`--color-cyan` in hellen Belegungen** (2,2–2,3:1) — im vanilla Vault nachgemessen und
+  am 2026-08-18 behoben (siehe Nachtrag oben). Die Vorarbeit bleibt hier stehen, weil sie
+  die nächste Farbfrage beantwortet, bevor sie gestellt wird: Von allen Theme-Variablen halten nur `--color-red`,
   `--color-blue`, `--color-purple`, `--color-pink` und `--text-muted`/`--text-normal` in
   allen vier Kombinationen ≥ 3:1. Unter simulierter Deuteranopie/Protanopie erreicht
   **keine** Dreier-Palette ΔE ≥ 12 (bestes Ergebnis 10,7) — die Zuordnung kann Farbe allein

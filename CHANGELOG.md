@@ -21,6 +21,22 @@ All notable changes to this project are documented here. The format follows
   keine Phasen. Solche Nächte erscheinen als neutral eingefärbtes Segment „Unbestimmt";
   überwiegen sie im gewählten Zeitraum, nennt eine Zeile unter der Grafik ihren Anteil,
   damit der einfarbige Bereich als Gerätegrenze lesbar ist und nicht als Fehler.
+- Die README zeigt jetzt, wie das Plugin aussieht: sieben Bilder vom Dashboard, vom
+  Verlauf mit Achsen, von beiden Zuständen des Phasen-Diagramms, von der Werte-Tabelle
+  mit Export, von den Workouts und vom Zustand vor dem ersten Import.
+- **Die Farben der Schlafphasen lassen sich per CSS-Snippet ändern** — der Abschnitt
+  „Konfiguration" nennt die vier Klassen und sagt dazu, worauf beim Farbwechsel zu achten
+  ist. Ein Einstellungs-Tab bleibt es bewusst nicht.
+
+### Fixed
+
+- **Die Phase „Kern" war in hellen Themes zu blass.** Sie kam gegen den Hintergrund auf
+  1:2,3 und blieb damit unter dem, was für bedeutungstragende Flächen als lesbar gilt
+  (WCAG 1.4.11 verlangt 3:1) — auf einem hellen Theme verschwamm der größte Teil jedes
+  Balkens mit dem Untergrund. Die Farbe ist jetzt eine mit der Textfarbe abgedunkelte
+  Variante desselben Türkis: Der Farbton und damit die Ordnung Tief → Kern → REM bleiben,
+  der Kontrast liegt in hellen wie dunklen Themes über der Schwelle. In dunklen Themes
+  war und ist alles unverändert lesbar.
 
 
 ## [0.5.1] — 2026-08-04
