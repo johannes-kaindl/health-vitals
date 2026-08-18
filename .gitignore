@@ -18,3 +18,6 @@ node_modules/
 
 # Bundle des GUI-Smoke-Treibers (esbuild, npm run smoke:gui)
 .gui-smoke.mjs
+
+# Bundle des Aufnahme-Treibers (esbuild, npm run shots)
+.shots.mjs

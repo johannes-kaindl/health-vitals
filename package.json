@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && node esbuild.config.mjs --production",
     "typecheck": "tsc --noEmit",
     "typecheck:scripts": "if test -d ../tools/obsidian-cdp; then tsc -p tsconfig.scripts.json --noEmit; else echo 'typecheck:scripts uebersprungen: ../tools/obsidian-cdp fehlt (der Treiber importiert die zentrale CDP-Bruecke aus dem Dach-Checkout; in CI/fremden Checkouts nicht vorhanden)'; fi",
+    "shots": "esbuild scripts/shots.ts --bundle --platform=node --format=esm --outfile=.shots.mjs --log-level=warning && node .shots.mjs",
+    "shots:check": "if test -f ../../_docs/readme/readme_lint.py; then python3 ../../_docs/readme/readme_lint.py .; else echo 'shots:check uebersprungen: ../../_docs/readme/readme_lint.py fehlt (Bild-Standard ist maintainer-lokal)'; fi",
     "smoke:gui": "esbuild scripts/gui-smoke.ts --bundle --platform=node --format=esm --outfile=.gui-smoke.mjs --log-level=warning && node .gui-smoke.mjs",
     "test": "node scripts/check-no-abs-paths.mjs && node scripts/check-no-nul-bytes.mjs && vitest run",
     "lint": "node scripts/check-no-inline-disables.mjs && eslint src --max-warnings 0",
