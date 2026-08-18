@@ -90,11 +90,25 @@ Messplatz (ein aktives CSS-Snippet + Style-Settings-Plugin). Als Hinweis gemesse
 damit WCAG 1.4.11 — in der Standardbelegung (`#00bfbc` auf `#ffffff`, 2,29:1) wie im
 eingestellten Theme (2,22:1). In dunklen Belegungen ist alles erfüllt (schwächste 3,02:1).
 
-**Das ist ein Verdacht, kein Befund**, und der Unterschied ist die Lehre dieses Laufs: Die
-erste Fassung des Treibers meldete diese Werte als rote Prüfpunkte. Gemessen wurde dabei
-aber die Werkbank — Snippet und Style-Settings belegen die Variablen auch bei
-abgeschaltetem Theme-CSS. **Nachzumessen in einem vanilla Vault** (kommt mit dem
-Aufnahme-Fixture aus `readme-shots`); erst dann ist die Zahl dem Plugin zurechenbar.
+**Das war zunächst ein Verdacht, kein Befund**, und der Unterschied ist die Lehre dieses
+Laufs: Die erste Fassung des Treibers meldete diese Werte als rote Prüfpunkte. Gemessen
+wurde dabei aber die Werkbank — Snippet und Style-Settings belegen die Variablen auch bei
+abgeschaltetem Theme-CSS.
+
+### Nachtrag desselben Tages: im vanilla Vault gemessen — der Verdacht ist ein Befund
+
+Mit `readme-shots` entstand ein Aufnahme-Vault ohne Theme, ohne Snippets, ohne
+Style-Settings — der erste saubere Messplatz dieses Repos. Dort greifen die Farbpunkte:
+
+```
+npm run smoke:gui -- --vault apple-health --section farben     → 3/4 grün
+  ✓ Standard dunkel: Kontrast   unspecified 8,13 · deep 4,24 · core 10,52 · rem 5,93
+  ✗ Standard hell:   Kontrast   unspecified 6,69 · deep 4,95 · core 2,29 · rem 4,95
+```
+
+**`--color-cyan` (Phase „Kern") verfehlt WCAG 1.4.11 in hellen Belegungen.** Die Zahl ist
+jetzt dem Plugin zurechenbar, weil nichts anderes mehr im Spiel ist. Die Farbwahl gehört
+korrigiert; die Entscheidung darüber liegt beim Maintainer (siehe § Offen).
 
 Nachgerechnet wurde bei der Gelegenheit auch die Farbfehlsichtigkeit: unter simulierter
 Deuteranopie/Protanopie liegen die Phasenpaare im **hellen** Theme bei ΔE 6,8–7,6. Die
