@@ -151,3 +151,83 @@ describe("EventReader — Workout-Rahmen", () => {
     expect(r.push(end("Workout"))).toBeNull();
   });
 });
+
+describe("EventReader — WorkoutStatistics", () => {
+  function stat(attrs: Record<string, string>): Token {
+    return { kind: "start", name: "WorkoutStatistics", attrs, selfClosing: true };
+  }
+  function lauf(): Token {
+    return start("Workout", {
+      workoutActivityType: "HKWorkoutActivityTypeRunning",
+      duration: "52", durationUnit: "min", startDate: "2026-07-28 07:00:00 +0200",
+    }, false);
+  }
+
+  it("liest Distanz und aktive Energie", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "9.1", unit: "km" }));
+    r.push(stat({ type: "HKQuantityTypeIdentifierActiveEnergyBurned", sum: "612", unit: "kcal" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.distanceKm).toBeCloseTo(9.1, 6);
+    expect(w.energyKcal).toBeCloseTo(612, 6);
+  });
+
+  it("rechnet Meilen um", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "3", unit: "mi" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.distanceKm).toBeCloseTo(4.828032, 6);
+  });
+
+  // Der Grundumsatz faellt auch im Schlaf an. Ihn mitzuzaehlen macht aus 612 kcal
+  // Laufen ~890 kcal und beantwortet keine Trainingsfrage.
+  it("ignoriert BasalEnergyBurned", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierActiveEnergyBurned", sum: "612", unit: "kcal" }));
+    r.push(stat({ type: "HKQuantityTypeIdentifierBasalEnergyBurned", sum: "278", unit: "kcal" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.energyKcal).toBeCloseTo(612, 6);
+  });
+
+  it("addiert mehrere Distanz-Typen zur Gesamtstrecke", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceCycling", sum: "20", unit: "km" }));
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "5", unit: "km" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.distanceKm).toBeCloseTo(25, 6);
+  });
+
+  it("ignoriert Statistics ohne sum (HeartRate traegt nur average/min/max)", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierHeartRate", average: "148", minimum: "96", maximum: "171", unit: "count/min" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.distanceKm).toBeUndefined();
+    expect(w.energyKcal).toBeUndefined();
+  });
+
+  it("unbekannte Einheit → Feld bleibt leer statt falscher Zahl", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "9.1", unit: "furlong" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.distanceKm).toBeUndefined();
+  });
+
+  it("Workout ohne Statistics traegt keine leeren Felder", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect("distanceKm" in w).toBe(false);
+    expect("energyKcal" in w).toBe(false);
+  });
+
+  it("Statistics ausserhalb eines Rahmens wird ignoriert", () => {
+    const r = new EventReader();
+    expect(r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "9.1", unit: "km" }))).toBeNull();
+  });
+});

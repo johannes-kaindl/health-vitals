@@ -1,5 +1,5 @@
 import type { StartTag, Token } from "./xml-tokenizer";
-import { toMinutes } from "./units";
+import { toKcal, toKm, toMinutes } from "./units";
 
 export interface RecordEvent {
   kind: "record";
@@ -23,6 +23,11 @@ export interface WorkoutEvent {
   startDate: string;
   endDate: string;
   duration: number;
+  /** Summe aller `…Distance*`-Statistics des Workouts, in km. Fehlt, wenn der Export
+   *  keine trägt (Yoga) oder die Einheit unbekannt war. */
+  distanceKm?: number;
+  /** `ActiveEnergyBurned` in kcal — ohne Grundumsatz. */
+  energyKcal?: number;
 }
 
 export type HealthEvent = RecordEvent | WorkoutEvent;
@@ -48,8 +53,11 @@ export function eventFromTag(tag: StartTag): HealthEvent | null {
   return null;
 }
 
-/** Alles, was innerhalb eines `<Workout>` steht und selbst kein Ereignis ist. */
+/** Tag-Name des Workout-Rahmens. */
 const WORKOUT_TAG = "Workout";
+/** Kennzahl-Kind eines Workouts, z. B. Distanz oder aktive Energie. */
+const STATS_TAG = "WorkoutStatistics";
+const ENERGY_TYPE = "HKQuantityTypeIdentifierActiveEnergyBurned";
 
 /**
  * Liest den Token-Strom zu Ereignissen.
@@ -78,9 +86,14 @@ export class EventReader {
       return null;
     }
 
-    // Kindelemente eines offenen Rahmens (MetadataEntry, WorkoutEvent, ...) sind hier
-    // noch stumm — `eventFromTag` kennt bislang nur "Record" und liefert für sie von
-    // selbst `null`. Records bleiben dabei zustandslos deutbar, auch innerhalb eines
+    if (tok.name === STATS_TAG) {
+      if (this.offen) addStatistic(this.offen, tok);
+      return null;
+    }
+
+    // Übrige Kindelemente eines offenen Rahmens (MetadataEntry, WorkoutEvent, ...) sind
+    // hier noch stumm — `eventFromTag` kennt bislang nur "Record" und liefert für sie
+    // von selbst `null`. Records bleiben dabei zustandslos deutbar, auch innerhalb eines
     // offenen Workouts.
     return eventFromTag(tok);
   }
@@ -98,4 +111,27 @@ function workoutFromTag(tag: StartTag): WorkoutEvent | null {
     endDate: a.endDate ?? a.startDate,
     duration: min ?? 0,
   };
+}
+
+/**
+ * Eine Kennzahl in das offene Workout übernehmen.
+ *
+ * Nur `sum` wird gelesen: `HeartRate` trägt stattdessen average/minimum/maximum, und
+ * ein Mittelwert liesse sich nicht sinnvoll zu einer Tages- oder Monatssumme addieren.
+ */
+function addStatistic(w: WorkoutEvent, tag: StartTag): void {
+  const a = tag.attrs;
+  if (a.sum === undefined || !a.type) return;
+  const sum = Number(a.sum);
+  const unit = a.unit ?? "";
+
+  if (a.type.includes("Distance")) {
+    const km = toKm(sum, unit);
+    if (km !== null) w.distanceKm = (w.distanceKm ?? 0) + km;
+    return;
+  }
+  if (a.type === ENERGY_TYPE) {
+    const kcal = toKcal(sum, unit);
+    if (kcal !== null) w.energyKcal = (w.energyKcal ?? 0) + kcal;
+  }
 }
