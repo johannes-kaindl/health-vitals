@@ -1,4 +1,5 @@
-import type { StartTag } from "./xml-tokenizer";
+import type { StartTag, Token } from "./xml-tokenizer";
+import { toMinutes } from "./units";
 
 export interface RecordEvent {
   kind: "record";
@@ -44,16 +45,57 @@ export function eventFromTag(tag: StartTag): HealthEvent | null {
       categoryValue: value === null ? raw : null,
     };
   }
-  if (tag.name === "Workout") {
-    if (!a.workoutActivityType || !a.startDate) return null;
-    const dur = Number(a.duration);
-    return {
-      kind: "workout",
-      activityType: a.workoutActivityType,
-      startDate: a.startDate,
-      endDate: a.endDate ?? a.startDate,
-      duration: Number.isFinite(dur) ? dur : 0,
-    };
-  }
   return null;
+}
+
+/** Alles, was innerhalb eines `<Workout>` steht und selbst kein Ereignis ist. */
+const WORKOUT_TAG = "Workout";
+
+/**
+ * Liest den Token-Strom zu Ereignissen.
+ *
+ * Records sind zustandslos deutbar, Workouts nicht: Ihre Kennzahlen liegen in
+ * `<WorkoutStatistics>`-Kindern, und die sind nur im Rahmen des offenen `<Workout>`
+ * zuzuordnen. Deshalb entsteht das Workout-Ereignis erst beim `</Workout>` — wer den
+ * Rahmen nie schliesst (abgeschnittene Datei), bekommt kein Ereignis, denn seine
+ * Kennzahlen wären unvollständig.
+ */
+export class EventReader {
+  private offen: WorkoutEvent | null = null;
+
+  push(tok: Token): HealthEvent | null {
+    if (tok.kind === "end") {
+      if (tok.name !== WORKOUT_TAG) return null;
+      const fertig = this.offen;
+      this.offen = null;
+      return fertig;
+    }
+
+    if (tok.name === WORKOUT_TAG) {
+      const w = workoutFromTag(tok);
+      if (tok.selfClosing) { this.offen = null; return w; }
+      this.offen = w;
+      return null;
+    }
+
+    // Kindelemente eines offenen Rahmens (MetadataEntry, WorkoutEvent, ...) sind hier
+    // noch stumm — `eventFromTag` kennt bislang nur "Record" und liefert für sie von
+    // selbst `null`. Records bleiben dabei zustandslos deutbar, auch innerhalb eines
+    // offenen Workouts.
+    return eventFromTag(tok);
+  }
+}
+
+function workoutFromTag(tag: StartTag): WorkoutEvent | null {
+  const a = tag.attrs;
+  if (!a.workoutActivityType || !a.startDate) return null;
+  // Einheit lesen statt Minuten annehmen: `durationUnit` steht an jedem Workout.
+  const min = toMinutes(Number(a.duration), a.durationUnit ?? "min");
+  return {
+    kind: "workout",
+    activityType: a.workoutActivityType,
+    startDate: a.startDate,
+    endDate: a.endDate ?? a.startDate,
+    duration: min ?? 0,
+  };
 }
