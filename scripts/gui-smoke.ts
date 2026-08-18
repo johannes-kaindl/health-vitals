@@ -93,6 +93,13 @@ function record(name: string, passed: boolean, detail: string): void {
   console.log(`${passed ? "  ✓" : "  ✗"} ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
+/** Eine Messung, die KEIN Urteil über den Prüfling erlaubt und deshalb nicht in die Bilanz
+ *  geht. Sie steht trotzdem im Protokoll: der gemessene Wert ist echt, nur die
+ *  Zurechnung fehlt (ein fremdes Theme belegt die Variablen, die unser CSS wählt). */
+function hinweis(name: string, detail: string): void {
+  console.log(`  · ${name} — ${detail}`);
+}
+
 /** Was der Lauf bewusst NICHT misst. Steht im Protokoll, damit eine Lücke nicht wie
  *  Abdeckung aussieht — ein stillschweigend ausgelassener Punkt liest sich hinterher wie
  *  ein grüner. */
@@ -569,14 +576,18 @@ async function messePhasen(cdp: Cdp): Promise<PhasenMessung | null> {
 
 /** Die Prüfpunkte, die für jede Theme-Variante gelten: Kontrast und Kollisionsfreiheit.
  *  `praefix` benennt die Variante im Protokoll. */
-function pruefeFarben(m: PhasenMessung, praefix: string): void {
+function pruefeFarben(m: PhasenMessung, praefix: string, verbindlich: boolean): void {
+  const melde = (name: string, ok: boolean, detail: string): void => {
+    if (verbindlich) record(name, ok, detail);
+    else hinweis(name, `${detail} — ${ok ? "erfüllt" : "VERFEHLT"}, nicht in der Bilanz`);
+  };
   const kontraste = m.stages.map((s) => ({ stage: s.stage, wert: kontrast(s.fill, m.hintergrund) }));
   const schlechteste = kontraste.reduce<{ stage: string; wert: number | null } | null>(
     (min, k) => (min === null || (k.wert !== null && min.wert !== null && k.wert < min.wert) ? k : min),
     null,
   );
   // Fehler 3 vom 2026-08-18: `--background-modifier-border` als Füllfarbe, 1,06:1.
-  record(
+  melde(
     `${praefix}Phasenfarben haben Kontrast (≥ ${KONTRAST_MIN}:1)`,
     kontraste.length > 0 && kontraste.every((k) => k.wert !== null && k.wert >= KONTRAST_MIN),
     kontraste.length === 0
@@ -597,7 +608,7 @@ function pruefeFarben(m: PhasenMessung, praefix: string): void {
       }
     }
   }
-  record(
+  melde(
     `${praefix}Phasenfarben paarweise verschieden`,
     m.stages.length > 0 && kollisionen.length === 0,
     kollisionen.length ? `Kollision: ${kollisionen.join(", ")}` : `${m.stages.length} Phasen, keine Kollision`,
@@ -654,7 +665,6 @@ async function pruefePhasen(cdp: Cdp): Promise<PhasenMessung | null> {
     `${m.titel}/${m.segmente} Titel, davon ${m.leereTitel} leer`,
   );
 
-  pruefeFarben(m, "");
   return m;
 }
 
@@ -726,36 +736,71 @@ async function setzeThemeCss(cdp: Cdp, an: boolean): Promise<void> {
 }
 
 /**
- * Die Farbprüfung in den Varianten, die das Plugin **selbst zu verantworten** hat.
+ * Ist der Vault ein tauglicher Messplatz für Farben?
  *
- * Die Trennung ist der Punkt: Unser CSS wählt Variablen, ein Theme belegt sie. Gegen
- * Obsidians Standardbelegung muss die Wahl tragen — was ein fremdes Theme daraus macht,
- * kann kein Plugin garantieren. Deshalb wird zuerst mit abgeschaltetem Theme-CSS
- * gemessen (das ist der verbindliche Teil) und danach mit dem aktiven Theme in der
- * anderen Hell-/Dunkel-Variante (das ist der Hinweis).
+ * Das Theme-CSS lässt sich abschalten (`styleEl.disabled`), CSS-Snippets und
+ * Style-Settings **nicht** — die schreiben ihre Werte in eigene Style-Elemente und
+ * überleben das. Eine „Standard"-Messung in einem so eingerichteten Vault misst dann
+ * weiter fremde Belegungen und schreibt sie unserem CSS zu.
+ *
+ * Deshalb: Farben werden nur dort **verbindlich** gemessen, wo die Messung etwas über
+ * das Plugin aussagt. Sonst übersprungen, mit Nennung des Hinderungsgrunds — nicht rot,
+ * denn ein fremd belegtes `--color-cyan` ist kein Fehler dieses Repos.
  */
-async function pruefeThemeGegenprobe(cdp: Cdp, warDunkel: boolean, themeName: string): Promise<void> {
+async function messplatzLage(cdp: Cdp): Promise<{ vanilla: boolean; grund: string }> {
+  const lage = await cdp.evaluate<{ snippets: string[]; styleSettings: boolean }>(`
+    return {
+      snippets: [...(app.customCss?.enabledSnippets ?? [])],
+      styleSettings: Boolean(app.plugins?.enabledPlugins?.has("obsidian-style-settings")),
+    };
+  `);
+  const gruende: string[] = [];
+  if (lage.snippets.length > 0) gruende.push(`${lage.snippets.length} aktive CSS-Snippets`);
+  if (lage.styleSettings) gruende.push("Style-Settings-Plugin aktiv");
+  return { vanilla: gruende.length === 0, grund: gruende.join(" + ") };
+}
+
+/**
+ * Die Farbprüfung — verbindlich nur gegen Obsidians **Standardbelegung**.
+ *
+ * Die Trennung ist der Punkt: Unser CSS wählt Variablen, ein Theme belegt sie. Gegen die
+ * Standardbelegung muss die Wahl tragen; was ein fremdes Theme daraus macht, kann kein
+ * Plugin garantieren und gehört deshalb nicht in die Bilanz. Der Wert wird trotzdem
+ * gemessen und als Hinweis protokolliert — er ist echt, nur nicht zurechenbar.
+ */
+async function pruefeFarbenInThemes(cdp: Cdp, warDunkel: boolean, themeName: string): Promise<void> {
+  const platz = await messplatzLage(cdp);
+
   await setzeThemeCss(cdp, false);
   for (const dunkel of [true, false]) {
     await setzeTheme(cdp, dunkel);
     const m = await messePhasen(cdp);
     const name = dunkel ? "dunkel" : "hell";
-    if (m === null) {
+    if (m === null || m.segmente === 0) {
       skipped(`Standard ${name}: Phasenfarben`, "Phasen-Sektion nicht messbar");
       continue;
     }
-    pruefeFarben(m, `Standard ${name}: `);
+    if (!platz.vanilla) {
+      skipped(
+        `Standard ${name}: Phasenfarben`,
+        `kein sauberer Messplatz (${platz.grund}) — die Variablen sind auch ohne Theme-CSS fremd belegt. `
+        + "Verbindlich messbar nur in einem vanilla Vault.",
+      );
+      pruefeFarben(m, `Standard ${name}: `, false);
+      continue;
+    }
+    pruefeFarben(m, `Standard ${name}: `, true);
   }
 
   await setzeThemeCss(cdp, true);
-  await setzeTheme(cdp, !warDunkel);
-  const m = await messePhasen(cdp);
-  const name = warDunkel ? "hell" : "dunkel";
-  if (m === null) {
-    skipped(`Theme ${themeName} ${name}: Phasenfarben`, "Phasen-Sektion nicht messbar");
-    return;
+  for (const dunkel of [warDunkel, !warDunkel]) {
+    await setzeTheme(cdp, dunkel);
+    const m = await messePhasen(cdp);
+    const name = dunkel ? "dunkel" : "hell";
+    if (m === null || m.segmente === 0) continue;
+    pruefeFarben(m, `Theme ${themeName} ${name}: `, false);
   }
-  pruefeFarben(m, `Theme ${themeName} ${name}: `);
+  await setzeTheme(cdp, warDunkel);
 }
 
 // --- Abschnitt: Werte-Sektion ------------------------------------------------
@@ -841,12 +886,12 @@ const SECTIONS: Section[] = [
     },
   },
   {
-    key: "theme",
-    title: "Theme-Gegenprobe",
+    key: "farben",
+    title: "Farben (verbindlich nur gegen die Standardbelegung)",
     run: async (cdp) => {
-      await stelleDetailHer(cdp, "Theme-Szene herstellbar", false);
+      await stelleDetailHer(cdp, "Farb-Szene herstellbar", false);
       await waehleZeitraum(cdp, 3);
-      await pruefeThemeGegenprobe(cdp, themeWarDunkel, themeName);
+      await pruefeFarbenInThemes(cdp, themeWarDunkel, themeName);
     },
   },
   {

@@ -13,7 +13,7 @@ npm run smoke:gui -- --vault <vault-name>
 
 Der Lauf braucht einen **importierten Cache** im Ziel-Vault; ohne ihn zeigt das Dashboard
 den Import-Screen und der Treiber bricht mit Ansage ab, statt rote Punkte zu melden.
-Einzelne Abschnitte: `--section geruest|detail|phasen|theme|werte`.
+Einzelne Abschnitte: `--section geruest|detail|phasen|farben|werte`.
 
 ## Warum das Werkzeug existiert
 
@@ -42,15 +42,23 @@ DOM-Test sieht Elemente, ein CSS-Text-Test sieht Deklarationen — *Fläche*,
 | 12 | phasen | Render lief zu Ende | Phasenmenge im Chart == Legende, x-Labels und Statistik-Zellen vorhanden |
 | 13 | phasen | Legende zeigt die Chart-Farbe | `fill` des Segments == `background-color` des Swatch |
 | 14 | phasen | Jedes Segment hat einen Tooltip | `<title>`-Anzahl == Segmentanzahl, keiner leer |
-| 15 | phasen | Phasenfarben haben Kontrast | ≥ 3:1 gegen den effektiven Hintergrund (WCAG 1.4.11) |
-| 16 | phasen | Phasenfarben paarweise verschieden | Farbkollision zweier Variablen im Theme |
-| 17 | phasen | Hinweiszeile folgt dem Anteil | Flächenanteil „unbestimmt" > 50 % ⟺ `.ah-stage-note` da — in zwei Zeiträumen |
-| 18 | theme | dieselben Farbpunkte in drei Varianten | Standard dunkel/hell (verbindlich) + aktives Theme (Hinweis) |
-| 19 | werte | Werte-Tabelle sichtbar | Zeilen und Maße nach dem Aufklappen |
+| 15 | phasen | Hinweiszeile folgt dem Anteil | Flächenanteil „unbestimmt" > 50 % ⟺ `.ah-stage-note` da — in zwei Zeiträumen |
+| 16 | farben | Phasenfarben haben Kontrast | ≥ 3:1 gegen den effektiven Hintergrund (WCAG 1.4.11) |
+| 17 | farben | Phasenfarben paarweise verschieden | Farbkollision zweier Variablen einer Belegung |
+| 18 | werte | Werte-Tabelle sichtbar | Zeilen und Maße nach dem Aufklappen |
 
-Prüfpunkt 17 ist als **Äquivalenz** formuliert, nicht als erwarteter Zustand: ob die Zeile
+Prüfpunkt 15 ist als **Äquivalenz** formuliert, nicht als erwarteter Zustand: ob die Zeile
 stehen muss, hängt vom Vault ab. Der Anteil wird aus den gerenderten Flächen gerechnet,
 nicht aus dem ViewModel — sonst prüfte der Punkt den Code gegen sich selbst.
+
+Die Farbpunkte (16/17) zählen **nur gegen Obsidians Standardbelegung** in die Bilanz, und
+auch dort nur, wenn der Vault ein tauglicher Messplatz ist: Das Theme-CSS lässt sich zur
+Messung abschalten (`styleEl.disabled`), CSS-Snippets und das Style-Settings-Plugin
+**nicht** — die schreiben in eigene Style-Elemente und überleben das. Sind sie aktiv, wird
+übersprungen und der Hinderungsgrund genannt. Die Werte werden trotzdem gemessen und als
+Hinweis (`·`) protokolliert, in allen vier Kombinationen aus Belegung und Hell/Dunkel: der
+Wert ist echt, nur die Zurechnung fehlt. **Ein Prüfpunkt gehört nur in die Bilanz, wenn
+das Gemessene dem Prüfling zurechenbar ist** — sonst misst er die Werkbank.
 
 ## Was der Treiber am Vault ändert — und zurückgibt
 
@@ -76,11 +84,17 @@ nicht aus dem ViewModel — sonst prüfte der Punkt den Code gegen sich selbst.
 
 ### 2026-08-18 — Erstlauf, Obsidian 1.13.7, Vault 10_Pallas, Plugin 0.5.1
 
-**23/25 grün.** Rot sind beide Male derselbe Sachverhalt: `--color-cyan` (Phase „Kern")
-kommt in **hellen** Themes auf 2,2–2,3:1 gegen den Hintergrund und verfehlt WCAG 1.4.11.
-Der Befund ist nicht theme-spezifisch — er tritt in Obsidians Standardbelegung (`#00bfbc`
-auf `#ffffff`, 2,29:1) genauso auf wie in Kuro (2,22:1). In dunklen Varianten ist alles
-grün (schwächste 3,02:1). **Offen; siehe Cockpit.**
+**17/17 grün.** Die Farbpunkte wurden übersprungen — der Vault ist kein tauglicher
+Messplatz (ein aktives CSS-Snippet + Style-Settings-Plugin). Als Hinweis gemessen:
+`--color-cyan` (Phase „Kern") kommt in **hellen** Belegungen auf 2,2–2,3:1 und verfehlt
+damit WCAG 1.4.11 — in der Standardbelegung (`#00bfbc` auf `#ffffff`, 2,29:1) wie im
+eingestellten Theme (2,22:1). In dunklen Belegungen ist alles erfüllt (schwächste 3,02:1).
+
+**Das ist ein Verdacht, kein Befund**, und der Unterschied ist die Lehre dieses Laufs: Die
+erste Fassung des Treibers meldete diese Werte als rote Prüfpunkte. Gemessen wurde dabei
+aber die Werkbank — Snippet und Style-Settings belegen die Variablen auch bei
+abgeschaltetem Theme-CSS. **Nachzumessen in einem vanilla Vault** (kommt mit dem
+Aufnahme-Fixture aus `readme-shots`); erst dann ist die Zahl dem Plugin zurechenbar.
 
 Nachgerechnet wurde bei der Gelegenheit auch die Farbfehlsichtigkeit: unter simulierter
 Deuteranopie/Protanopie liegen die Phasenpaare im **hellen** Theme bei ΔE 6,8–7,6. Die
@@ -92,7 +106,7 @@ Aussage „ΔE 20–43, kein Ausweichplan nötig" vom selben Tag galt nur für K
 
 | Ausgebauter Fix | Ergebnis | Bewertung |
 |---|---|---|
-| alle drei (Stand `e9301c4`) | **10/27** statt 24/24, Punkte 4/10–17 rot, Fehlertext wörtlich `('ah-chart-stack ah-stage-deep') contains HTML space characters` | trägt |
+| alle drei (Stand `e9301c4`) | **10/27**, Punkte 4/10–17 rot, Fehlertext wörtlich `('ah-chart-stack ah-stage-deep') contains HTML space characters` | trägt |
 | nur die Füllfarbe (`--text-muted` → `--background-modifier-border`) | **8/9**, einziger roter Punkt: Kontrast mit **1,06:1** | trägt punktgenau |
 | nur die Maßregel (`.ah-chart` → `.ah-detail-chart svg`) | **9/9 grün** | **trägt nicht — siehe unten** |
 
@@ -106,5 +120,21 @@ none`, Höhe 0.
 
 **Zwei Mängel im Treiber selbst** hat die Gegenprobe gefunden, beide behoben: eine
 Renderer-Ausnahme riss den ganzen Lauf ab, statt einen Punkt rot zu machen (jetzt Punkt 4),
-und Punkt 17 war grün, obwohl 0 Segmente gerendert waren — ein Prüfpunkt ohne Gegenstand,
-der ausgerechnet im Defektfall bestätigt.
+und die Hinweiszeile war grün, obwohl 0 Segmente gerendert waren — ein Prüfpunkt ohne
+Gegenstand, der ausgerechnet im Defektfall bestätigt.
+
+**Einen dritten Mangel fand der Maintainer**, und er wiegt am schwersten: Die Farbpunkte
+maßen einen Vault mit fremdem Theme, Snippet und Style-Settings und schrieben das Ergebnis
+dem Plugin zu. Daraus die Messplatz-Prüfung und die Trennung zwischen Bilanz und Hinweis
+(siehe oben).
+
+## Offen
+
+- **`--color-cyan` in hellen Belegungen** (2,2–2,3:1) in einem vanilla Vault nachmessen.
+  Vorarbeit dazu liegt vor: Von allen Theme-Variablen halten nur `--color-red`,
+  `--color-blue`, `--color-purple`, `--color-pink` und `--text-muted`/`--text-normal` in
+  allen vier Kombinationen ≥ 3:1. Unter simulierter Deuteranopie/Protanopie erreicht
+  **keine** Dreier-Palette ΔE ≥ 12 (bestes Ergebnis 10,7) — die Zuordnung kann Farbe allein
+  nicht tragen; sie hängt hier ohnehin zusätzlich an der festen Stapelreihenfolge und den
+  Tooltips. Ein `color-mix()` gegen `--text-normal` behebt zwar den Kontrast (min. 3,9:1),
+  lässt ΔE aber auf 2,2 einbrechen, weil es alle Phasen zur Textfarbe zieht — kein Weg.
