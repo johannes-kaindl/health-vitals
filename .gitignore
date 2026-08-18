@@ -15,3 +15,6 @@ node_modules/
 
 # Arbeitsverzeichnis der Subagent-Läufe (Briefs, Berichte, Review-Diffs) — nie ins Repo
 .superpowers/
+
+# Bundle des GUI-Smoke-Treibers (esbuild, npm run smoke:gui)
+.gui-smoke.mjs
