@@ -102,8 +102,10 @@ untouched. Three tabs:
   underlying rows can be expanded; its contents can be copied to the clipboard or
   written as a Markdown or CSV file into a vault folder of your choice (see
   "Privacy").
-- **Workouts** — workouts per month as bars, with the most recent sessions listed
-  below by type, date and duration.
+- **Workouts** — workouts per month as bars, with a monthly summary (count, distance,
+  active energy burned) above them and the most recent sessions listed below by type,
+  date, duration, distance and active energy — distance shows "—" for workouts that
+  don't have one, such as strength training.
 
 <img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/detail-chart.png" width="820" alt="Detail view of resting heart rate over three months: a line with a min/max band, labelled axes, dashed week starts, and average, minimum, maximum and last value below">
 
@@ -112,7 +114,7 @@ vault as Markdown or CSV:
 
 <img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/values-export.png" width="820" alt="The expanded Values section: Copy and Save buttons, a Markdown/CSV switch, a folder field, and the first table rows with date, average, minimum and maximum">
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="The Workouts tab: one bar per month and a list of recent sessions with type, date and duration">
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="The Workouts tab: one bar per month, a monthly summary of count, distance and active energy, and a list of recent sessions with type, date, duration, distance and active energy — a strength training session shows a dash for distance">
 
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
