@@ -242,13 +242,13 @@ function schlaf() {
 // --- Workouts ----------------------------------------------------------------
 
 const WORKOUT_TYPEN = [
-  { type: "HKWorkoutActivityTypeRunning", dauer: [28, 62] },
-  { type: "HKWorkoutActivityTypeCycling", dauer: [40, 95] },
-  { type: "HKWorkoutActivityTypeWalking", dauer: [25, 70] },
-  { type: "HKWorkoutActivityTypeTraditionalStrengthTraining", dauer: [35, 55] },
-  { type: "HKWorkoutActivityTypeYoga", dauer: [20, 45] },
-  { type: "HKWorkoutActivityTypeSwimming", dauer: [30, 50] },
-  { type: "HKWorkoutActivityTypeHighIntensityIntervalTraining", dauer: [18, 32] },
+  { type: "HKWorkoutActivityTypeRunning", dauer: [28, 62], kmProMin: 0.17, kcalProMin: 11.5 },
+  { type: "HKWorkoutActivityTypeCycling", dauer: [40, 95], kmProMin: 0.42, kcalProMin: 9.5 },
+  { type: "HKWorkoutActivityTypeWalking", dauer: [25, 70], kmProMin: 0.09, kcalProMin: 4.5 },
+  { type: "HKWorkoutActivityTypeTraditionalStrengthTraining", dauer: [35, 55], kcalProMin: 6.5 },
+  { type: "HKWorkoutActivityTypeYoga", dauer: [20, 45], kcalProMin: 3.5 },
+  { type: "HKWorkoutActivityTypeSwimming", dauer: [30, 50], kmProMin: 0.03, kcalProMin: 9.0 },
+  { type: "HKWorkoutActivityTypeHighIntensityIntervalTraining", dauer: [18, 32], kcalProMin: 13.0 },
 ];
 
 function workouts() {
@@ -258,11 +258,17 @@ function workouts() {
     if (zufall() > 0.3 + t.saison * 0.06) continue;
     const art = WORKOUT_TYPEN[Math.floor(zufall() * WORKOUT_TYPEN.length)];
     const stunde = 6 + Math.floor(zufall() * 13);
-    liste.push({
+    const dauerMin = Math.round(art.dauer[0] + zufall() * (art.dauer[1] - art.dauer[0]));
+    const eintrag = {
       type: art.type,
       start: `${t.iso}T${String(stunde).padStart(2, "0")}:${zufall() < 0.5 ? "00" : "30"}`,
-      durationMin: Math.round(art.dauer[0] + zufall() * (art.dauer[1] - art.dauer[0])),
-    });
+      durationMin: dauerMin,
+    };
+    // Kein `zufall()` in dieser Ableitung: Distanz und Energie folgen der Dauer, damit ein
+    // Bild nicht 20 km in 20 Minuten zeigt. Der Zufall steckt schon in der Dauer.
+    if (art.kmProMin) eintrag.distanceKm = Math.round(dauerMin * art.kmProMin * 10) / 10;
+    eintrag.energyKcal = Math.round(dauerMin * art.kcalProMin);
+    liste.push(eintrag);
   }
   return liste;
 }
@@ -308,7 +314,7 @@ function baueCache() {
     .reduce((s, m) => s + Object.values(m.daily).reduce((a, b) => a + (b.count ?? 1), 0), 0);
 
   return {
-    version: 2,
+    version: 3,
     // Ein erfundener Dateiname: der echte Pfad des Maintainers gehört in kein Repo, und
     // der Wert steht dem Nutzer im Dashboard nirgends prominent gegenüber.
     sourceFile: "Export.zip",
