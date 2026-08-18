@@ -14,6 +14,8 @@ Kein HealthKit-Zugriff — Obsidian läuft in Electron, HealthKit ist eine nativ
 iOS/macOS-API. Das Plugin arbeitet mit der Export-Datei, die du dir aus der
 Health-App schickst.
 
+<p align="center"><img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/overview.png" width="820" alt="Das Health-Vitals-Dashboard in Obsidian: Favoriten-Kacheln für Schritte, Ruhepuls und Schlaf mit Sparklines, darunter die aufgeklappte Kategorie Aktivität"></p>
+
 ## Features
 
 - Liest `Export.zip` oder eine entpackte `Export.xml` **streamend** ein — mehrere
@@ -23,6 +25,10 @@ Health-App schickst.
 - Aggregation passend zur Art der Metrik — Summe, Mittel mit Min/Max, oder Dauer.
 - **Schlaf wird vereinigt statt summiert**, damit doppelt erfasste Nächte keine
   unmöglichen Werte ergeben.
+- **Schlafphasen als gestapelter Balken** — Tief, Kern und REM je Nacht, wobei die
+  Balkenhöhe weiterhin die Schlafdauer ist. Über längere Zeiträume zeigt ein Balken die
+  durchschnittliche Nacht statt der Summe. Nächte von vor watchOS 9 tragen keine
+  Aufschlüsselung und bleiben neutral eingefärbt, mit Hinweis, wenn sie überwiegen.
 - Werte-Tabelle in die Zwischenablage kopieren oder als `.md`/`.csv` in einen
   selbst gewählten Vault-Ordner schreiben.
 - Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
@@ -70,6 +76,8 @@ dann `main.js`, `manifest.json` und `styles.css` in denselben Ordner kopieren.
 3. Im Dashboard **„Export auswählen"** klicken und die `Export.zip` (oder eine
    entpackte `Export.xml`) im Dateidialog wählen.
 
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/import.png" width="820" alt="Das Dashboard vor dem ersten Import: „Noch keine Daten“, ein Hinweis auf Profil und Alle Gesundheitsdaten exportieren in der Health-App und die Schaltfläche Export auswählen">
+
 Der Lauf dauert bei großen Exports einige Minuten. Fortschritt, Phase und ein
 Abbrechen-Button stehen währenddessen im Dashboard; danach öffnet sich die
 Übersicht automatisch.
@@ -104,6 +112,15 @@ Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
 Obsidian-Theme-Variablen — sie passen sich also jedem Theme (hell/dunkel/
 Community) an.
 
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/detail-chart.png" width="820" alt="Detailansicht des Ruhepulses über drei Monate: Linie mit Min-Max-Band, beschriftete Achsen, gestrichelte Wochenanfänge und darunter Mittelwert, Minimum, Maximum und letzter Wert">
+
+Die Werte-Tabelle unter dem Chart lässt sich aufklappen und in die Zwischenablage oder
+als Markdown- bzw. CSV-Datei in den Vault schreiben:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/values-export.png" width="820" alt="Die aufgeklappte Werte-Sektion: Schaltflächen Kopieren und Speichern, Umschalter Markdown/CSV, ein Ordner-Feld und die ersten Tabellenzeilen mit Datum, Mittelwert, Minimum und Maximum">
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="Der Workouts-Tab: ein Balken je Monat und darunter eine Liste der jüngsten Einheiten mit Typ, Datum und Dauer">
+
 ### Zugriff außerhalb des Vaults
 
 Dieses Plugin liest **eine Datei außerhalb deines Vaults**: den Health-Export,
@@ -133,6 +150,30 @@ dort ein, wo es wirkt — im Dashboard:
 Gespeichert wird das in der `data.json` im Plugin-Ordner — nicht im Cache, der beim
 nächsten Import überschrieben wird. Die Sprache der Oberfläche ist bewusst keine
 Einstellung: sie folgt Obsidian.
+
+### Die Farben der Schlafphasen ändern
+
+Das Chart nimmt seine Farben aus den Variablen deines Themes und folgt damit jedem Theme,
+das du installierst. Wer trotzdem andere will — Farbfehlsichtigkeiten sind individuell,
+und keine Voreinstellung passt allen —, ändert sie über ein **CSS-Snippet**, ganz ohne
+Einstellungs-Tab (*Einstellungen → Erscheinungsbild → CSS-Snippets*):
+
+```css
+/* Je Phase eine Regel: `fill` färbt das Balkensegment, `background-color` das Kästchen
+   in der Legende. Nur eines von beidem zu setzen macht die Legende zur Falschaussage. */
+.ah-stage-deep        { fill: var(--color-purple); background-color: var(--color-purple); }
+.ah-stage-core        { fill: var(--color-blue);   background-color: var(--color-blue); }
+.ah-stage-rem         { fill: var(--color-pink);   background-color: var(--color-pink); }
+.ah-stage-unspecified { fill: var(--text-muted);   background-color: var(--text-muted); }
+```
+
+Eines lohnt sich dabei zu wissen: Die Akzentfarben eines Themes (`--color-*`) schulden dir
+keinen Kontrast zum Hintergrund — sie sind für Linien und Hervorhebungen gedacht. In einem
+hellen Theme landen mehrere davon bei etwa 2:1, während WCAG für bedeutungstragende
+Flächen 3:1 verlangt. Eine Akzentfarbe mit der Textfarbe zu mischen erhält den Farbton und
+verschafft den Kontrast — genau das tut die Voreinstellung für „Kern":
+`color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal))`.
+
 
 ## Funktionsweise
 
@@ -166,6 +207,18 @@ Aufaddiert ergibt das unmögliche Werte. Überlappende Zeiträume werden deshalb
 Eine Nacht gehört dem Tag, an dem man **aufwacht**. Schlaf, der ab 20:00 beginnt,
 zählt auf den Folgetag — sonst fielen die Nacht, die morgens endet, und die, die
 abends beginnt, auf denselben Kalendertag.
+
+Wählt man im Detail-Bereich „Schlaf", erscheint unter dem Verlauf ein gestapelter Balken
+je Nacht — Tief-, Kern- und REM-Schlaf, wobei die Balkenhöhe weiterhin die Schlafdauer
+ist:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages.png" width="820" alt="Die Sektion Schlafphasen: je Nacht ein gestapelter Balken über drei Monate, aufgeteilt in Tief-, Kern- und REM-Schlaf, mit Legende und der durchschnittlichen Wachzeit darunter">
+
+Nächte aus der Zeit vor watchOS 9 tragen keine Aufschlüsselung. Sie bleiben neutral
+gefärbt, und sobald sie den Zeitraum dominieren, sagt eine Hinweiszeile das, statt das
+Grau raten zu lassen:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages-unspecified.png" width="820" alt="Dieselbe Sektion über den gesamten Zeitraum: die ältere Hälfte der Nächte ist ein einzelner neutraler Block, die neuere ist in Phasen aufgeteilt, und eine Hinweiszeile nennt den Anteil ohne Aufschlüsselung">
 
 ## Datenschutz
 

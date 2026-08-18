@@ -35,9 +35,15 @@
 
 .ah-detail-head { display: flex; align-items: baseline; gap: var(--size-4-2); }
 .ah-detail-range { color: var(--text-faint); font-size: var(--font-ui-small); }
-.ah-detail-chart svg { width: 100%; height: auto; display: block; }
 .ah-detail-hint { color: var(--text-muted); padding: var(--size-4-4); text-align: center; }
 
+/* Ein Chart bringt seine Masse selbst mit — sie haengen an der Klasse, die jedes
+   Chart traegt, nicht am Container, in dem es gerade steckt. Vorher stand die Regel
+   auf `.ah-detail-chart`; der Workouts-Tab musste diese Klasse deshalb mitbenutzen,
+   obwohl er nicht der Detail-Tab ist, und das Phasen-Chart mit eigenem Container
+   rechnete korrekt, hatte aber keine Flaeche. Die Sparkline ueberschreibt die Hoehe
+   bewusst (`.ah-tile-spark svg`, hoehere Spezifitaet). */
+.ah-chart { width: 100%; height: auto; display: block; }
 .ah-chart-line { stroke: var(--interactive-accent); stroke-width: 2; fill: none; }
 .ah-chart-band { fill: var(--interactive-accent); opacity: 0.15; }
 .ah-chart-bar { fill: var(--interactive-accent); }
@@ -160,4 +166,62 @@
 .ah-copy-btn.is-copied {
   background: var(--background-modifier-success);
   color: var(--text-normal);
+}
+
+/* Schlafphasen — gestapelte Balken.
+   Eine Regel je Phase faerbt Segment (fill) UND Legenden-Swatch (background-color):
+   Die Legende ist nur dann eine, wenn sie exakt die Farbe des Charts zeigt; zwei
+   getrennte Deklarationen laufen beim naechsten Eingriff auseinander.
+   Die Farbwahl folgt der Schlaftiefe (blau → cyan → violett) und laesst die
+   unbestimmte Zeit bewusst neutral: sie ist keine Phase, sondern deren Fehlen. */
+.ah-stage-deep { fill: var(--color-blue); background-color: var(--color-blue); }
+/* Kern traegt keine reine Akzentvariable, sondern eine mit der Textfarbe abgedunkelte:
+   `--color-cyan` allein kam in hellen Belegungen auf 1:2,29 gegen den Hintergrund und
+   verfehlte damit WCAG 1.4.11 (verlangt 3:1) — gemessen im vanilla Vault, nicht geschaetzt
+   (docs/SMOKE.md). Der Beimischung liegt dieselbe Gattungsregel zugrunde wie unten bei
+   `unspecified`: eine Textvariable schuldet Kontrast zum Grund, eine Akzentvariable nicht.
+   Der Anteil 75 % ist der groesste, der in ALLEN vier Belegungen (Standard/Kuro x hell/
+   dunkel) ueber 3:1 bleibt (3,55 hell, 10,9 dunkel) — und er haelt den Farbton, sodass
+   die Reihe blau -> tuerkis -> violett weiterhin die Schlaftiefe erzaehlt. Weniger Cyan
+   verbessert den Kontrast, laesst die Phase aber ins Grau von `unspecified` laufen: bei
+   65 % faellt der Farbabstand unter Deuteranopie von 6,8 auf 2,4. */
+.ah-stage-core {
+  fill: color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal));
+  background-color: color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal));
+}
+.ah-stage-rem { fill: var(--color-purple); background-color: var(--color-purple); }
+/* Unbestimmt bleibt neutral, muss aber sichtbar sein — bei „Alles" sind zwei Drittel
+   der Flaeche diese Farbe. Zuerst stand hier `--background-modifier-border`: gemessen
+   1,06:1 gegen den Hintergrund, also gar nichts. Eine Rahmenvariable ist fuer duenne
+   Linien gedacht und schuldet keinem Theme Kontrast zur Flaeche; eine Textvariable
+   schuldet ihn, sonst waere das Theme unlesbar. `--text-faint` schied aus, weil es in
+   manchen Themes exakt `--color-blue` ist (in Kuro beides #6272a4) und dann mit „Tief"
+   kollidiert. */
+.ah-stage-unspecified {
+  fill: var(--text-muted);
+  background-color: var(--text-muted);
+}
+
+.ah-stages { margin-top: var(--size-4-6); }
+.ah-stages h3 { margin-bottom: var(--size-4-2); }
+
+.ah-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-3);
+  margin-top: var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.ah-legend-item { display: flex; align-items: center; gap: var(--size-4-1); }
+.ah-legend-swatch {
+  width: var(--size-4-3);
+  height: var(--size-4-3);
+  border-radius: var(--radius-s);
+}
+
+.ah-stage-note {
+  margin-top: var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
 }

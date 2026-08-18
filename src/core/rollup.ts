@@ -34,7 +34,7 @@ function isoWeekKey(iso: string): string {
   return `${dt.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-function bucketKey(day: string, g: Granularity): string {
+export function bucketKey(day: string, g: Granularity): string {
   if (g === "day") return day;
   if (g === "month") return day.slice(0, 7);
   return isoWeekKey(day);

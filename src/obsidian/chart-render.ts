@@ -1,5 +1,7 @@
 import type { ChartGeometry } from "../core/chart-geometry";
-import type { AxisVM } from "../core/view-model";
+import type { AxisVM, SleepStagesVM } from "../core/view-model";
+import { formatDuration } from "../core/format";
+import { t } from "../vendor/kit/i18n";
 
 /**
  * Zeichnet das Chart. Drei Aufrufformen:
@@ -98,4 +100,74 @@ export function renderChart(
       label.setCssStyles({ left: `${tick.leftPct}%` });
     }
   }
+}
+
+/**
+ * Das gestapelte Phasen-Chart. Baut denselben Rahmen wie `renderChart` im
+ * Achsen-Fall (HTML-Labels neben dem SVG) und ergaenzt Legende und Hinweiszeile.
+ *
+ * Die Farbe traegt die Zuordnung nur mit: jedes Segment nennt Phase und Dauer in
+ * einem `<title>`, das als Tooltip und fuer Screenreader lesbar ist (WCAG 1.4.1).
+ */
+export function renderStackChart(parent: HTMLElement, vm: SleepStagesVM): void {
+  const host = parent.createDiv({ cls: "ah-chart-frame" });
+
+  const yCol = host.createDiv({ cls: "ah-axis-y" });
+  const maxLen = vm.axis.y.reduce((m, tick) => Math.max(m, tick.label.length), 0);
+  if (maxLen > 0) yCol.setCssStyles({ width: `${maxLen}ch` });
+  for (const tick of vm.axis.y) {
+    const label = yCol.createSpan({ cls: "ah-axis-label", text: tick.label });
+    label.setCssStyles({ top: `${tick.topPct}%` });
+  }
+
+  const svgHost = host.createDiv({ cls: "ah-chart-box" });
+  const svg = svgHost.createSvg("svg", {
+    cls: "ah-chart",
+    attr: { viewBox: `0 0 ${vm.chart.width} ${vm.chart.height}`, preserveAspectRatio: "none" },
+  });
+
+  for (const tick of vm.chart.yTicks) {
+    svg.createSvg("line", {
+      cls: "ah-chart-grid",
+      attr: { x1: 0, y1: tick.y, x2: vm.chart.width, y2: tick.y },
+    });
+  }
+  for (const x of vm.chart.weekMarks) {
+    svg.createSvg("line", {
+      cls: "ah-chart-week",
+      attr: { x1: x, y1: 0, x2: x, y2: vm.chart.height },
+    });
+  }
+
+  const labelOf = new Map(vm.legend.map((l) => [l.stage, l.label]));
+  for (const stack of vm.chart.stacks) {
+    for (const seg of stack.segments) {
+      const rect = svg.createSvg("rect", {
+        // Mehrere Klassen als Array: `createSvg` setzt sie ueber `classList.add`, das
+        // bei einem Leerzeichen im String wirft — anders als `createDiv`/`createEl`.
+        cls: ["ah-chart-stack", `ah-stage-${seg.stage}`],
+        attr: { x: seg.x, y: seg.y, width: seg.w, height: seg.h },
+      });
+      // `SvgElementInfo` kennt kein `text` — der Titel wird gesetzt, nicht deklariert.
+      rect.createSvg("title").setText(
+        t("sleep.segmentTooltip", labelOf.get(seg.stage) ?? seg.stage, formatDuration(seg.minutes)),
+      );
+    }
+  }
+
+  host.createDiv({ cls: "ah-axis-corner" });
+  const xRow = host.createDiv({ cls: "ah-axis-x" });
+  for (const tick of vm.axis.x) {
+    const label = xRow.createSpan({ cls: "ah-axis-label", text: tick.label });
+    label.setCssStyles({ left: `${tick.leftPct}%` });
+  }
+
+  const legend = parent.createDiv({ cls: "ah-legend" });
+  for (const item of vm.legend) {
+    const entry = legend.createDiv({ cls: "ah-legend-item" });
+    entry.createSpan({ cls: `ah-legend-swatch ah-stage-${item.stage}` });
+    entry.createSpan({ cls: "ah-legend-label", text: item.label });
+  }
+
+  if (vm.note) parent.createDiv({ cls: "ah-stage-note", text: vm.note });
 }

@@ -12,6 +12,8 @@ and visualizable inside your vault.
 No HealthKit access — Obsidian runs in Electron, and HealthKit is a native iOS/macOS
 API. This plugin works with the export file you send yourself from the Health app.
 
+<p align="center"><img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/overview.png" width="820" alt="The Health Vitals dashboard in Obsidian: favourite tiles for steps, resting heart rate and sleep with sparklines, below them the Activity category expanded"></p>
+
 ## Features
 
 - Reads `Export.zip` or an unpacked `Export.xml` **as a stream** — several gigabytes
@@ -22,6 +24,10 @@ API. This plugin works with the export file you send yourself from the Health ap
 - Aggregation that matches the kind of metric — sum, mean with min/max, or duration.
 - **Sleep is merged, not summed**, so nights recorded twice don't add up to impossible
   values.
+- **Sleep stages as a stacked bar** — deep, core and REM per night, with the bar height
+  still being the time slept. Over longer periods a bar shows the average night rather
+  than the sum. Nights from before watchOS 9 carry no breakdown and stay neutrally
+  coloured, with a note when they dominate the period.
 - Copy the value table to the clipboard, or write it as `.md`/`.csv` into a vault
   folder of your choice.
 - Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
@@ -69,6 +75,8 @@ into `<vault>/.obsidian/plugins/health-vitals/`, then enable the plugin under
 3. Click **"Choose export"** in the dashboard and pick the `Export.zip` (or an unpacked
    `Export.xml`) in the file dialog.
 
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/import.png" width="820" alt="The dashboard before the first import: No data yet, a hint pointing to Profile then Export All Health Data in the Health app, and a Choose export button">
+
 A large export takes a few minutes. Progress, current phase and a cancel button stay
 visible in the dashboard while it runs; the overview opens by itself afterwards.
 
@@ -96,6 +104,15 @@ untouched. Three tabs:
   "Privacy").
 - **Workouts** — workouts per month as bars, with the most recent sessions listed
   below by type, date and duration.
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/detail-chart.png" width="820" alt="Detail view of resting heart rate over three months: a line with a min/max band, labelled axes, dashed week starts, and average, minimum, maximum and last value below">
+
+The value table below the chart expands on demand, and can be copied or written into the
+vault as Markdown or CSV:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/values-export.png" width="820" alt="The expanded Values section: Copy and Save buttons, a Markdown/CSV switch, a folder field, and the first table rows with date, average, minimum and maximum">
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="The Workouts tab: one bar per month and a list of recent sessions with type, date and duration">
 
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
@@ -127,6 +144,29 @@ in the dashboard:
 That is stored in `data.json` in the plugin folder — not in the cache, which the next
 import overwrites. The interface language is deliberately not a setting: it follows
 Obsidian.
+
+### Changing the sleep-stage colours
+
+The chart takes its colours from your theme's own variables, so it already follows any
+theme you install. If you want different ones anyway — colour vision differences are
+individual, and no default fits everyone — a **CSS snippet** does it without a settings
+tab (*Settings → Appearance → CSS snippets*):
+
+```css
+/* Every stage takes one rule: `fill` colours the bar segment, `background-color` the
+   swatch in the legend. Setting only one of them makes the legend lie. */
+.ah-stage-deep        { fill: var(--color-purple); background-color: var(--color-purple); }
+.ah-stage-core        { fill: var(--color-blue);   background-color: var(--color-blue); }
+.ah-stage-rem         { fill: var(--color-pink);   background-color: var(--color-pink); }
+.ah-stage-unspecified { fill: var(--text-muted);   background-color: var(--text-muted); }
+```
+
+One thing worth knowing when you pick: the accent colours of a theme (`--color-*`) owe
+you no contrast against the background — they are made for lines and highlights. On a
+light theme several of them land near 2:1, where WCAG asks for 3:1 on meaningful areas.
+Mixing an accent with the text colour keeps the hue and buys the contrast, which is what
+the default for "core" does:
+`color-mix(in srgb, var(--color-cyan) 75%, var(--text-normal))`.
 
 ## How it works
 
@@ -160,6 +200,17 @@ summed**: time recorded twice counts once.
 A night belongs to the day you **wake up** on. Sleep starting from 20:00 counts towards
 the following day — otherwise the night that ends in the morning and the one that
 begins in the evening would fall on the same calendar day.
+
+Picking "Sleep" in the Detail tab adds a stacked bar per night below the time series —
+deep, core and REM, with the bar height still being the time slept:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages.png" width="820" alt="The Sleep stages section: one stacked bar per night over three months, split into deep, core and REM, with a legend and the average awake time below">
+
+Nights recorded before watchOS 9 carry no breakdown. They stay neutrally coloured, and
+once they make up more than half of the period, a note says so rather than leaving the
+grey to be guessed at:
+
+<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages-unspecified.png" width="820" alt="The same section over the full period: the older half of the nights is a single neutral grey block, the newer half is split into stages, and a note states that 54 percent of nights carry no breakdown">
 
 ## Privacy
 

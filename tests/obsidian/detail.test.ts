@@ -4,10 +4,19 @@ import type { RangeKey } from "../../src/core/rollup";
 
 function fakeEl(): any {
   const el: any = { children: [] as any[], cls: "", text: "", _click: null as any,
-    createDiv(o?: any) { const c = fakeEl(); c.cls = (o && o.cls) || ""; el.children.push(c); return c; },
+    createDiv(o?: any) {
+      const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
+      el.children.push(c); return c;
+    },
     createEl(tag: string, o?: any) { const c = fakeEl(); c.tag = tag; c.text = (o && o.text) || ""; el.children.push(c); return c; },
-    createSpan(o?: any) { const c = fakeEl(); c.text = (o && o.text) || ""; el.children.push(c); return c; },
-    createSvg(tag: string) { const c = fakeEl(); c.tag = tag; el.children.push(c); return c; },
+    createSpan(o?: any) {
+      const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
+      el.children.push(c); return c;
+    },
+    createSvg(tag: string, o?: any) {
+      const c = fakeEl(); c.tag = tag; c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
+      c.attrs = (o && o.attr) || {}; el.children.push(c); return c;
+    },
     addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {},
     // setText fehlte hier — der Kopier-Knopf ruft es aus einem `.then()` auf, also erst
     // nach dem Ende des Tests, der geklickt hat. Der TypeError landete damit als
@@ -265,5 +274,46 @@ describe("renderDetail — Speichern (Export ins Vault, I-4)", () => {
     findByText(el, "Speichern")._click();
     await vi.waitFor(() => expect(write).toHaveBeenCalled());
     expect(write.mock.calls[0][0]).toBe("Neu/Unterordner/Schritte 2026-01–2026-02.md");
+  });
+});
+
+describe("renderDetail — Schlafphasen-Sektion", () => {
+  const sleepCache: HealthCache = {
+    version: 2, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
+    dateRange: { from: "2026-01-01", to: "2026-01-31" },
+    metrics: {
+      SleepAsleep: { unit: "min", policy: "duration", daily: { "2026-01-20": { minutes: 360, count: 1 } } },
+      SleepInBed: { unit: "min", policy: "duration", daily: { "2026-01-20": { minutes: 420, count: 1 } } },
+    },
+    workouts: [],
+    sleepStages: { "2026-01-20": { deep: 60, core: 240, rem: 60, unspecified: 0, awake: 30 } },
+  };
+
+  function render(metricId: string, range: RangeKey = "1M"): any {
+    const el = fakeEl();
+    renderDetail(el, sleepCache, { metricId, range }, () => {}, fakeView());
+    return el;
+  }
+
+  it("zeigt die Sektion beim Schlaf", () => {
+    expect(findText(render("SleepAsleep"), "Schlafphasen")).toBe(true);
+  });
+
+  it("zeigt sie NICHT bei der Liegezeit", () => {
+    // Der Stapel misst Schlaf, der Balken darueber Liegezeit — zwei Hoehen, die
+    // dasselbe zu messen scheinen und es nicht tun.
+    expect(findText(render("SleepInBed"), "Schlafphasen")).toBe(false);
+  });
+
+  it("zeigt sie nicht bei einer beliebigen anderen Metrik", () => {
+    expect(findText(render("HKQuantityTypeIdentifierStepCount"), "Schlafphasen")).toBe(false);
+  });
+
+  it("laesst die Sektion weg, wenn der Cache keine Phasen zu diesem Zeitraum hat", () => {
+    const el = fakeEl();
+    const without: HealthCache = { ...sleepCache, sleepStages: {} };
+    renderDetail(el, without, { metricId: "SleepAsleep", range: "1M" }, () => {}, fakeView());
+
+    expect(findText(el, "Schlafphasen")).toBe(false);
   });
 });

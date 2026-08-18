@@ -53,3 +53,83 @@ describe("styles.css — Store-Scanner-Vertraeglichkeit", () => {
     expect(CSS).not.toMatch(/(^|[;{\s])(column-count|column-width|columns)\s*:/);
   });
 });
+
+describe("styles.css — Schlafphasen", () => {
+  const STAGES = ["deep", "core", "rem", "unspecified"];
+
+  it("jede Phase hat eine eigene Fuellfarbe aus Theme-Variablen", () => {
+    // Geprueft wird die ABSICHT (der Wert stammt aus dem Theme), nicht die Form: seit
+    // 2026-08-18 ist `core` ein `color-mix(...)` aus zwei Variablen, weil `--color-cyan`
+    // allein in hellen Belegungen 2,29:1 erreichte. Ein Test auf "beginnt mit var(" haette
+    // diesen Fix blockiert, ohne dass an ihm etwas falsch waere — die Regel lautet "keine
+    // hartkodierten Farben", und die haelt ein color-mix aus Variablen ein.
+    for (const stage of STAGES) {
+      const decl = rule(`.ah-stage-${stage}`);
+      expect(decl, stage).toMatch(/fill:[^;]*var\(--/);
+    }
+  });
+
+  it("keine Phase traegt eine hartkodierte Farbe", () => {
+    // PROF-OBS / UI-STANDARD: das Plugin muss in jedem Theme funktionieren, und der
+    // Store-Scanner liest die Deklaration, nicht den Kommentar daneben.
+    for (const stage of STAGES) {
+      expect(rule(`.ah-stage-${stage}`), stage).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+    }
+  });
+
+  it("die vier Phasen sind paarweise verschieden eingefaerbt", () => {
+    // Zwei Phasen mit derselben Variablen waeren im Stapel nicht trennbar — und der
+    // Fehler faellt am Bildschirm erst auf, wenn beide zufaellig aneinandergrenzen.
+    const fills = STAGES.map((s) => (rule(`.ah-stage-${s}`).match(/fill:\s*([^;]+)/) ?? [])[1]?.trim());
+    expect(new Set(fills).size).toBe(STAGES.length);
+  });
+
+  it("der Legenden-Swatch erbt dieselbe Farbe wie das Segment", () => {
+    // Die Legende ist nur dann eine Legende, wenn sie die Farbe des Charts zeigt.
+    // Deshalb faerbt EINE Regel je Phase beides ein — geteilt ueber `fill` plus
+    // `background-color` im selben Block, nicht zwei Deklarationen, die auseinanderlaufen.
+    for (const stage of STAGES) {
+      expect(rule(`.ah-stage-${stage}`), stage).toMatch(/background-color:[^;]*var\(--/);
+    }
+  });
+});
+
+describe("styles.css — Chart-Masse haengen am Chart, nicht am Ort", () => {
+  // Der Fund aus dem Smoke-Test 2026-08-18: Das Phasen-Chart rendert vollstaendig und
+  // rechnerisch korrekt, ist aber unsichtbar — die einzige Regel, die einem Chart-SVG
+  // Masse gibt, hing an `.ah-detail-chart`, also am Container des Detail-Tabs. Eine neue
+  // Chart-Stelle mit eigenem Container erbt sie nicht. Kein Test konnte das sehen: die
+  // <rect>-Elemente entstehen, sie haben nur keine Flaeche.
+  it("die Chart-Klasse selbst traegt Breite, Hoehe und display", () => {
+    const chart = rule(".ah-chart");
+    expect(chart).toMatch(/width:/);
+    expect(chart).toMatch(/height:/);
+    expect(chart).toMatch(/display:/);
+  });
+
+  it("kein Tab-Container definiert mehr die Chart-Masse", () => {
+    // Sonst gilt die Kopplung weiter und die naechste Chart-Stelle faellt erneut hinein.
+    // Ausgenommen bleibt die Sparkline: ihre feste Hoehe ist ein bewusster Sonderfall,
+    // kein Ortsbezug — sie ueberschreibt die Basisregel absichtlich.
+    expect(CSS).not.toMatch(/\.ah-detail-chart\s+svg\s*\{/);
+  });
+
+  it("die Sparkline ueberschreibt die Basis, statt sie zu ersetzen", () => {
+    // Spezifitaet: `.ah-tile-spark svg` (0,1,1) schlaegt `.ah-chart` (0,1,0) — die feste
+    // 36px bleiben also gueltig, ohne dass die Reihenfolge im Stylesheet daran haengt.
+    expect(rule(".ah-tile-spark svg")).toMatch(/height:\s*36px/);
+  });
+});
+
+describe("styles.css — Segmentfarben brauchen eine Kontrastzusage", () => {
+  it("keine Phase nutzt eine background-modifier-Variable als Fuellfarbe", () => {
+    // Gemessen am 2026-08-18 im laufenden Obsidian: `--background-modifier-border` kam
+    // auf 1,06:1 gegen `--background-primary` — unsichtbar. Der Fehler ist die Gattung,
+    // nicht der Wert: Eine Rahmenvariable ist fuer duenne Linien gedacht und gibt keinem
+    // Theme eine Kontrastzusage gegen den Hintergrund. Text- und Farbvariablen tun das,
+    // weil ein Theme sonst unlesbar waere. Bei „Alles" traf es 68 % der Flaeche.
+    for (const stage of ["deep", "core", "rem", "unspecified"]) {
+      expect(rule(`.ah-stage-${stage}`), stage).not.toMatch(/var\(--background-modifier/);
+    }
+  });
+});
