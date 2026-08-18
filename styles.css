@@ -177,9 +177,16 @@
 .ah-stage-deep { fill: var(--color-blue); background-color: var(--color-blue); }
 .ah-stage-core { fill: var(--color-cyan); background-color: var(--color-cyan); }
 .ah-stage-rem { fill: var(--color-purple); background-color: var(--color-purple); }
+/* Unbestimmt bleibt neutral, muss aber sichtbar sein — bei „Alles" sind zwei Drittel
+   der Flaeche diese Farbe. Zuerst stand hier `--background-modifier-border`: gemessen
+   1,06:1 gegen den Hintergrund, also gar nichts. Eine Rahmenvariable ist fuer duenne
+   Linien gedacht und schuldet keinem Theme Kontrast zur Flaeche; eine Textvariable
+   schuldet ihn, sonst waere das Theme unlesbar. `--text-faint` schied aus, weil es in
+   manchen Themes exakt `--color-blue` ist (in Kuro beides #6272a4) und dann mit „Tief"
+   kollidiert. */
 .ah-stage-unspecified {
-  fill: var(--background-modifier-border);
-  background-color: var(--background-modifier-border);
+  fill: var(--text-muted);
+  background-color: var(--text-muted);
 }
 
 .ah-stages { margin-top: var(--size-4-6); }

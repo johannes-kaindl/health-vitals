@@ -115,3 +115,16 @@ describe("styles.css — Chart-Masse haengen am Chart, nicht am Ort", () => {
     expect(rule(".ah-tile-spark svg")).toMatch(/height:\s*36px/);
   });
 });
+
+describe("styles.css — Segmentfarben brauchen eine Kontrastzusage", () => {
+  it("keine Phase nutzt eine background-modifier-Variable als Fuellfarbe", () => {
+    // Gemessen am 2026-08-18 im laufenden Obsidian: `--background-modifier-border` kam
+    // auf 1,06:1 gegen `--background-primary` — unsichtbar. Der Fehler ist die Gattung,
+    // nicht der Wert: Eine Rahmenvariable ist fuer duenne Linien gedacht und gibt keinem
+    // Theme eine Kontrastzusage gegen den Hintergrund. Text- und Farbvariablen tun das,
+    // weil ein Theme sonst unlesbar waere. Bei „Alles" traf es 68 % der Flaeche.
+    for (const stage of ["deep", "core", "rem", "unspecified"]) {
+      expect(rule(`.ah-stage-${stage}`), stage).not.toMatch(/var\(--background-modifier/);
+    }
+  });
+});
