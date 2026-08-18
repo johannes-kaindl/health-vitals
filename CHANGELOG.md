@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-08-18
+
 ### Added
 
 - **Schlafphasen als gestapeltes Balkendiagramm.** Wählt man im Detail-Bereich die Metrik
