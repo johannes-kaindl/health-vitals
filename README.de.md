@@ -23,6 +23,10 @@ Health-App schickst.
 - Aggregation passend zur Art der Metrik — Summe, Mittel mit Min/Max, oder Dauer.
 - **Schlaf wird vereinigt statt summiert**, damit doppelt erfasste Nächte keine
   unmöglichen Werte ergeben.
+- **Schlafphasen als gestapelter Balken** — Tief, Kern und REM je Nacht, wobei die
+  Balkenhöhe weiterhin die Schlafdauer ist. Über längere Zeiträume zeigt ein Balken die
+  durchschnittliche Nacht statt der Summe. Nächte von vor watchOS 9 tragen keine
+  Aufschlüsselung und bleiben neutral eingefärbt, mit Hinweis, wenn sie überwiegen.
 - Werte-Tabelle in die Zwischenablage kopieren oder als `.md`/`.csv` in einen
   selbst gewählten Vault-Ordner schreiben.
 - Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich

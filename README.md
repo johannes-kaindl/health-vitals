@@ -22,6 +22,10 @@ API. This plugin works with the export file you send yourself from the Health ap
 - Aggregation that matches the kind of metric — sum, mean with min/max, or duration.
 - **Sleep is merged, not summed**, so nights recorded twice don't add up to impossible
   values.
+- **Sleep stages as a stacked bar** — deep, core and REM per night, with the bar height
+  still being the time slept. Over longer periods a bar shows the average night rather
+  than the sum. Nights from before watchOS 9 carry no breakdown and stay neutrally
+  coloured, with a note when they dominate the period.
 - Copy the value table to the clipboard, or write it as `.md`/`.csv` into a vault
   folder of your choice.
 - Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
