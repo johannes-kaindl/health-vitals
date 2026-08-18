@@ -121,7 +121,9 @@ function workoutFromTag(tag: StartTag): WorkoutEvent | null {
  */
 function addStatistic(w: WorkoutEvent, tag: StartTag): void {
   const a = tag.attrs;
-  if (a.sum === undefined || !a.type) return;
+  // Leerstring eigens abfangen: `Number("")` ist 0, nicht NaN — ohne diesen Guard
+  // wuerde ein Attribut ohne Wert als gemessene Null durchgehen statt als fehlend.
+  if (a.sum === undefined || a.sum.trim() === "" || !a.type) return;
   const sum = Number(a.sum);
   const unit = a.unit ?? "";
 

@@ -230,4 +230,23 @@ describe("EventReader — WorkoutStatistics", () => {
     const r = new EventReader();
     expect(r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "9.1", unit: "km" }))).toBeNull();
   });
+
+  // `Number("")` ist 0, nicht NaN — ohne eigenen Guard wuerde daraus ein gemessenes
+  // „0 km", das der Export nie behauptet hat.
+  it("leerer sum-String zaehlt nicht als gemessene Null", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierDistanceWalkingRunning", sum: "", unit: "km" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect("distanceKm" in w).toBe(false);
+  });
+
+  it("addiert mehrere ActiveEnergyBurned-Elemente", () => {
+    const r = new EventReader();
+    r.push(lauf());
+    r.push(stat({ type: "HKQuantityTypeIdentifierActiveEnergyBurned", sum: "300", unit: "kcal" }));
+    r.push(stat({ type: "HKQuantityTypeIdentifierActiveEnergyBurned", sum: "312", unit: "kcal" }));
+    const w = r.push(end("Workout")) as WorkoutEvent;
+    expect(w.energyKcal).toBeCloseTo(612, 6);
+  });
 });
