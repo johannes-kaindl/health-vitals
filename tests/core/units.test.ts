@@ -34,8 +34,16 @@ describe("units", () => {
     expect(toKcal(Number.POSITIVE_INFINITY, "kcal")).toBeNull();
   });
 
-  it("Einheit wird ohne Rücksicht auf Groß-/Kleinschreibung und Leerraum erkannt", () => {
+  it("Laengen- und Dauereinheiten sind case-insensitiv, Leerraum wird getrimmt", () => {
     expect(toKm(5, " KM ")).toBe(5);
-    expect(toKcal(600, "KCAL")).toBe(600);
+    expect(toMinutes(30, "MIN")).toBe(30);
+    expect(toKcal(600, " kcal ")).toBe(600);
+  });
+
+  // 1 Cal = 1000 cal = 1 kcal — die Grossschreibung ist hier die ganze Aussage.
+  it("Energieeinheiten unterscheiden Gross- und Kleinschreibung", () => {
+    expect(toKcal(600, "Cal")).toBe(600);
+    expect(toKcal(600, "cal")).toBeCloseTo(0.6, 9);
+    expect(toKcal(600, "KCAL")).toBeNull();
   });
 });
