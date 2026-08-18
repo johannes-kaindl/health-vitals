@@ -80,6 +80,8 @@ export const EN: Record<string, string> = {
   "workouts.emptyExport": "No workouts in the export.",
   "workouts.perMonth": "Workouts per month",
   "workouts.recent": "Recent workouts",
+  "workouts.total": "{month} · {count} workouts · {distance} · {energy}",
+  "workouts.noDistance": "—",
   // errors
   "error.exportNotFound": "Export.xml not found in the zip",
   // metrics (key = full HK identifier)
@@ -200,6 +202,8 @@ export const DE: Record<string, string> = {
   "workouts.emptyExport": "Keine Workouts im Export.",
   "workouts.perMonth": "Workouts pro Monat",
   "workouts.recent": "Letzte Workouts",
+  "workouts.total": "{month} · {count} Workouts · {distance} · {energy}",
+  "workouts.noDistance": "—",
   "error.exportNotFound": "Export.xml nicht im Zip gefunden",
   "metric.HKQuantityTypeIdentifierStepCount": "Schritte",
   "metric.HKQuantityTypeIdentifierDistanceWalkingRunning": "Gehstrecke",
