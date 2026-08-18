@@ -143,7 +143,9 @@ export function renderStackChart(parent: HTMLElement, vm: SleepStagesVM): void {
   for (const stack of vm.chart.stacks) {
     for (const seg of stack.segments) {
       const rect = svg.createSvg("rect", {
-        cls: `ah-chart-stack ah-stage-${seg.stage}`,
+        // Mehrere Klassen als Array: `createSvg` setzt sie ueber `classList.add`, das
+        // bei einem Leerzeichen im String wirft — anders als `createDiv`/`createEl`.
+        cls: ["ah-chart-stack", `ah-stage-${seg.stage}`],
         attr: { x: seg.x, y: seg.y, width: seg.w, height: seg.h },
       });
       // `SvgElementInfo` kennt kein `text` — der Titel wird gesetzt, nicht deklariert.

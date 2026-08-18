@@ -6,7 +6,19 @@ import type { RollupPoint } from "../../src/core/rollup";
 function fakeEl(): any {
   const el: any = { children: [] as any[], cls: "", text: "", style: {},
     createSvg(tag: string, o?: any) {
-      const c = fakeEl(); c.tag = tag; c.attrs = (o && o.attr) || {}; c.cls = (o && o.cls) || "";
+      // So streng wie der echte DOM: Obsidians `createSvg` setzt Klassen ueber
+      // `classList.add`, und das wirft bei einem String mit Leerzeichen einen
+      // InvalidCharacterError — mehrere Klassen gehoeren als Array uebergeben.
+      // Bei `createDiv`/`createEl` ist der Setzpfad ein anderer und Leerzeichen sind
+      // dort erlaubt; ein Mock, der beides gleich behandelt, verschluckt genau den
+      // Fehler, der am 2026-08-18 das ganze Phasen-Chart unsichtbar gemacht hat
+      // (Abbruch im Render: keine Segmente, keine Achse, keine Legende).
+      const cls = o && o.cls;
+      if (typeof cls === "string" && /\s/.test(cls)) {
+        throw new Error(`InvalidCharacterError: '${cls}' contains HTML space characters`);
+      }
+      const c = fakeEl(); c.tag = tag; c.attrs = (o && o.attr) || {};
+      c.cls = Array.isArray(cls) ? cls.join(" ") : (cls || "");
       c.text = (o && o.text) || "";
       el.children.push(c); return c;
     },
