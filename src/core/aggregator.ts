@@ -25,11 +25,16 @@ export class Aggregator {
 
   add(e: HealthEvent): void {
     if (e.kind === "workout") {
-      this.workouts.push({
+      // Optionale Felder nur setzen, wenn sie da sind: `distanceKm: undefined` landet
+      // zwar nicht im JSON, macht aber jeden `toEqual`-Vergleich im Test brüchig.
+      const entry: WorkoutEntry = {
         type: e.activityType,
         start: e.startDate.slice(0, 16).replace(" ", "T"),
         durationMin: e.duration,
-      });
+      };
+      if (e.distanceKm !== undefined) entry.distanceKm = e.distanceKm;
+      if (e.energyKcal !== undefined) entry.energyKcal = e.energyKcal;
+      this.workouts.push(entry);
       this.touchDay(localDay(e.startDate));
       return;
     }
@@ -145,7 +150,7 @@ export class Aggregator {
     }
 
     return {
-      version: 2,
+      version: 3,
       sourceFile: meta.sourceFile,
       importedAt: meta.importedAt,
       recordCount: this.recordCount,

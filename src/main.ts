@@ -10,7 +10,7 @@ import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 /** Muss mit `HealthCache["version"]` übereinstimmen — ältere Caches werden verworfen. */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 interface PluginData {
   favorites: string[];

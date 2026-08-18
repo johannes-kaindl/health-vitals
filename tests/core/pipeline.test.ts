@@ -39,7 +39,7 @@ describe("aggregateStream (Fixture, end-to-end)", () => {
         core: 60, deep: 90, rem: 0, unspecified: 0, awake: 0,
       });
 
-      expect(cache.version).toBe(2);
+      expect(cache.version).toBe(3);
       expect(cache.recordCount).toBe(10);
       expect(cache.skippedCount).toBe(1);
       expect(cache.dateRange).toEqual({ from: "2022-11-25", to: "2022-11-26" });

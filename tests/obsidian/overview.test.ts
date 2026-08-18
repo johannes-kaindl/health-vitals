@@ -56,7 +56,7 @@ function makeView(stored: Record<string, boolean> = {}): any {
 }
 
 const cache: HealthCache = {
-  version: 1, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
+  version: 3, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
   dateRange: { from: "2026-01-01", to: "2026-01-31" },
   metrics: {
     HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: { "2026-01-01": { sum: 100, count: 1 } } },

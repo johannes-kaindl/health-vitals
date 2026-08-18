@@ -61,7 +61,7 @@ function fakeView(): any {
   };
 }
 const cache: HealthCache = {
-  version: 1, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
+  version: 3, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
   // dateRange reicht bis Februar, damit der zweite Datenpunkt (für den CSV-vs-Markdown-Test
   // unten gebraucht) bei range "all" nicht durch resolveRange herausgefiltert wird.
   dateRange: { from: "2026-01-01", to: "2026-02-05" },
@@ -279,7 +279,7 @@ describe("renderDetail — Speichern (Export ins Vault, I-4)", () => {
 
 describe("renderDetail — Schlafphasen-Sektion", () => {
   const sleepCache: HealthCache = {
-    version: 2, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
+    version: 3, sourceFile: "", importedAt: "", recordCount: 2, skippedCount: 0,
     dateRange: { from: "2026-01-01", to: "2026-01-31" },
     metrics: {
       SleepAsleep: { unit: "min", policy: "duration", daily: { "2026-01-20": { minutes: 360, count: 1 } } },

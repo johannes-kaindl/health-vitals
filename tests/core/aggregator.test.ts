@@ -98,4 +98,36 @@ describe("Aggregator", () => {
     const cache = agg.finalize(META);
     expect(cache.workouts).toEqual([{ type: "HKWorkoutActivityTypeX", start: "2022-11-25T18:00", durationMin: 30.5 }]);
   });
+
+  it("übernimmt Distanz und Energie in den WorkoutEntry", () => {
+    const agg = new Aggregator();
+    agg.add({
+      kind: "workout", activityType: "HKWorkoutActivityTypeRunning",
+      startDate: "2026-07-28 07:00:00 +0200", endDate: "2026-07-28 07:52:00 +0200",
+      duration: 52, distanceKm: 9.1, energyKcal: 612,
+    });
+    const cache = agg.finalize({ sourceFile: "x", importedAt: "2026-07-28T00:00:00.000Z" });
+    expect(cache.workouts).toEqual([
+      { type: "HKWorkoutActivityTypeRunning", start: "2026-07-28T07:00", durationMin: 52,
+        distanceKm: 9.1, energyKcal: 612 },
+    ]);
+  });
+
+  it("Workout ohne Kennzahlen traegt die Felder gar nicht", () => {
+    const agg = new Aggregator();
+    agg.add({
+      kind: "workout", activityType: "HKWorkoutActivityTypeYoga",
+      startDate: "2026-07-25 19:00:00 +0200", endDate: "2026-07-25 19:35:00 +0200",
+      duration: 35,
+    });
+    const cache = agg.finalize({ sourceFile: "x", importedAt: "2026-07-28T00:00:00.000Z" });
+    expect(cache.workouts[0]).toEqual({
+      type: "HKWorkoutActivityTypeYoga", start: "2026-07-25T19:00", durationMin: 35,
+    });
+  });
+
+  it("Cache traegt Version 3", () => {
+    const cache = new Aggregator().finalize({ sourceFile: "x", importedAt: "y" });
+    expect(cache.version).toBe(3);
+  });
 });

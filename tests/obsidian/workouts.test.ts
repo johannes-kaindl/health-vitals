@@ -17,7 +17,7 @@ function countClass(el: any, cls: string): number {
   return n;
 }
 const cache: HealthCache = {
-  version: 1, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
+  version: 3, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
   metrics: {},
   workouts: [
     { type: "Running", start: "2026-01-05T08:00", durationMin: 30 },
