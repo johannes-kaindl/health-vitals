@@ -10,7 +10,7 @@ function night(p: Partial<SleepStageDay>): SleepStageDay {
 
 function cacheWith(stages: Record<string, SleepStageDay>, from: string, to: string): HealthCache {
   return {
-    version: 2, sourceFile: "x", importedAt: "2026-01-01T00:00", recordCount: 0, skippedCount: 0,
+    version: 3, sourceFile: "x", importedAt: "2026-01-01T00:00", recordCount: 0, skippedCount: 0,
     dateRange: { from, to }, metrics: {}, workouts: [], sleepStages: stages,
   };
 }

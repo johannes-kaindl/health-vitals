@@ -16,6 +16,10 @@ export interface WorkoutEntry {
   type: string;        // workoutActivityType
   start: string;       // "YYYY-MM-DDTHH:MM"
   durationMin: number;
+  /** Gesamtstrecke in km. Fehlt bei Workouts ohne Distanz (Yoga, Krafttraining). */
+  distanceKm?: number;
+  /** Aktiv verbrannte Energie in kcal, ohne Grundumsatz. */
+  energyKcal?: number;
 }
 
 /** Vereinigte Minuten je Schlafphase einer Nacht. */
@@ -31,13 +35,16 @@ export interface HealthCache {
   /**
    * 1 → Schlaf als aufaddierte Record-Dauern (überzählt, bis zu 33,6 h/Tag).
    * 2 → Schlaf als vereinigte Intervalle je Nacht, in zwei Serien getrennt.
+   * 3 → Workouts tragen Distanz und aktive Energie aus ihren WorkoutStatistics.
    *
-   * Die Anhebung ist die eigentliche Migration: Ein Cache der Version 1 lässt sich
-   * nicht umrechnen, weil die Information, die dazu fehlt (Liegezeit vs. Phase),
-   * beim Import weggeworfen wurde. Er muss neu erzeugt werden — ein stillschweigend
-   * weiterverwendeter Alt-Cache zeigte sonst unverändert falsche Zahlen.
+   * Die Anhebung ist die eigentliche Migration: Ein alter Cache lässt sich nicht
+   * umrechnen, weil die fehlende Information beim Import weggeworfen wurde — bei
+   * Version 1 die Unterscheidung Liegezeit/Phase, bei Version 2 die Kennzahlen der
+   * Kindelemente, die der Parser damals gar nicht las. Er muss neu erzeugt werden;
+   * ein stillschweigend weiterverwendeter Alt-Cache zeigte sonst dauerhaft leere
+   * Kennzahlen, die wie „keine Distanz aufgezeichnet" aussehen.
    */
-  version: 2;
+  version: 3;
   sourceFile: string;
   importedAt: string;
   recordCount: number;

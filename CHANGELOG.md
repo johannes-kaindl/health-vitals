@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Workouts tragen jetzt Distanz und aktiv verbrannte Energie. Die Zahlen stammen aus den
+  `WorkoutStatistics`-Kindelementen des Exports — die Attribute `totalDistance`/
+  `totalEnergyBurned` gibt es dort nicht.
+- Der Workouts-Tab zeigt eine Monatssumme und die Kennzahlen je Zeile.
+
+### Changed
+
+- Cache-Version 3: Bestehende Caches werden verworfen und müssen neu importiert werden.
+  Die Kennzahlen lassen sich nicht nachrüsten, weil der Parser sie bisher gar nicht las.
+- Die Dauer eines Workouts wird über `durationUnit` umgerechnet statt als Minuten angenommen.
+
 ## [0.6.0] — 2026-08-18
 
 ### Added

@@ -13,7 +13,7 @@ npm run smoke:gui -- --vault <vault-name>
 
 Der Lauf braucht einen **importierten Cache** im Ziel-Vault; ohne ihn zeigt das Dashboard
 den Import-Screen und der Treiber bricht mit Ansage ab, statt rote Punkte zu melden.
-Einzelne Abschnitte: `--section geruest|detail|phasen|farben|werte`.
+Einzelne Abschnitte: `--section geruest|detail|phasen|farben|werte|workouts`.
 
 ## Warum das Werkzeug existiert
 
@@ -46,10 +46,18 @@ DOM-Test sieht Elemente, ein CSS-Text-Test sieht Deklarationen — *Fläche*,
 | 16 | farben | Phasenfarben haben Kontrast | ≥ 3:1 gegen den effektiven Hintergrund (WCAG 1.4.11) |
 | 17 | farben | Phasenfarben paarweise verschieden | Farbkollision zweier Variablen einer Belegung |
 | 18 | werte | Werte-Tabelle sichtbar | Zeilen und Maße nach dem Aufklappen |
+| 19 | workouts | Monatssumme | `.ah-workout-total` sichtbar, Text enthält eine Ziffer oder den Gedankenstrich „—" |
+| 20 | workouts | Zeilenwerte gefüllt | gefüllte gegen vorhandene `.ah-workout-dist`/`.ah-workout-kcal`-Zellen — nicht bloß deren Anwesenheit |
 
 Prüfpunkt 15 ist als **Äquivalenz** formuliert, nicht als erwarteter Zustand: ob die Zeile
 stehen muss, hängt vom Vault ab. Der Anteil wird aus den gerenderten Flächen gerechnet,
 nicht aus dem ViewModel — sonst prüfte der Punkt den Code gegen sich selbst.
+
+Prüfpunkt 19 ist aus demselben Grund keine Textprobe auf „km": Enthält der jüngste Monat
+im Vault nur Workout-Typen ohne Distanz (Kraft, Yoga, HIIT), zeigt die Zeile korrekt den
+Gedankenstrich „—" statt einer Kilometerzahl. Verlangt wird deshalb eine Ziffer **oder**
+der Gedankenstrich — beides ist ein gültiges Render-Ergebnis, nur „nichts von beidem" ist
+ein Fehler.
 
 Die Farbpunkte (16/17) zählen **nur gegen Obsidians Standardbelegung** in die Bilanz, und
 auch dort nur, wenn der Vault ein tauglicher Messplatz ist: Das Theme-CSS lässt sich zur
@@ -153,6 +161,33 @@ Gegenstand, der ausgerechnet im Defektfall bestätigt.
 maßen einen Vault mit fremdem Theme, Snippet und Style-Settings und schrieben das Ergebnis
 dem Plugin zu. Daraus die Messplatz-Prüfung und die Trennung zwischen Bilanz und Hinweis
 (siehe oben).
+
+### 2026-08-19 — Workouts-Kennzahlen, Obsidian 1.13.7, Vault apple-health (Aufnahme-Vault), Plugin 0.6.0
+
+Zwei neue Prüfpunkte (19/20, Abschnitt `workouts`) für die Monatssumme und die
+Zeilenwerte im Workouts-Tab. Der Aufnahme-Cache (`docs/images/fixture/make-health-cache.mjs`)
+wurde dafür auf Version 3 gehoben und liefert seither `distanceKm`/`energyKcal` je Workout —
+Krafttraining, Yoga und HIIT bewusst ohne Distanz.
+
+```
+npm run smoke:gui -- --vault apple-health
+```
+
+**24/24 grün.**
+
+**Gegenprobe** (Pflicht, sonst ist ein grüner Prüfpunkt nichts wert): Text der beiden Spans
+in `src/obsidian/tabs/workouts.ts` testweise auf `""` gesetzt, `npm run deploy && npm run
+smoke:gui -- --vault apple-health --section workouts` gefahren:
+
+```
+✓ Workouts — Monatssumme — sichtbar=true, Text: 2026-06 · 12 Workouts · 69,6 km · 4.871 kcal
+✗ Workouts — Zeilenwerte gefuellt — 0/100 Zellen mit Text
+```
+
+„Zeilenwerte gefüllt" wurde rot (0/100 statt 100/100), „Monatssumme" blieb erwartungsgemäß
+grün — sie hängt an der Summenzeile, nicht an den Zeilen-Spans, und misst damit etwas
+anderes. Änderung danach vollständig zurückgenommen (`git diff` leer), erneut deployt:
+wieder 24/24 grün.
 
 ## Offen
 

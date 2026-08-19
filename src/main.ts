@@ -10,7 +10,7 @@ import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 /** Muss mit `HealthCache["version"]` übereinstimmen — ältere Caches werden verworfen. */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 interface PluginData {
   favorites: string[];
@@ -144,9 +144,10 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     try {
       const raw = await this.app.vault.adapter.read(this.cachePath());
       const cache = JSON.parse(raw) as HealthCache;
-      // Ein Cache der Version 1 enthält aufaddierte Schlafzeiten (bis zu 33,6 h am
-      // Tag). Umrechnen geht nicht: Die Unterscheidung zwischen Liegezeit und Phase
-      // wurde beim Import weggeworfen. Also verwerfen und neu einlesen lassen —
+      // Ein Cache aus einer älteren Version kann Felder vermissen oder mit anderer
+      // Semantik befüllt sein (bisherige Sprünge: Version 1→2 Schlafphasen-Fix,
+      // 2→3 Workout-Kennzahlen). Umrechnen geht generell nicht: Was fehlt, lässt
+      // sich nicht rekonstruieren. Also verwerfen und neu einlesen lassen —
       // stillschweigend weiterzuverwenden hieße, den Fehler zu konservieren.
       if (cache?.version !== CACHE_VERSION) {
         // Sichtbar machen: Ohne Hinweis stünde der Nutzer vor einem leeren Dashboard

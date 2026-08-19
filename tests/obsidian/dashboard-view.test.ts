@@ -26,7 +26,7 @@ function host(cache: HealthCache | null, overrides: Partial<DashboardHost> = {})
   };
 }
 const emptyCache: HealthCache = {
-  version: 1, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0,
+  version: 3, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0,
   dateRange: { from: "2026-01-01", to: "2026-01-02" }, metrics: {}, workouts: [],
 };
 

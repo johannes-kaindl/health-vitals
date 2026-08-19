@@ -62,7 +62,7 @@ describe("AppleHealthPlugin cache I/O", () => {
       write: async (path: string, data: string) => { writes.push({ path, data }); },
     });
     const cache: HealthCache = {
-      version: 1,
+      version: 3,
       sourceFile: "export.zip",
       importedAt: "2026-07-20T00:00:00.000Z",
       recordCount: 1,

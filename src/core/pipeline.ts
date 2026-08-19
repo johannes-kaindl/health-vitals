@@ -1,5 +1,5 @@
-import { XmlTokenizer, type StartTag } from "./xml-tokenizer";
-import { eventFromTag } from "./health-parser";
+import { XmlTokenizer, type Token } from "./xml-tokenizer";
+import { EventReader } from "./health-parser";
 import { Aggregator } from "./aggregator";
 import type { HealthCache } from "./types";
 
@@ -47,8 +47,9 @@ export async function aggregateStream(
   let lastYield = start;
   let lastProgress = start;
 
-  const handle = (tag: StartTag): void => {
-    const e = eventFromTag(tag);
+  const reader = new EventReader();
+  const handle = (tok_: Token): void => {
+    const e = reader.push(tok_);
     if (!e) return;
     agg.add(e);
     if (e.kind === "record") seen++;

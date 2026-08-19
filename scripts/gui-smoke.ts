@@ -313,6 +313,21 @@ async function stelleDetailHer(cdp: Cdp, name: string, auchGruen: boolean): Prom
   return r.ok;
 }
 
+/** Workouts-Tab öffnen. Wie `stelleDetailHer`: ein Fehlschlag wird protokolliert, damit
+ *  eine Reihe von Skips hinterher nicht wie Abdeckung aussieht. */
+async function stelleWorkoutsHer(cdp: Cdp): Promise<boolean> {
+  const ok = await cdp.evaluate<boolean>(`
+    const root = document.querySelector(".ah-dashboard");
+    const tab = root?.querySelectorAll(".ah-tabbar .ah-tab")[2];
+    if (!tab) return false;
+    tab.click();
+    await new Promise((r) => setTimeout(r, 600));
+    return !!${PANEL}?.querySelector(".ah-workout-list");
+  `);
+  record("Workouts-Szene herstellbar", ok === true, ok ? "Tab offen" : "kein `.ah-workout-list` im offenen Panel");
+  return ok === true;
+}
+
 /** Zeitraum über die Schaltfläche wählen — der echte Weg des Nutzers.
  *  `index` folgt `RANGES` in src/obsidian/tabs/detail.ts: 0=1M, 1=3M, 2=1Y, 3=Alles.
  *  Die **erste** `.ah-range-bar` im Panel ist die Zeitraum-Leiste; eine zweite gleicher
@@ -857,6 +872,44 @@ async function pruefeWerteSektion(cdp: Cdp): Promise<void> {
   );
 }
 
+// --- Abschnitt: Workouts-Kennzahlen ------------------------------------------
+
+async function pruefeWorkouts(cdp: Cdp): Promise<void> {
+  const summe = await cdp.evaluate<{ da: boolean; text: string } | null>(`
+    const panel = ${PANEL};
+    const zeile = panel?.querySelector(".ah-workout-total");
+    if (!zeile) return null;
+    return { da: zeile.getBoundingClientRect().height > 0, text: zeile.textContent ?? "" };
+  `);
+  // Als Äquivalenz formuliert (wie Prüfpunkt 15): ob "km" in der Zeile steht, hängt vom
+  // Vault ab — ein jüngster Monat mit nur Kraft/Yoga/HIIT zeigt dort korrekt "—". Verlangt
+  // wird deshalb eine Ziffer ODER der Gedankenstrich, nicht die Einheit "km".
+  record(
+    "Workouts — Monatssumme",
+    summe !== null && summe.da && (/\d/.test(summe.text) || summe.text.includes("—")),
+    summe === null ? "`.ah-workout-total` nicht im DOM" : `sichtbar=${summe.da}, Text: ${summe.text}`,
+  );
+
+  // Am Text gemessen, nicht am Vorhandensein des Elements: Ein leerer Span hat dieselbe
+  // Klasse wie ein gefüllter — genau der Fehlerfall vom 2026-08-18, bei dem alle Elemente
+  // da waren und trotzdem nichts zu sehen war.
+  const zellen = await cdp.evaluate<{ gesamt: number; gefuellt: number } | null>(`
+    const panel = ${PANEL};
+    const rows = [...(panel?.querySelectorAll(".ah-workout-row") ?? [])];
+    if (rows.length === 0) return null;
+    const spans = rows.flatMap((r) => [...r.querySelectorAll(".ah-workout-dist, .ah-workout-kcal")]);
+    return {
+      gesamt: spans.length,
+      gefuellt: spans.filter((s) => (s.textContent ?? "").trim().length > 0).length,
+    };
+  `);
+  record(
+    "Workouts — Zeilenwerte gefuellt",
+    zellen !== null && zellen.gesamt > 0 && zellen.gefuellt === zellen.gesamt,
+    zellen === null ? "keine `.ah-workout-row` im DOM" : `${zellen.gefuellt}/${zellen.gesamt} Zellen mit Text`,
+  );
+}
+
 // --- Abschnitte --------------------------------------------------------------
 
 interface Section {
@@ -922,6 +975,14 @@ const SECTIONS: Section[] = [
       await stelleDetailHer(cdp, "Werte-Szene herstellbar", false);
       await waehleZeitraum(cdp, 0);
       await pruefeWerteSektion(cdp);
+    },
+  },
+  {
+    key: "workouts",
+    title: "Workouts-Kennzahlen",
+    run: async (cdp) => {
+      if (!(await stelleWorkoutsHer(cdp))) return;
+      await pruefeWorkouts(cdp);
     },
   },
 ];

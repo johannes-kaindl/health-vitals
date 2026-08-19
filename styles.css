@@ -55,9 +55,28 @@
 .ah-stat-value { font-size: var(--font-ui-medium); color: var(--text-normal); }
 
 .ah-workout-list { display: flex; flex-direction: column; }
-.ah-workout-row { display: flex; justify-content: space-between; gap: var(--size-4-2); padding: var(--size-4-1) 0; border-bottom: 1px solid var(--background-modifier-border); }
+.ah-workout-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: var(--size-4-3);
+  align-items: baseline;
+  padding: var(--size-4-1) 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
 .ah-workout-type { color: var(--text-normal); }
 .ah-workout-date, .ah-workout-dur { color: var(--text-muted); }
+/* Zahlenspalten rechtsbündig und mit gleich breiten Ziffern: sonst tanzen die Werte
+   von Zeile zu Zeile und die Spalte ist nicht mehr überfliegbar. */
+.ah-workout-dist, .ah-workout-kcal {
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ah-workout-total {
+  margin: var(--size-4-2) 0 var(--size-4-4);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
 
 .ah-empty { text-align: center; padding: var(--size-4-6); color: var(--text-muted); }
 
