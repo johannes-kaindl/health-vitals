@@ -1,7 +1,7 @@
 import type { HealthCache } from "../../core/types";
 import { summarizeWorkouts } from "../../core/workout-summary";
 import { workoutTypeName } from "../../core/workout-catalog";
-import { formatDuration, formatValue } from "../../core/format";
+import { formatDuration, formatValue, formatTickLabel } from "../../core/format";
 import { buildChartGeometry } from "../../core/chart-geometry";
 import type { RollupPoint } from "../../core/rollup";
 import { renderChart } from "../chart-render";
@@ -29,11 +29,13 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
   if (letzter) {
     el.createDiv({
       cls: "ah-workout-total",
-      text: t("workouts.total")
-        .replace("{month}", letzter.key)
-        .replace("{count}", String(letzter.value))
-        .replace("{distance}", letzter.distanceKm > 0 ? formatValue(letzter.distanceKm, "km") : t("workouts.noDistance"))
-        .replace("{energy}", letzter.energyKcal > 0 ? formatValue(letzter.energyKcal, "kcal") : t("workouts.noDistance")),
+      text: t(
+        "workouts.total",
+        formatTickLabel(letzter.key, "month"),
+        letzter.value,
+        letzter.distanceKm > 0 ? formatValue(letzter.distanceKm, "km") : t("workouts.noValue"),
+        letzter.energyKcal > 0 ? formatValue(letzter.energyKcal, "kcal") : t("workouts.noValue"),
+      ),
     });
   }
 
@@ -46,11 +48,11 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
     row.createSpan({ cls: "ah-workout-dur", text: formatDuration(w.durationMin) });
     row.createSpan({
       cls: "ah-workout-dist",
-      text: w.distanceKm !== undefined ? formatValue(w.distanceKm, "km") : t("workouts.noDistance"),
+      text: w.distanceKm !== undefined ? formatValue(w.distanceKm, "km") : t("workouts.noValue"),
     });
     row.createSpan({
       cls: "ah-workout-kcal",
-      text: w.energyKcal !== undefined ? formatValue(w.energyKcal, "kcal") : t("workouts.noDistance"),
+      text: w.energyKcal !== undefined ? formatValue(w.energyKcal, "kcal") : t("workouts.noValue"),
     });
   }
 }

@@ -46,12 +46,18 @@ DOM-Test sieht Elemente, ein CSS-Text-Test sieht Deklarationen — *Fläche*,
 | 16 | farben | Phasenfarben haben Kontrast | ≥ 3:1 gegen den effektiven Hintergrund (WCAG 1.4.11) |
 | 17 | farben | Phasenfarben paarweise verschieden | Farbkollision zweier Variablen einer Belegung |
 | 18 | werte | Werte-Tabelle sichtbar | Zeilen und Maße nach dem Aufklappen |
-| 19 | workouts | Monatssumme | `.ah-workout-total` sichtbar, Text enthält eine Ziffer und „km" |
+| 19 | workouts | Monatssumme | `.ah-workout-total` sichtbar, Text enthält eine Ziffer oder den Gedankenstrich „—" |
 | 20 | workouts | Zeilenwerte gefüllt | gefüllte gegen vorhandene `.ah-workout-dist`/`.ah-workout-kcal`-Zellen — nicht bloß deren Anwesenheit |
 
 Prüfpunkt 15 ist als **Äquivalenz** formuliert, nicht als erwarteter Zustand: ob die Zeile
 stehen muss, hängt vom Vault ab. Der Anteil wird aus den gerenderten Flächen gerechnet,
 nicht aus dem ViewModel — sonst prüfte der Punkt den Code gegen sich selbst.
+
+Prüfpunkt 19 ist aus demselben Grund keine Textprobe auf „km": Enthält der jüngste Monat
+im Vault nur Workout-Typen ohne Distanz (Kraft, Yoga, HIIT), zeigt die Zeile korrekt den
+Gedankenstrich „—" statt einer Kilometerzahl. Verlangt wird deshalb eine Ziffer **oder**
+der Gedankenstrich — beides ist ein gültiges Render-Ergebnis, nur „nichts von beidem" ist
+ein Fehler.
 
 Die Farbpunkte (16/17) zählen **nur gegen Obsidians Standardbelegung** in die Bilanz, und
 auch dort nur, wenn der Vault ein tauglicher Messplatz ist: Das Theme-CSS lässt sich zur

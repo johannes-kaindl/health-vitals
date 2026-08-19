@@ -3,7 +3,7 @@ import type { HealthCache } from "../../src/core/types";
 
 function cache(): HealthCache {
   return {
-    version: 1, sourceFile: "x", importedAt: "", recordCount: 3, skippedCount: 0,
+    version: 3, sourceFile: "x", importedAt: "", recordCount: 3, skippedCount: 0,
     dateRange: { from: "2026-01-01", to: "2026-01-31" },
     metrics: {
       HKQuantityTypeIdentifierStepCount: {
@@ -93,7 +93,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
   const dims = { width: 640, height: 260, padding: 24 };
 
   const measureCache: HealthCache = {
-    version: 1, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
+    version: 3, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
     dateRange: { from: "2026-07-27", to: "2026-07-29" },
     metrics: {
       HKQuantityTypeIdentifierRestingHeartRate: {
@@ -108,7 +108,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
   };
 
   const sumCache: HealthCache = {
-    version: 1, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    version: 3, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
     dateRange: { from: "2026-07-27", to: "2026-07-28" },
     metrics: {
       HKQuantityTypeIdentifierStepCount: {
@@ -174,7 +174,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
 
 describe("duration-Metriken werden als Dauer dargestellt, nicht als Minutenzahl", () => {
   const sleepCache: HealthCache = {
-    version: 2, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    version: 3, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
     dateRange: { from: "2026-01-05", to: "2026-01-05" },
     metrics: {
       SleepAsleep: {
@@ -234,7 +234,7 @@ describe("Y-Achse mischt keine Einheiten", () => {
     // Im Nachtest stand "0 min" unter "30 h" und "60 h" — der kleinste Wert sah aus,
     // als gehoere er zu einer anderen Skala.
     const c: HealthCache = {
-      version: 2, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+      version: 3, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
       dateRange: { from: "2026-01-01", to: "2026-01-07" },
       metrics: {
         SleepAsleep: {

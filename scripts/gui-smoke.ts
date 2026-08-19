@@ -881,9 +881,12 @@ async function pruefeWorkouts(cdp: Cdp): Promise<void> {
     if (!zeile) return null;
     return { da: zeile.getBoundingClientRect().height > 0, text: zeile.textContent ?? "" };
   `);
+  // Als Äquivalenz formuliert (wie Prüfpunkt 15): ob "km" in der Zeile steht, hängt vom
+  // Vault ab — ein jüngster Monat mit nur Kraft/Yoga/HIIT zeigt dort korrekt "—". Verlangt
+  // wird deshalb eine Ziffer ODER der Gedankenstrich, nicht die Einheit "km".
   record(
     "Workouts — Monatssumme",
-    summe !== null && summe.da && /\d/.test(summe.text) && summe.text.includes("km"),
+    summe !== null && summe.da && (/\d/.test(summe.text) || summe.text.includes("—")),
     summe === null ? "`.ah-workout-total` nicht im DOM" : `sichtbar=${summe.da}, Text: ${summe.text}`,
   );
 
