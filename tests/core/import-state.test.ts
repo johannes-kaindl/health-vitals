@@ -1,5 +1,5 @@
 import {
-  IDLE, started, progressed, phaseChanged, finished, aborted, failed,
+  IDLE, started, progressed, phaseChanged, finished, aborted, failed, canAbort,
 } from "../../src/core/import-state";
 
 describe("import-state", () => {
@@ -58,5 +58,38 @@ describe("import-state", () => {
   it("lässt einen Erfolg nach dem Abbruch den Abbruch nicht überschreiben", () => {
     const abortedState = aborted(started("Export.zip", "unzipping"));
     expect(finished(abortedState, 5_719_032)).toEqual({ status: "aborted" });
+  });
+
+  // Die drei Fälle unten sind mit dem Umstieg auf `vendor/kit/run-state.ts` (Kit 0.27.0)
+  // NEU — vorher lieferte jeder von ihnen einen anderen Zustand. Sie standen bis dahin nur
+  // in der Commit-Message: kein Test erreichte sie, und über den echten Code-Pfad tut es
+  // heute auch keine Aufrufstelle. Genau deshalb sind sie hier festgenagelt — sonst fällt
+  // ein Rückbau (ein `abortableIn`, das verlorengeht; ein Re-Vendor auf eine Fassung ohne
+  // die running-Invariante) durch ein grünes Gate.
+  //
+  // Regel 2: die Schreibphase ist der Punkt ohne Wiederkehr. Der verweigerte Abbruch ist
+  // ein No-op, kein Zustandswechsel — `prev` kommt IDENTISCH zurück (Kit-Vertrag, `toBe`).
+  it("verweigert den Abbruch in der Schreibphase und gibt den Lauf identisch zurück", () => {
+    const writing = phaseChanged(started("Export.zip", "parsing"), "writing");
+    expect(canAbort(writing)).toBe(false);
+    expect(aborted(writing)).toBe(writing);
+  });
+
+  // `canAbort` ist dasselbe Prädikat, das der Abbrechen-Knopf (`tabs/import.ts`) und der
+  // Controller-Guard (`import-controller.ts::abort`) benutzen — die UI kann nicht anders
+  // urteilen als der Automat.
+  it("erlaubt den Abbruch in jeder Phase vor dem Schreiben, aber nicht im Leerlauf", () => {
+    expect(canAbort(started("Export.zip", "unzipping"))).toBe(true);
+    expect(canAbort(started("Export.xml", "parsing"))).toBe(true);
+    expect(canAbort(IDLE)).toBe(false);
+  });
+
+  it("erzeugt kein done aus einem nicht-laufenden Zustand", () => {
+    expect(finished(IDLE, 5)).toBe(IDLE);
+  });
+
+  it("lässt einen Folgefehler ein fertiges Ergebnis nicht überschreiben", () => {
+    const done = finished(started("Export.zip", "unzipping"), 5_719_032);
+    expect(failed(done, "stream closed")).toBe(done);
   });
 });

@@ -1,6 +1,10 @@
 #!/bin/sh
 # Re-vendor kit modules from ../obsidian-kit. Run after kit updates.
-# Vorlage: koda-agent/tools/sync-kit.sh (stamp() byte-identisch, md5 bd4545d82b1a97b743bd88bb9b56e738).
+# Vorlage: koda-agent/tools/sync-kit.sh — stamp() ist byte-identisch mit dessen Fassung
+# (md5 b70dfdbe8ff69eb14c9c0c53608b84d5; nachrechnen: sed -n '/^stamp()/,/^}/p' <datei> | md5).
+# Dieselbe Funktion tragen zwoelf weitere Repos. Die in der Phase-3-Vorklaerung genannte
+# md5 bd4545d82b1a97b743bd88bb9b56e738 gehoert NICHT zu stamp(), sondern zur `header=`-Zeile
+# allein — hier stand sie bis 2026-08-20 an der Funktion und war damit nicht nachrechenbar.
 set -e
 
 KIT=../obsidian-kit
@@ -17,8 +21,10 @@ stamp() { # stamp <vendored-file> <kit-relative-path>
 # src/obsidian + src/pure nebeneinander, hier als src/vendor/kit-obsidian + src/vendor/kit —
 # `../pure/` zeigt hier also ins Leere. Das ist die EINZIGE zulaessige Abweichung von verbatim;
 # bei jedem Re-Vendor reproduzieren, sonst darf nichts abweichen.
-# Praezedenz: kuro-gamification, markdown-presentation, vault-crews, vim-dojo (seit 0.26.0) —
-# neun Importzeilen, in allen vier byte-identisch (md5 3aad7dd28a3a9875a3015a07bb78fc99).
+# Praezedenz: kuro-gamification, markdown-presentation, vault-crews, vim-dojo (seit 0.26.0).
+# Neun umgeschriebene Importzeilen, byte-identisch in dreien davon (md5 3aad7dd28a3a9875a3015a07bb78fc99;
+# nachrechnen: grep -rh 'from "\.\./kit/' <repo>/src/vendor/kit-obsidian/ | md5). kuro-gamification
+# traegt seit 2026-08-20 dieselben neun PLUS zwei clipboard-Zeilen — also ein Superset, keine Abweichung.
 relayer() { # relayer <vendored-file>
   f=$1
 
