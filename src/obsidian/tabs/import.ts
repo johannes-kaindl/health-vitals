@@ -1,4 +1,5 @@
 import { ButtonComponent } from "obsidian";
+import { canAbort } from "../../core/import-state";
 import type { ImportPhase, ImportState } from "../../core/import-state";
 import { t } from "../../vendor/kit/i18n";
 import { localeTag } from "../../i18n/strings";
@@ -27,7 +28,7 @@ export function renderImport(el: HTMLElement, state: ImportState, actions: Impor
       cls: "ah-import-count",
       text: state.records > 0 ? t("import.records", state.records.toLocaleString(localeTag())) : "…",
     });
-    if (state.phase === "unzipping" || state.phase === "parsing") {
+    if (canAbort(state)) {
       new ButtonComponent(box).setButtonText(t("import.cancel")).onClick(() => { actions.abort(); });
     }
     return;

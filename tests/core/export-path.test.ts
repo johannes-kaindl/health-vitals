@@ -1,4 +1,5 @@
-import { buildExportName, joinPath, sanitizeBase } from "../../src/core/export-path";
+import { buildExportName, sanitizeBase } from "../../src/core/export-path";
+import { joinVaultPath } from "../../src/vendor/kit/vault-path";
 
 describe("sanitizeBase", () => {
   it("entfernt dateisystem-verbotene Zeichen", () => {
@@ -14,17 +15,25 @@ describe("sanitizeBase", () => {
   });
 });
 
-describe("joinPath", () => {
+// Seit Kit 0.27.0 kommt die Rechnung aus `vendor/kit/vault-path.ts`. Die drei
+// Zusicherungen der frueheren lokalen `joinPath` gelten dort unveraendert; der vierte
+// Fall pinnt, was NEU ist — interne Mehrfach-Slashes kollabieren jetzt. Das ist keine
+// Kosmetik: der Ordner kommt roh aus einem Freitextfeld (tabs/detail.ts).
+describe("joinVaultPath", () => {
   it("fügt Ordner und Datei zusammen", () => {
-    expect(joinPath("30_Health", "a.md")).toBe("30_Health/a.md");
+    expect(joinVaultPath("30_Health", "a.md")).toBe("30_Health/a.md");
   });
 
   it("leerer Ordner bedeutet Vault-Wurzel", () => {
-    expect(joinPath("", "a.md")).toBe("a.md");
+    expect(joinVaultPath("", "a.md")).toBe("a.md");
   });
 
   it("räumt führende und schließende Slashes weg", () => {
-    expect(joinPath("/30_Health/", "a.md")).toBe("30_Health/a.md");
+    expect(joinVaultPath("/30_Health/", "a.md")).toBe("30_Health/a.md");
+  });
+
+  it("kollabiert interne Mehrfach-Slashes (neu gegenüber joinPath)", () => {
+    expect(joinVaultPath("a//b", "x.md")).toBe("a/b/x.md");
   });
 });
 

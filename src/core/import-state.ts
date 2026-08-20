@@ -1,45 +1,66 @@
+import { makeRunState, type RunState } from "../vendor/kit/run-state";
+
+/**
+ * Duenner Adapter ueber `vendor/kit/run-state.ts`. Der Automat selbst — die diskriminierte
+ * Union und die sechs totalen Uebergaenge — steht dort; hier liegen nur die repo-eigenen
+ * Namen und Aritaeten (`started(fileName, phase)`, `progressed(prev, records)`,
+ * `phaseChanged(prev, phase)`, `finished(prev, records)`), damit keine Aufrufstelle
+ * umgeschrieben werden muss. Das Kit hat bewusst EIN `progress(prev, patch)` statt dieser
+ * drei — die Uebersetzung ist genau das, was ein Adapter tut.
+ *
+ * Regel 2 („die Schreibphase ist der Punkt ohne Wiederkehr") stand bis hierher zweimal
+ * ausserhalb des Automaten: im Controller (`abort()`) und in der UI (Abbrechen-Knopf).
+ * Sie steht jetzt einmal, in `abortableIn` — `canAbort` ist dasselbe Praedikat, das auch
+ * `aborted()` benutzt, die UI kann also nicht anders urteilen als der Automat.
+ */
+
 /** Phasen eines Import-Laufs. `unzipping` entfällt bei einer direkt gewählten .xml. */
 export type ImportPhase = "unzipping" | "parsing" | "writing";
 
-export type ImportState =
-  | { status: "idle" }
-  | { status: "running"; phase: ImportPhase; records: number; fileName: string }
-  | { status: "done"; records: number }
-  | { status: "aborted" }
-  | { status: "failed"; message: string };
+export type ImportState = RunState<
+  ImportPhase,
+  { records: number; fileName: string },
+  { records: number }
+>;
 
-export const IDLE: ImportState = { status: "idle" };
+const run = makeRunState<ImportPhase, { records: number; fileName: string }, { records: number }>({
+  // Schreiben ist der Punkt ohne Umkehr — Begruendung an der Aufrufstelle
+  // (`obsidian/import-controller.ts`, Kommentar ueber `abort()`).
+  abortableIn: (phase) => phase !== "writing",
+  // `onPhaseChange` bewusst nicht gesetzt: apple-health setzt bei einem Phasenwechsel
+  // nichts zurueck — der Record-Zaehler laeuft ueber alle Phasen hinweg weiter.
+});
+
+export const IDLE: ImportState = run.IDLE;
 
 export function started(fileName: string, phase: ImportPhase): ImportState {
-  return { status: "running", phase, records: 0, fileName };
+  return run.begin(phase, { records: 0, fileName });
 }
 
 export function progressed(prev: ImportState, records: number): ImportState {
-  return prev.status === "running" ? { ...prev, records } : prev;
+  return run.progress(prev, { records });
 }
 
 export function phaseChanged(prev: ImportState, phase: ImportPhase): ImportState {
-  return prev.status === "running" ? { ...prev, phase } : prev;
+  return run.progress(prev, { phase });
 }
 
-/**
- * Symmetrisch zu `failed()`: Ein Abbruch, der während des abschließenden Schreibens
- * eintrifft, darf nicht nachträglich mit "done" überschrieben werden — sonst meldet
- * die UI einen Erfolg, den der Nutzer bereits abgebrochen gesehen hat.
- */
 export function finished(prev: ImportState, records: number): ImportState {
-  return prev.status === "aborted" ? prev : { status: "done", records };
+  return run.finish(prev, { records });
 }
 
 export function aborted(prev: ImportState): ImportState {
-  return prev.status === "running" ? { status: "aborted" } : prev;
+  return run.abort(prev);
 }
 
-/**
- * Ein Abbruch reißt den Stream ab und erzeugt dabei fast immer noch einen Folgefehler.
- * Der darf den Abbruch nicht überschreiben, sonst meldet die UI ein Scheitern, wo der
- * Nutzer selbst gestoppt hat.
- */
 export function failed(prev: ImportState, message: string): ImportState {
-  return prev.status === "aborted" ? prev : { status: "failed", message };
+  return run.fail(prev, message);
+}
+
+/** Darf jetzt abgebrochen werden? Dasselbe Praedikat, das `aborted()` intern benutzt —
+ *  fuer den Abbrechen-Knopf (`obsidian/tabs/import.ts`) und den Controller-Guard.
+ *  Weitergereicht als Funktion statt als `= run.canAbort`: eine losgeloeste Methode
+ *  faellt sonst unter `@typescript-eslint/unbound-method` und bricht das Lint-Gate. */
+export function canAbort(state: ImportState): boolean {
+  return run.canAbort(state);
 }

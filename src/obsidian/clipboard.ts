@@ -1,26 +1,8 @@
-import { Notice } from "obsidian";
-import { t } from "../vendor/kit/i18n";
-
 /**
- * Text in die Zwischenablage schreiben. Übernommen aus
- * `json_viewer/src/obsidian/clipboard.ts`.
- *
- * Der `!clipboard`-Guard steht VOR jedem Zugriff und ist nicht defensiv-dekorativ:
- * In non-secure Contexts (ältere Android-WebViews) wirft bereits das Lesen von
- * `navigator.clipboard.writeText` synchron — ein try/catch um den Aufruf käme
- * dafür zu spät.
+ * Quittung am Knopf. `copyToClipboard` selbst steht seit Kit 0.27.0 in
+ * `vendor/kit-obsidian/clipboard.ts` — hier bleibt nur `flashCopied`, das im Kit
+ * (noch) nicht existiert: es ist dort als Kandidat bei n=2 gefuehrt, nicht als Modul.
  */
-export function copyToClipboard(text: string, onCopied?: () => void): void {
-  const clipboard = navigator.clipboard;
-  if (!clipboard) {
-    new Notice(t("export.copyFailed"));
-    return;
-  }
-  clipboard.writeText(text).then(
-    () => onCopied?.(),
-    () => { new Notice(t("export.copyFailed")); },
-  );
-}
 
 const FLASH_MS = 800;
 

@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
-import { joinPath, sanitizeBase } from "../core/export-path";
+import { sanitizeBase } from "../core/export-path";
+import { joinVaultPath, normalizeVaultDir } from "../vendor/kit/vault-path";
 
 /**
  * Schreibt den Export ins Vault und gibt den tatsächlich benutzten Pfad zurück.
@@ -14,14 +15,16 @@ export async function writeExport(
   app: App, folder: string, baseName: string, ext: string, content: string,
 ): Promise<string> {
   const adapter = app.vault.adapter;
-  const dir = (folder || "").replace(/^\/+|\/+$/g, "");
+  // `dir` wird gleich fuer exists/mkdir gebraucht; joinVaultPath normalisiert daneben
+  // selbst — die frueher hier inline getragene Rechnung steht jetzt einmal im Kit-Modul.
+  const dir = normalizeVaultDir(folder);
   if (dir && !(await adapter.exists(dir))) await adapter.mkdir(dir);
 
   const safe = sanitizeBase(baseName);
-  let path = joinPath(dir, `${safe}.${ext}`);
+  let path = joinVaultPath(dir, `${safe}.${ext}`);
   let n = 2;
   while (await adapter.exists(path)) {
-    path = joinPath(dir, `${safe} ${n}.${ext}`);
+    path = joinVaultPath(dir, `${safe} ${n}.${ext}`);
     n++;
   }
   await adapter.write(path, content);

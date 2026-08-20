@@ -1,6 +1,6 @@
 import { aggregateStream, ImportAbortedError } from "../core/pipeline";
 import {
-  IDLE, started, progressed, phaseChanged, finished, aborted, failed,
+  IDLE, started, progressed, phaseChanged, finished, aborted, failed, canAbort,
   type ImportState,
 } from "../core/import-state";
 import type { HealthCache } from "../core/types";
@@ -35,7 +35,7 @@ export class ImportController {
    * gemeldeten Zustand konsistent, und genau das ist es, was dem Nutzer wichtig ist.
    */
   abort(): void {
-    if (this.current.status === "running" && this.current.phase === "writing") return;
+    if (!canAbort(this.current)) return;
     this.controller?.abort();
   }
 

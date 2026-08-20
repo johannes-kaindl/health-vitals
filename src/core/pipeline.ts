@@ -2,6 +2,7 @@ import { XmlTokenizer, type Token } from "./xml-tokenizer";
 import { EventReader } from "./health-parser";
 import { Aggregator } from "./aggregator";
 import type { HealthCache } from "./types";
+import { createCooperativeYield } from "../vendor/kit/cooperative-yield";
 
 export interface AggregateMeta { sourceFile: string; importedAt: string; }
 
@@ -34,6 +35,14 @@ export interface AggregateOptions {
   yieldEveryMs?: number;
 }
 
+/**
+ * Beide Schranken samt ihrer Synchronitäts-Zusage liegen seit Kit 0.27.0 in
+ * `vendor/kit/cooperative-yield.ts` — die Mechanik (eine Uhr-Lesung für beide Barrieren,
+ * eine Lesung pro Runde, Stempel VOR dem `await`) ist dort im Modulkopf beschrieben und
+ * wird hier bewusst nicht ein zweites Mal geführt. Namen und Defaults von
+ * `AggregateOptions` bleiben unverändert; nur die Rechnung dahinter ist jetzt geteilt.
+ */
+
 export async function aggregateStream(
   chunks: AsyncIterable<string> | Iterable<string>,
   meta: AggregateMeta,
@@ -43,9 +52,7 @@ export async function aggregateStream(
   const tok = new XmlTokenizer();
   const agg = new Aggregator();
   let seen = 0;
-  const start = Date.now();
-  let lastYield = start;
-  let lastProgress = start;
+  const pacer = createCooperativeYield({ yieldToUi, everyMs: yieldEveryMs });
 
   const reader = new EventReader();
   const handle = (tok_: Token): void => {
@@ -65,27 +72,11 @@ export async function aggregateStream(
     // 250k-Record-Meilensteine: In einer Live-Anzeige ist eine 10+ Sekunden
     // eingefrorene Zahl auf einer langsamen Maschine nicht von einem hängenden
     // Renderer zu unterscheiden — genau das, was die Live-Anzeige verhindern soll.
-    // Ein zusätzlicher record-basierter Meilenstein daneben würde dieses Problem für
-    // den heutigen Aufrufer (ImportController, der onProgress und yieldToUi immer
-    // zusammen setzt) nicht lösen und nur zwei konkurrierende Update-Quellen
-    // schaffen — deshalb ersatzlos gestrichen statt parallel weitergeführt.
     //
-    // onProgress und yieldToUi haben je eine eigene Zeitschranke (beide standardmäßig
-    // `yieldEveryMs`), damit ein Aufrufer, der nur Fortschritt will, keine
-    // Renderer-Yield-Funktion mitliefern muss — und umgekehrt. Bei einem Aufrufer,
-    // der beides zusammen setzt (heute: ImportController), feuern beide Schranken
-    // synchron, weil sie mit demselben Startzeitpunkt und derselben Schrittweite
-    // laufen — die Kadenz bleibt für diesen Fall unverändert.
-    const nowTs = Date.now();
-    if (onProgress && nowTs - lastProgress >= yieldEveryMs) {
-      lastProgress = nowTs;
-      onProgress(seen);
-    }
-    if (yieldToUi && nowTs - lastYield >= yieldEveryMs) {
-      lastYield = nowTs;
-      await yieldToUi();
-      if (signal?.aborted) throw new ImportAbortedError();
-    }
+    // Ans ENDE JEDER Iteration, in JEDEM Ausgang — der Rückgabewert von `tick()` sagt,
+    // ob in dieser Runde tatsächlich geyieldet wurde, und ist damit der Anker für die
+    // Abbruch-Nachprüfung, die vorher IM Yield-Block stand.
+    if (await pacer.tick(() => onProgress?.(seen)) && signal?.aborted) throw new ImportAbortedError();
   }
 
   if (signal?.aborted) throw new ImportAbortedError();

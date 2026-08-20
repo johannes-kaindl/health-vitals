@@ -6,6 +6,7 @@ import { ImportController } from "./obsidian/import-controller";
 import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
+import { validateSettings, oneOf, check, arrayThen, isPlainObject } from "./vendor/kit/settings_schema";
 import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
@@ -21,16 +22,6 @@ interface PluginData {
 const DEFAULT_DATA: PluginData = {
   favorites: [], exportFolder: "", exportFormat: "md", collapsed: {},
 };
-
-// Frische Kopie von DEFAULT_DATA statt der Modul-Vorlage selbst: `favorites`/`collapsed`
-// sind Objekte/Arrays — ein flacher Spread von DEFAULT_DATA würde deren REFERENZ teilen,
-// und `toggleFavorite`/`setCollapsed` mutieren in place. Ohne diese Kopie würde die erste
-// Plugin-Instanz im Prozess (Dev-Hot-Reload, Deaktivieren/Aktivieren ohne Neustart) die
-// Modul-Vorlage selbst verunreinigen — jede spätere Instanz sähe dann keine echten Defaults
-// mehr, sondern den Endzustand der vorherigen.
-function freshDefaultData(): PluginData {
-  return { ...DEFAULT_DATA, favorites: [...DEFAULT_DATA.favorites], collapsed: { ...DEFAULT_DATA.collapsed } };
-}
 
 /**
  * Der Schlaf-Favorit zeigte auf den Apple-Identifier, den es seit Cache-Version 2
@@ -48,13 +39,8 @@ function migrateFavorites(favorites: readonly string[]): string[] {
   return out;
 }
 
-/** `typeof null === "object"` — die Null-Prüfung ist der eigentliche Punkt hier. */
-function isPlainObject(v: unknown): v is Record<string, boolean> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
-  private data: PluginData = freshDefaultData();
+  private data: PluginData = validateSettings(DEFAULT_DATA, null);
 
   async onload(): Promise<void> {
     await this.loadPluginData();
@@ -76,24 +62,17 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
 
   // --- Persistence ---
   async loadPluginData(): Promise<void> {
-    const loaded = (await this.loadData()) as Partial<PluginData> | null;
-    // freshDefaultData() statt DEFAULT_DATA direkt spreaden — sonst übernehmen fehlende
-    // Felder (jedes alte data.json, oder loadData() === null beim allerersten Start) die
-    // geteilte Referenz auf die Modul-Vorlage statt eine eigene Kopie (siehe Kommentar dort).
-    //
-    // Jedes Feld einzeln auf seinen Typ prüfen, statt `loaded` pauschal darüberzuspreaden:
-    // data.json ist eine Datei im Vault des Nutzers und kann von Hand editiert oder von
-    // einem Sync-Konflikt zerlegt worden sein. Ein `"favorites": null` darin überschriebe
-    // beim Spread den Default und ließe getFavorites() null liefern — die Übersicht ruft
-    // darauf .indexOf() und stirbt beim Öffnen des Dashboards.
-    const base = freshDefaultData();
-    const fmt = loaded?.exportFormat;
-    this.data = {
-      favorites: Array.isArray(loaded?.favorites) ? migrateFavorites(loaded.favorites) : base.favorites,
-      exportFolder: typeof loaded?.exportFolder === "string" ? loaded.exportFolder : base.exportFolder,
-      exportFormat: fmt === "md" || fmt === "csv" ? fmt : base.exportFormat,
-      collapsed: isPlainObject(loaded?.collapsed) ? { ...loaded.collapsed } : base.collapsed,
-    };
+    // Feldweise Prüfung statt eines Spreads, plus frischer Klon jedes Defaults: beides
+    // rechnet seit Kit 0.27.0 `vendor/kit/settings_schema.ts` (Begründung im Modulkopf
+    // dort — data.json liegt im Vault des Nutzers, und eine geteilte Referenz auf die
+    // Modul-Vorlage überlebt einen Dev-Hot-Reload). `exportFolder` bekommt bewusst KEINEN
+    // Schema-Eintrag: die generische Bauform-Prüfung gegen den Default "" ist bitgleich
+    // die frühere `typeof === "string"`-Zeile.
+    this.data = validateSettings(DEFAULT_DATA, await this.loadData(), {
+      favorites: arrayThen((xs) => migrateFavorites(xs as string[])),
+      exportFormat: oneOf(["md", "csv"]),
+      collapsed: check(isPlainObject),
+    });
   }
 
   /**

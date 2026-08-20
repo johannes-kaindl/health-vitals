@@ -11,7 +11,8 @@ import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
 import { toCsv, toMarkdownTable } from "../../core/serialize";
 import { buildExportName } from "../../core/export-path";
-import { copyToClipboard, flashCopied } from "../clipboard";
+import { flashCopied } from "../clipboard";
+import { copyToClipboard } from "../../vendor/kit-obsidian/clipboard";
 import { writeExport } from "../export-writer";
 import { FolderSuggest } from "../../vendor/kit-obsidian/folder-suggest";
 
@@ -102,7 +103,15 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
     const text = serializeTable(vm, host.getExportFormat());
     // Quittung am Knopf statt als Notice. Wieviel kopiert wurde, steht unverändert im
     // Sektionstitel („Werte (N)") direkt darüber — ein zweites Signal dafür wäre Rauschen.
-    copyToClipboard(text, () => { flashCopied(copyBtn, t("export.copied"), t("export.copy")); });
+    // Deshalb KEIN `copiedMessage`: das Kit hat dafür bewusst keinen Default, und ein
+    // gesetztes ergäbe genau die Notice am Bildschirmrand, die hier nicht gewollt ist.
+    // `failedMessage` dagegen MUSS gesetzt sein — sonst zeigt das Kit sein englisches
+    // "Copy failed" statt der übersetzten Meldung. `void`, weil das Kit ein
+    // Promise<boolean> liefert und dieser Klick-Handler synchron ist.
+    void copyToClipboard(text, {
+      onCopied: () => { flashCopied(copyBtn, t("export.copied"), t("export.copy")); },
+      failedMessage: t("export.copyFailed"),
+    });
   });
 
   const saveBtn = row.createEl("button", { text: t("export.save") });

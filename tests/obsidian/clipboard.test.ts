@@ -1,4 +1,5 @@
-import { copyToClipboard, flashCopied } from "../../src/obsidian/clipboard";
+import { copyToClipboard } from "../../src/vendor/kit-obsidian/clipboard";
+import { flashCopied } from "../../src/obsidian/clipboard";
 
 describe("copyToClipboard", () => {
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -6,15 +7,27 @@ describe("copyToClipboard", () => {
   it("ohne navigator.clipboard: kein Throw, kein Callback", () => {
     vi.stubGlobal("navigator", {});
     const onCopied = vi.fn();
-    expect(() => copyToClipboard("x", onCopied)).not.toThrow();
+    expect(() => copyToClipboard("x", { onCopied })).not.toThrow();
     expect(onCopied).not.toHaveBeenCalled();
+  });
+
+  // Der `unavailable`-Pfad ruft `onFailed` SYNCHRON, noch vor der Rückgabe — im Kit
+  // ausdrücklich load-bearing (pure/clipboard.ts:41-44) und hier bisher ungeprüft.
+  // Kein `await`, kein Microtask-Flush: genau das ist die Zusicherung.
+  it("ohne navigator.clipboard: onFailed feuert synchron mit Grund und Fehler", () => {
+    vi.stubGlobal("navigator", {});
+    const onFailed = vi.fn();
+    void copyToClipboard("x", { onFailed });
+    expect(onFailed).toHaveBeenCalledTimes(1);
+    expect(onFailed.mock.calls[0][0]).toBe("unavailable");
+    expect(onFailed.mock.calls[0][1]).toBeInstanceOf(Error);
   });
 
   it("Erfolg ruft den Callback mit dem übergebenen Text", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const onCopied = vi.fn();
-    copyToClipboard("hallo", onCopied);
+    void copyToClipboard("hallo", { onCopied });
     await vi.waitFor(() => expect(onCopied).toHaveBeenCalledTimes(1));
     expect(writeText).toHaveBeenCalledWith("hallo");
   });
@@ -23,7 +36,7 @@ describe("copyToClipboard", () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const onCopied = vi.fn();
-    expect(() => copyToClipboard("x", onCopied)).not.toThrow();
+    expect(() => copyToClipboard("x", { onCopied })).not.toThrow();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
     expect(onCopied).not.toHaveBeenCalled();
   });
