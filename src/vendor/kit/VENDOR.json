@@ -1,11 +1,7 @@
 {
-  "note": "Verbatim snapshots. Never hand-edit. Re-copy from the source to update.",
-  "modules": [
-    {
-      "file": "i18n.ts",
-      "source": "obsidian-kit",
-      "version": "0.16.0",
-      "sha": "92c60d5"
-    }
-  ]
+  "source": "obsidian-kit",
+  "version": "0.27.0",
+  "sha": "fbb42d4",
+  "vendored": "i18n.ts, vault-path.ts, cooperative-yield.ts, run-state.ts, clipboard.ts, num.ts, settings_schema.ts",
+  "note": "Verbatim snapshot. Never hand-edit. Re-vendor via tools/sync-kit.sh. version/sha gelten AUSSCHLIESSLICH fuer die unter \"vendored\" gelisteten Dateien. kit-obsidian/ siehe dessen VENDOR.json."
 }
