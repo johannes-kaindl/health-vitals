@@ -1,8 +1,41 @@
 /* Apple Health — Dashboard. Nur Theme-Variablen, Präfix ah-. */
 .ah-dashboard { padding: var(--size-4-2); }
 
-.ah-tabbar { display: flex; gap: var(--size-4-2); border-bottom: 1px solid var(--background-modifier-border); margin-bottom: var(--size-4-3); }
-.ah-tab { display: flex; align-items: center; gap: var(--size-4-1); padding: var(--size-4-2) var(--size-4-3); cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; }
+/* Umbruch-Rezept der Tab-Leiste — uebernommen aus obsidian-kit@0.27.0, HUB_CSS in
+   src/obsidian/hub.ts (2026-09-02), auf die hiesigen Klassennamen uebertragen. Das Modul
+   selbst ist NICHT vendoriert; uebernommen ist die sichtbare Haelfte, die der Kit-Vertrag
+   ohnehin als Kopie vorsieht ("Das Kit injiziert kein CSS").
+
+   Die vier nummerierten Zutaten gehoeren zusammen — jede einzeln ist wirkungslos. Ohne sie
+   schiebt eine schmale Sidebar die letzten Tabs aus dem Panel, wo sie unerreichbar sind;
+   vault-rag und vim-dojo haben genau diesen Fehler unabhaengig voneinander gefunden. Hier
+   fehlten alle vier, `.ah-tab-label` hatte ueberhaupt keine Regel (UI-STANDARD.md:221). */
+.ah-tabbar {
+  display: flex;
+  flex-wrap: wrap;                 /* (1) erlaubt die zweite Zeile */
+  gap: var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: var(--size-4-3);
+}
+.ah-tab {
+  display: flex;
+  flex: 1 1 auto;                  /* (2) Basis = Inhaltsbreite, sonst bricht nichts um */
+  min-width: 0;                    /* (3) hebt min-width:auto auf, sonst sprengt ein langes Label die Zeile */
+  align-items: center;
+  justify-content: center;         /* die Tabs sind jetzt breiter als ihr Inhalt */
+  gap: var(--size-4-1);
+  padding: var(--size-4-2) var(--size-4-3);
+  cursor: pointer;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+}
+.ah-tab-label {                    /* (4) ohne Ellipsis quillt der Text aus dem geschrumpften Tab */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Das Icon darf nicht mitschrumpfen — sonst frisst ein langes Label es auf. */
+.ah-tab-icon { display: inline-flex; flex: 0 0 auto; }
 .ah-tab.is-active { color: var(--text-normal); border-bottom-color: var(--interactive-accent); }
 .ah-tab:hover { background: var(--background-modifier-hover); }
 
