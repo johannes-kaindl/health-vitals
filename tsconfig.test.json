@@ -1,8 +1,13 @@
 {
+  // Typprüfung der Testdateien. Bewusst OHNE `scripts/**`: die Treiber dort importieren
+  // die zentrale CDP-Brücke aus dem Dach (`../tools/obsidian-cdp`), die in CI und fremden
+  // Klonen fehlt — dafür gibt es `tsconfig.scripts.json` samt Existenz-Guard im Script
+  // `typecheck:scripts`. Diese Datei bliebe sonst nur mit demselben Guard einhängbar,
+  // und `npm run gate` prüft `scripts/` ohnehin schon.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "types": ["node", "vitest/globals"],
     "allowJs": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

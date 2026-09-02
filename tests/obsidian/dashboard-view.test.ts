@@ -1,5 +1,5 @@
 import type { WorkspaceLeaf } from "obsidian";
-import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost } from "../../src/obsidian/dashboard-view";
+import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "../../src/obsidian/dashboard-view";
 import type { HealthCache } from "../../src/core/types";
 import type { ImportState } from "../../src/core/import-state";
 import type { ImportController } from "../../src/obsidian/import-controller";
@@ -12,7 +12,11 @@ function fakeLeaf(): WorkspaceLeaf { return {} as unknown as WorkspaceLeaf; }
 // Zugriff auf private Member (startImport, importState) für Tests, die den
 // öffentlichen DOM-Klickpfad mangels DOM-Mock nicht auslösen können — ebenfalls
 // über `unknown` statt eines literalen `any` gecastet.
-type TestableView = DashboardView & { startImport(): Promise<void>; importState: ImportState };
+// BEWUSST keine Intersection mit `DashboardView`: `importState` ist dort private,
+// und TypeScript reduziert eine Intersection, in der dasselbe Member einmal privat
+// und einmal öffentlich vorkommt, auf `never` — jeder Zugriff darüber wäre ein
+// Fehler. Der Typ beschreibt deshalb nur, was der Test wirklich anfasst.
+type TestableView = { startImport(): Promise<void>; importState: ImportState };
 function privates(v: DashboardView): TestableView { return v as unknown as TestableView; }
 
 function host(cache: HealthCache | null, overrides: Partial<DashboardHost> = {}): DashboardHost {
@@ -22,6 +26,16 @@ function host(cache: HealthCache | null, overrides: Partial<DashboardHost> = {})
     toggleFavorite: async () => {},
     createImportController: (_onState: (s: ImportState) => void) => ({}) as ImportController,
     pickExport: async () => null,
+    // Der Mock bildet den VOLLEN DashboardHost-Vertrag ab, nicht nur die Member, die
+    // der jeweilige Test anfasst: ein unvollständiger Mock ist erst durch den
+    // Test-Typecheck sichtbar geworden (`typecheck:test`, 2026-09-02) und hätte sonst
+    // eine Vertragserweiterung still überlebt.
+    getExportFolder: () => "",
+    setExportFolder: (_v: string) => {},
+    getExportFormat: (): ExportFormat => "csv",
+    setExportFormat: (_f: ExportFormat) => {},
+    getCollapsed: (_key: string) => undefined,
+    setCollapsed: (_key: string, _collapsed: boolean) => {},
     ...overrides,
   };
 }
