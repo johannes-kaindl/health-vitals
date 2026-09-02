@@ -19,6 +19,22 @@ All notable changes to this project are documented here. The format follows
   Die Kennzahlen lassen sich nicht nachrüsten, weil der Parser sie bisher gar nicht las.
 - Die Dauer eines Workouts wird über `durationUnit` umgerechnet statt als Minuten angenommen.
 
+### Fixed
+
+- **Der Zielordner des Werte-Exports wird jetzt normalisiert.** Das Feld nimmt Freitext an;
+  ein Backslash oder ein doppelter Schrägstrich darin wanderte bisher unverändert in den
+  Pfad (`Notizen//Export` blieb `Notizen//Export`). Backslashes werden zu Schrägstrichen,
+  Mehrfach-Schrägstriche fallen zusammen.
+
+### Internal
+
+- Sechs gemeinsame Bausteine kommen jetzt aus **obsidian-kit 0.27.0** statt aus lokalen
+  Fassungen (Ablaufzustand, kooperatives Nachgeben, Vault-Pfade, Zwischenablage,
+  Einstellungs-Validierung). `tools/sync-kit.sh` erzeugt die Kopien reproduzierbar, jede
+  trägt ihren Herkunftsstempel. Am sichtbaren Verhalten ändert sich außer dem Punkt oben
+  nichts; drei stille Verhaltensänderungen im Ablaufzustand sind durch neue Tests
+  festgehalten, damit ein späterer Rückbau nicht durch ein grünes Gate fällt.
+
 ## [0.6.0] — 2026-08-18
 
 ### Added
