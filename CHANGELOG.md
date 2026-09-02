@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-02
+
 ### Added
 
 - Workouts tragen jetzt Distanz und aktiv verbrannte Energie. Die Zahlen stammen aus den
