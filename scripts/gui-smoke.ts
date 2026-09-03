@@ -68,6 +68,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -1058,8 +1059,9 @@ async function main(): Promise<void> {
   const ort = await cdp.evaluate<{ basePath: string; configDir: string }>(`
     return { basePath: app.vault.adapter.basePath, configDir: app.vault.configDir };
   `);
+  const pluginDir = join(ort.basePath, ort.configDir, "plugins", PLUGIN_ID);
   requireEigenerBuild(
-    join(ort.basePath, ort.configDir, "plugins", PLUGIN_ID, "main.js"),
+    join(pluginDir, "main.js"),
     // Der zweite Pfad ist hier nicht optional, sondern der ganze Punkt: ohne ihn bliebe nur
     // das `nosourcemap`-Suffix als Indiz — und das FEHLTE im Anlassfall, weil der Build kein
     // Store-Download war, sondern ein alter `npm run deploy`. Einarmig hätte der Guard
@@ -1120,7 +1122,29 @@ async function main(): Promise<void> {
       return p ? { ok: true, version: p.manifest.version, dir: p.manifest.dir } : { ok: false };
     `);
     if (!plugin.ok) throw new Error(`Plugin ${PLUGIN_ID} ist nicht aktiv. Erst \`npm run deploy\`.`);
-    console.log(`Plugin-Version im Vault: ${plugin.version}`);
+
+    // Die Version kommt von der PLATTE, nicht aus `p.manifest.version`. `enablePlugin` lädt
+    // den Code neu, das Manifest NICHT — das liest Obsidian beim Vault-Start. Die Registry
+    // meldet deshalb den Stand vom Öffnen des Vaults, und das Protokoll schrieb bisher eine
+    // Versionsnummer, die zum gemessenen Code nicht gehören muss (`docs/SMOKE.md` führt einen
+    // Lauf als „Plugin 0.6.0", der das nicht war). Ein Protokoll wird kopiert und
+    // weitergereicht; eine falsche Herkunftsangabe darin kostet später Stunden.
+    const deployt = ((): string => {
+      try {
+        const m: unknown = JSON.parse(readFileSync(join(pluginDir, "manifest.json"), "utf8"));
+        const v = (m as { version?: unknown }).version;
+        return typeof v === "string" ? v : "unlesbar";
+      } catch {
+        return "unlesbar";
+      }
+    })();
+    console.log(`Plugin-Version (deployt, von der Platte): ${deployt}`);
+    if (plugin.version !== deployt) {
+      console.log(
+        `  Hinweis: Obsidians Registry meldet ${plugin.version} — das Manifest wird nur beim `
+        + "Vault-Start gelesen. Gemessen wurde der Code auf der Platte.",
+      );
+    }
 
     // Schnappschuss der data.json als GANZES statt einzelner Felder: Der Lauf klappt die
     // Werte-Sektion auf, und diese Wiederherstellung darf nicht daran hängen, dass jeder
