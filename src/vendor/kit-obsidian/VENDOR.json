@@ -1,7 +1,7 @@
 {
   "source": "obsidian-kit",
-  "version": "0.27.0",
-  "sha": "fbb42d4",
+  "version": "0.30.0",
+  "sha": "994efeb",
   "vendored": "collapsible.ts, folder-suggest.ts, clipboard.ts",
   "note": "Verbatim snapshot. Never hand-edit. Re-vendor via tools/sync-kit.sh. version/sha gelten AUSSCHLIESSLICH fuer die unter \"vendored\" gelisteten Dateien. EINE mechanische Abweichung von verbatim: kit-interne Importe ../pure/ -> ../kit/ (Vendor-Layout) in clipboard.ts; bei jedem Re-Vendor reproduzieren, sonst darf nichts abweichen."
 }
