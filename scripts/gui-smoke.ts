@@ -68,6 +68,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 
 import {
   Cdp,
@@ -76,6 +77,7 @@ import {
   pollUntil,
   requireVisible,
 } from "../../tools/obsidian-cdp/cdp.js";
+import { requireEigenerBuild } from "../../tools/obsidian-cdp/vault.js";
 
 const PLUGIN_ID = "health-vitals";
 /** `VIEW_TYPE_DASHBOARD` aus src/obsidian/dashboard-view.ts — historisch, bleibt (PROF-OBS-11). */
@@ -1040,6 +1042,32 @@ async function main(): Promise<void> {
       + "Läuft Obsidian mit `--remote-debugging-port`?",
     );
   }
+
+  // Läuft dieser Lauf gegen den eigenen Stand? `manifest.version` ist dafür strukturell
+  // blind: Store-Build und Repo-Build tragen dieselbe Nummer — ein veralteter eigener Deploy
+  // erst recht. Genau das ist am 2026-08-28 passiert: die beiden Workout-Prüfpunkte meldeten
+  // rot gegen eine `main.js` vom 18.08. (0.6.0-Stand), die `.ah-workout-total` und die beiden
+  // Wert-Spans noch gar nicht kannte — das Feature kam einen Tag später mit Slice 5. Die
+  // Punkte hatten recht, der Prüfling war der falsche.
+  //
+  // Der Pfad kommt aus der LAUFENDEN Instanz, nicht aus `stagingVaultDir()`: ein Treiber
+  // dockt per `--vault` an jedes Fenster an, und geprüft wird, was gemessen wird.
+  //
+  // Steht VOR dem try, also bevor irgendein Zustand angefasst wird (data.json-Schnappschuss,
+  // Sidebars, Theme) — ein Abbruch hier hinterlässt nichts zum Aufräumen.
+  const ort = await cdp.evaluate<{ basePath: string; configDir: string }>(`
+    return { basePath: app.vault.adapter.basePath, configDir: app.vault.configDir };
+  `);
+  requireEigenerBuild(
+    join(ort.basePath, ort.configDir, "plugins", PLUGIN_ID, "main.js"),
+    // Der zweite Pfad ist hier nicht optional, sondern der ganze Punkt: ohne ihn bliebe nur
+    // das `nosourcemap`-Suffix als Indiz — und das FEHLTE im Anlassfall, weil der Build kein
+    // Store-Download war, sondern ein alter `npm run deploy`. Einarmig hätte der Guard
+    // `ungeklaert` gewarnt und den Fehllauf durchgelassen.
+    // Setzt voraus, dass `main.js` frisch gebaut ist (`npm run deploy` tut beides); `cwd`
+    // ist das Repo-Root, weil npm-Scripts dort laufen und das Bundle dort abgelegt wird.
+    join(process.cwd(), "main.js"),
+  );
 
   // Ausserhalb des try, damit das `finally` beides auch nach einem Abbruch mitten im Lauf
   // zurückgibt: die Datei des Plugins UND die Body-Klassen des Themes.
