@@ -20,21 +20,68 @@ KIT=../obsidian-kit
 # Eine Zwischenkopie als Quelle erzeugt eine Kopier-Kette, und die sieht bei der naechsten
 # Zaehlung wie ein unabhaengiger Beleg aus (Dach-AGENTS, Kit-first Punkt 1).
 CODE_KIT=../../code-kit
-VER=$(node -p "require('$KIT/package.json').version")
-CODE_VER=$(node -p "require('$CODE_KIT/package.json').version" 2>/dev/null || echo "?")
-SHA=$(git -C "$KIT" rev-parse --short HEAD)
+
+# Gelesen wird aus einer festen Ref, nicht aus dem Arbeitsstand des Nachbar-Repos
+# (CORE-META-22). Umgestellt 2026-09-07; vorher las dieses Skript per `cp` aus
+# $KIT/ und stempelte mit `rev-parse HEAD`.
+#
+# Der Schaden war beim Umstellen messbar und ist die Begruendung der Regel: die
+# VENDOR.json paarte "version": "0.30.0" mit "sha": "994efeb" — Tag 0.30.0 zeigt
+# aber auf 6e571a4. Gestempelt war der HEAD des Kit-Arbeitsverzeichnisses, also
+# EIN Commit hinter dem Tag. Dass der Inhalt trotzdem stimmte, war Glueck: jener
+# Commit beruehrte nur AGENTS.md. Version und SHA widersprachen sich, und nur die
+# SHA war wahr.
+KIT_REF=${KIT_REF:-0.30.0}
+CODE_KIT_REF=${CODE_KIT_REF:-0.5.0}
+
+for paar in "$KIT|$KIT_REF" "$CODE_KIT|$CODE_KIT_REF"; do
+  repo=${paar%%|*}; ref=${paar##*|}
+  git -C "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null \
+    || { echo "FEHLER: Ref '$ref' existiert nicht in $repo (KIT_REF/CODE_KIT_REF setzen)." >&2; exit 1; }
+done
+
+# ^{commit} ist Pflicht, nicht Kosmetik: bei einem annotierten Tag liefert rev-parse
+# sonst das Tag-OBJEKT, und in der VENDOR.json steht eine SHA, die im `git log` der
+# Quelle gar nicht vorkommt (gemessen an code-kit 0.5.0, 2026-09-02).
+VER=$(git -C "$KIT" describe --tags --abbrev=0 "$KIT_REF")
+SHA=$(git -C "$KIT" rev-parse --short "$KIT_REF^{commit}")
+CODE_VER=$(git -C "$CODE_KIT" describe --tags --abbrev=0 "$CODE_KIT_REF" 2>/dev/null || echo "?")
 
 # Ein pures Modul kann in drei Schichten liegen. Statt fester Zuordnung wird gesucht — die
 # naechste Umschichtung soll dieses Skript nicht wieder toeten, sondern nur einen anderen
 # Fundort ergeben. Ausgabe: <pfad>|<quelle>|<quell-relativer-pfad>|<version>
+# Gesucht wird in der REF, nicht auf der Platte: `[ -f ]` haette gefunden, was im
+# Arbeitsverzeichnis des Kits gerade liegt — auch eine Datei, die es im gepinnten
+# Stand nie gab. Ausgabe unveraendert: <repo>|<quelle>|<quell-relativer-pfad>|<version>
+# (erstes Feld ist jetzt das REPO, nicht mehr ein Dateipfad).
 quelle_fuer() {
   for kandidat in \
-    "$KIT/src/pure/$1.ts|obsidian-kit|src/pure/$1.ts|$VER" \
-    "$CODE_KIT/src/ts/pure/$1.ts|code-kit|src/ts/pure/$1.ts|$CODE_VER" \
-    "$CODE_KIT/src/ts/web/$1.ts|code-kit|src/ts/web/$1.ts|$CODE_VER"; do
-    if [ -f "${kandidat%%|*}" ]; then printf '%s\n' "$kandidat"; return 0; fi
+    "$KIT|obsidian-kit|src/pure/$1.ts|$VER|$KIT_REF" \
+    "$CODE_KIT|code-kit|src/ts/pure/$1.ts|$CODE_VER|$CODE_KIT_REF" \
+    "$CODE_KIT|code-kit|src/ts/web/$1.ts|$CODE_VER|$CODE_KIT_REF"; do
+    k_repo=$(printf '%s' "$kandidat" | cut -d'|' -f1)
+    k_pfad=$(printf '%s' "$kandidat" | cut -d'|' -f3)
+    k_ref=$(printf '%s' "$kandidat" | cut -d'|' -f5)
+    if git -C "$k_repo" cat-file -e "$k_ref:$k_pfad" 2>/dev/null; then
+      printf '%s\n' "$kandidat"; return 0
+    fi
   done
   return 1
+}
+
+# vendor_aus_ref <ziel> <repo> <ref> <quell-pfad>
+#
+# Schreibt ERST nach .tmp und verschiebt NUR bei Erfolg. Die naheliegende Form
+# `git show ... > ziel` legt die Zieldatei an, BEVOR git show laeuft — fehlt die
+# Quelle in der Ref, bleibt eine leere Datei zurueck, die wie ein gueltiges
+# Vendoring aussieht. `set -e` bricht ab, der Stummel liegt dann schon da.
+vendor_aus_ref() {
+  git -C "$2" show "$3:$4" > "$1.tmp" || {
+    rm -f "$1.tmp"
+    echo "FEHLER: $4 fehlt in $2@$3 — nichts geschrieben." >&2
+    exit 1
+  }
+  mv "$1.tmp" "$1"
 }
 
 stamp() { # stamp <vendored-file> <quell-relativer-pfad> [<quelle> <version>]
@@ -107,7 +154,7 @@ PURE_MODULE="i18n vault-path cooperative-yield run-state clipboard num settings_
 # wird als solcher gemeldet, statt den Lauf auf halber Strecke abzubrechen.
 for m in $PURE_MODULE; do
   quelle_fuer "$m" >/dev/null || {
-    echo "FEHLER: $m.ts liegt weder in $KIT/src/pure/ noch in $CODE_KIT/src/ts/{pure,web}/." >&2
+    echo "FEHLER: $m.ts liegt weder in obsidian-kit@$KIT_REF:src/pure/ noch in code-kit@$CODE_KIT_REF:src/ts/{pure,web}/." >&2
     echo "  Seit obsidian-kit 2ab1bb5 ist code-kit die Quelle der domaenenfreien Module." >&2
     exit 2
   }
@@ -115,17 +162,18 @@ done
 
 for m in $PURE_MODULE; do
   fund=$(quelle_fuer "$m")
-  pfad=$(printf '%s' "$fund" | cut -d'|' -f1)
+  q_repo=$(printf '%s' "$fund" | cut -d'|' -f1)
   quelle=$(printf '%s' "$fund" | cut -d'|' -f2)
   rel=$(printf '%s' "$fund" | cut -d'|' -f3)
   ver=$(printf '%s' "$fund" | cut -d'|' -f4)
-  cp "$pfad" "src/vendor/kit/$m.ts"
+  q_ref=$(printf '%s' "$fund" | cut -d'|' -f5)
+  vendor_aus_ref "src/vendor/kit/$m.ts" "$q_repo" "$q_ref" "$rel"
   stamp "src/vendor/kit/$m.ts" "$rel" "$quelle" "$ver"
   echo "vendored $quelle@$ver/$rel"
 done
 
 for m in collapsible folder-suggest clipboard; do
-  cp "$KIT/src/obsidian/$m.ts" "src/vendor/kit-obsidian/$m.ts"
+  vendor_aus_ref "src/vendor/kit-obsidian/$m.ts" "$KIT" "$KIT_REF" "src/obsidian/$m.ts"
   relayer "src/vendor/kit-obsidian/$m.ts"
   stamp "src/vendor/kit-obsidian/$m.ts" "src/obsidian/$m.ts"
   echo "vendored obsidian-kit@$VER/obsidian/$m.ts"
