@@ -29,7 +29,7 @@
  *
  * osascript -e 'quit app "Obsidian"'                # Handarbeit: Debug-Port
  * open -a Obsidian --args --remote-debugging-port=9222
- * #   ... Vault "apple-health" öffnen und einmalig als vertrauenswürdig bestätigen
+ * #   ... Vault "health-vitals" öffnen und einmalig als vertrauenswürdig bestätigen
  *
  * npm run shots                                     # alles aufnehmen
  * npm run shots -- --only sleep-stages.png          # eines nachziehen
@@ -70,7 +70,7 @@ import {
 import { buildVault, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
 const PLUGIN_ID = "health-vitals";
-const REPO_NAME = "apple-health";
+const REPO_NAME = "health-vitals";
 const VIEW_TYPE = "apple-health-dashboard";
 const OUT_DIR = "docs/images";
 const CAPTURE_WIDTH = 1200;

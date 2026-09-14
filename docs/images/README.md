@@ -27,7 +27,7 @@ Alle Bilder entstehen in **englischer** Oberfläche (`README.md` ist die kanonis
 ## Was der Lauf voraussetzt
 
 - **Ein Aufnahme-Vault**, gebaut aus `docs/images/fixture/` — `npm run shots -- --setup`.
-  Ort: `$STAGING_VAULTS_DIR/apple-health` (Pflicht-Umgebungsvariable, kein Default: ein
+  Ort: `$STAGING_VAULTS_DIR/health-vitals` (Pflicht-Umgebungsvariable, kein Default: ein
   fest eingebauter Pfad wäre für jeden außer einer Person falsch, und
   `scripts/check-no-abs-paths.mjs` verbietet ihn zu Recht).
 - **Ein laufendes Obsidian mit Debug-Port**, in dem dieser Vault geöffnet und einmalig als
@@ -80,7 +80,7 @@ npm run shots -- --setup                            # Vault + synthetischer Cach
 
 osascript -e 'quit app "Obsidian"'                  # Handarbeit: Debug-Port
 open -a Obsidian --args --remote-debugging-port=9222
-#   ... Vault "apple-health" öffnen, Vertrauen bestätigen
+#   ... Vault "health-vitals" öffnen, Vertrauen bestätigen
 
 npm run shots                                       # alles aufnehmen
 npm run shots -- --only sleep-stages.png            # eines nachziehen

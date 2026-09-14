@@ -8,7 +8,7 @@
 
 ## Project character
 
-**Projekt:** `health-vitals` (Repo-Verzeichnis weiterhin `apple-health`, PROF-OBS-11) — Obsidian-Plugin,
+**Projekt:** `health-vitals` (Repo-Verzeichnis seit 2026-09-14 ebenfalls `health-vitals`, vorher `apple-health`; PROF-OBS-11) — Obsidian-Plugin,
 das **Apple Health XML-Exports** (Health-App → Export) parscht und im Vault durchsuchbar/visualisierbar
 macht. **Kein HealthKit-Zugriff** — Obsidian läuft in Electron, HealthKit ist native iOS/macOS API.
 User wählt die Export-Datei (`Export.zip` oder `Export.xml`) im Dashboard über einen nativen
@@ -41,7 +41,7 @@ npm run typecheck    # tsc --noEmit
 ## Conventions
 
 - **CSS-Prefix:** `ah-` (z.B. `.ah-panel`, `.ah-stat-row`) — bleibt, entkoppelt von der Plugin-ID (PROF-OBS-11)
-- **Plugin-ID:** `health-vitals` (Name: „Health Vitals"; Repo/Verzeichnis-Name (`apple-health`), View-Type
+- **Plugin-ID:** `health-vitals` (Name: „Health Vitals"; Repo/Verzeichnis seit 2026-09-14 `health-vitals`, vorher `apple-health`; View-Type
   (`apple-health-dashboard`) und CSS-Prefix (`ah-`) bleiben unverändert)
 
 ## Gotchas
