@@ -101,7 +101,7 @@ const ZEITRAUM = { einMonat: 0, dreiMonate: 1, einJahr: 2, alles: 3 } as const;
 
 /** Das gerade sichtbare Panel. `:not(.is-hidden)` statt Index — die Reihenfolge der Tabs
  *  ist eine Annahme, die Sichtbarkeit ist die Sache selbst. */
-const PANEL = `document.querySelector(".ah-dashboard .ah-panel:not(.is-hidden)")`;
+const PANEL = `document.querySelector(".ah-dashboard .okit-hub-panel:not(.is-hidden)")`;
 
 /** Dashboard öffnen und auf gerenderte Tabs warten. */
 async function dashboard(cdp: Cdp): Promise<boolean> {
@@ -116,7 +116,7 @@ async function dashboard(cdp: Cdp): Promise<boolean> {
   await closeExtraLeaves(cdp);
   const da = await pollUntil<boolean>(
     cdp,
-    `return Boolean(document.querySelector(".ah-dashboard .ah-tabbar"));`,
+    `return Boolean(document.querySelector(".ah-dashboard .okit-hub-tabs"));`,
     15_000,
     300,
   );
@@ -142,7 +142,7 @@ async function dashboard(cdp: Cdp): Promise<boolean> {
  *  0=Overview, 1=Detail, 2=Workouts. */
 async function tab(cdp: Cdp, index: number): Promise<void> {
   await cdp.evaluate(`
-    document.querySelectorAll(".ah-dashboard .ah-tabbar .ah-tab")[${index}]?.click();
+    document.querySelectorAll(".ah-dashboard .okit-hub-tabs .okit-hub-tab")[${index}]?.click();
     await new Promise((r) => setTimeout(r, 500));
     return true;
   `);
@@ -388,7 +388,7 @@ const SHOTS: Shot[] = [
       );
       if (!da) return null;
       return schussHoch(cdp, () =>
-        boxVonBis(cdp, ".ah-detail-head", ".ah-panel:not(.is-hidden) > .ah-stat-row"));
+        boxVonBis(cdp, ".ah-detail-head", ".okit-hub-panel:not(.is-hidden) > .ah-stat-row"));
     },
   },
   {
@@ -433,7 +433,7 @@ const SHOTS: Shot[] = [
         return null;
       }
       return schussHoch(cdp, () =>
-        boxVonBis(cdp, ".ah-stages", ".ah-panel:not(.is-hidden) .ah-stage-note"));
+        boxVonBis(cdp, ".ah-stages", ".okit-hub-panel:not(.is-hidden) .ah-stage-note"));
     },
   },
   {

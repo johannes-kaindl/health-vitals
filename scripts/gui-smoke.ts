@@ -226,7 +226,7 @@ const BG_HELFER = `
 
 /** Im Renderer: das gerade sichtbare Dashboard-Panel. `:not(.is-hidden)` statt Index —
  *  die Reihenfolge der Tabs ist eine Annahme, die Sichtbarkeit ist die Sache selbst. */
-const PANEL = `document.querySelector(".ah-dashboard .ah-panel:not(.is-hidden)")`;
+const PANEL = `document.querySelector(".ah-dashboard .okit-hub-panel:not(.is-hidden)")`;
 
 /** Alle Phasen-Klassen, die ein Element trägt (`ah-stage-deep` → `deep`). */
 const STAGE_HELFER = `
@@ -253,7 +253,7 @@ async function oeffneDashboard(cdp: Cdp): Promise<SzenenInfo> {
     // darin — ein querySelector darauf findet nichts und meldete 0px Ansichtsbreite.
     const root = leaf?.view?.contentEl;
     return {
-      hatCache: Boolean(root?.querySelector(".ah-tabbar")),
+      hatCache: Boolean(root?.querySelector(".okit-hub-tabs")),
       breite: root ? Math.round(root.getBoundingClientRect().width) : 0,
     };
   `);
@@ -337,7 +337,7 @@ async function stelleDetailHer(cdp: Cdp, name: string, auchGruen: boolean): Prom
 async function stelleWorkoutsHer(cdp: Cdp): Promise<boolean> {
   const ok = await cdp.evaluate<boolean>(`
     const root = document.querySelector(".ah-dashboard");
-    const tab = root?.querySelectorAll(".ah-tabbar .ah-tab")[2];
+    const tab = root?.querySelector(".okit-hub-tabs .okit-hub-tab[data-tab='workouts']");
     if (!tab) return false;
     tab.click();
     await new Promise((r) => setTimeout(r, 600));
@@ -370,8 +370,8 @@ async function pruefeGeruest(cdp: Cdp): Promise<void> {
     const root = document.querySelector(".ah-dashboard");
     if (!root) return null;
     return {
-      tabs: root.querySelectorAll(".ah-tabbar .ah-tab").length,
-      panels: root.querySelectorAll(".ah-content .ah-panel").length,
+      tabs: root.querySelectorAll(".okit-hub-tabs .okit-hub-tab").length,
+      panels: root.querySelectorAll(".okit-hub-content .okit-hub-panel").length,
     };
   `);
   record(
@@ -385,11 +385,11 @@ async function pruefeGeruest(cdp: Cdp): Promise<void> {
   const wechsel = await cdp.evaluate<{ sichtbar: number; hoehe: number; hatRange: boolean } | null>(`
     const root = document.querySelector(".ah-dashboard");
     if (!root) return null;
-    const detailTab = root.querySelectorAll(".ah-tabbar .ah-tab")[1];
+    const detailTab = root.querySelector(".okit-hub-tabs .okit-hub-tab[data-tab='detail']");
     if (!detailTab) return null;
     detailTab.click();
     await new Promise((r) => setTimeout(r, 600));
-    const panels = [...root.querySelectorAll(".ah-content .ah-panel")];
+    const panels = [...root.querySelectorAll(".okit-hub-content .okit-hub-panel")];
     const offen = panels.filter((p) => p.getBoundingClientRect().height > 0);
     return {
       sichtbar: offen.length,
@@ -411,9 +411,9 @@ async function pruefeSparkline(cdp: Cdp): Promise<void> {
     const root = document.querySelector(".ah-dashboard");
     // Erst zurück auf die Übersicht: Im ausgeblendeten Panel (display: none) misst
     // jede Bounding-Box 0 — der Punkt wäre rot, ohne dass an der Sparkline etwas fehlt.
-    root?.querySelectorAll(".ah-tabbar .ah-tab")[0]?.click();
+    root?.querySelector(".okit-hub-tabs .okit-hub-tab[data-tab='overview']")?.click();
     await new Promise((r) => setTimeout(r, 500));
-    const uebersicht = root?.querySelector(".ah-content .ah-panel:not(.is-hidden)");
+    const uebersicht = root?.querySelector(".okit-hub-content .okit-hub-panel:not(.is-hidden)");
     const svg = uebersicht?.querySelector(".ah-tile-spark svg");
     if (!svg) return null;
     const r = svg.getBoundingClientRect();
@@ -1179,7 +1179,7 @@ async function main(): Promise<void> {
     // steht, macht `document.querySelector` mehrdeutig — und die Messung misst dann das
     // falsche Chart.
     await closeExtraLeaves(cdp);
-    await pollUntil<boolean>(cdp, `return Boolean(document.querySelector(".ah-dashboard .ah-tabbar"));`, 10_000);
+    await pollUntil<boolean>(cdp, `return Boolean(document.querySelector(".ah-dashboard .okit-hub-tabs"));`, 10_000);
 
     for (const section of sections) {
       console.log(`── ${section.title}`);
