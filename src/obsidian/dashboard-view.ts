@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import { t } from "../vendor/kit/i18n";
 import type { HealthCache } from "../core/types";
 import { IDLE, type ImportState } from "../core/import-state";
@@ -7,6 +7,7 @@ import { renderImport } from "./tabs/import";
 import { renderOverview } from "./tabs/overview";
 import { renderDetail, type DetailState } from "./tabs/detail";
 import { renderWorkouts } from "./tabs/workouts";
+import { buildHubInto, type HubController, type HubPanel } from "../vendor/kit-obsidian/hub";
 
 export const VIEW_TYPE_DASHBOARD = "apple-health-dashboard";
 
@@ -28,19 +29,17 @@ export interface DashboardHost {
 }
 
 export type TabId = "overview" | "detail" | "workouts";
-const TABS: Array<{ id: TabId; labelKey: string; icon: string }> = [
-  { id: "overview", labelKey: "tab.overview", icon: "layout-grid" },
-  { id: "detail", labelKey: "tab.detail", icon: "line-chart" },
-  { id: "workouts", labelKey: "tab.workouts", icon: "dumbbell" },
-];
+const TAB_META: Record<TabId, { labelKey: string; icon: string }> = {
+  overview: { labelKey: "tab.overview", icon: "layout-grid" },
+  detail: { labelKey: "tab.detail", icon: "line-chart" },
+  workouts: { labelKey: "tab.workouts", icon: "dumbbell" },
+};
 
 export class DashboardView extends ItemView {
   readonly host: DashboardHost;
   private cache: HealthCache | null = null;
-  private active: TabId = "overview";
   private detail: DetailState = { metricId: null, range: "3M" };
-  private panels = new Map<TabId, HTMLElement>();
-  private tabButtons = new Map<TabId, HTMLElement>();
+  private hub: HubController<TabId> | null = null;
   private importState: ImportState = IDLE;
   private importCtrl: ImportController | null = null;
 
@@ -55,11 +54,15 @@ export class DashboardView extends ItemView {
 
   openDetail(metricId: string): void {
     this.detail = { ...this.detail, metricId };
-    this.switchTab("detail");
-    this.renderActive();
+    this.hub?.setTab("detail");
+    // setTab ist ein No-op, wenn "detail" schon aktiv ist (Kit-Vertrag) — der neue
+    // metricId braucht deshalb einen expliziten Refresh, unabhängig vom Tab-Wechsel.
+    this.hub?.refreshActive();
   }
 
-  refreshOverview(): void { if (this.active === "overview") this.renderActive(); }
+  refreshOverview(): void {
+    if (this.hub?.currentTab() === "overview") this.hub.refreshActive();
+  }
 
   async onOpen(): Promise<void> {
     this.cache = await this.host.loadCache();
@@ -70,30 +73,34 @@ export class DashboardView extends ItemView {
     const root = this.contentEl;
     root.empty();
     root.addClass("ah-dashboard");
-    this.panels.clear();
-    this.tabButtons.clear();
+    this.hub?.destroy();
+    this.hub = null;
 
     if (!this.cache) { this.renderImportScreen(root); return; }
 
-    const head = root.createDiv({ cls: "ah-tabbar" });
-    for (const tab of TABS) {
-      const btn = head.createDiv({ cls: "ah-tab" });
-      btn.setAttribute("role", "tab");
-      btn.setAttribute("aria-label", t(tab.labelKey));
-      const icon = btn.createSpan({ cls: "ah-tab-icon" });
-      setIcon(icon, tab.icon);
-      btn.createSpan({ cls: "ah-tab-label", text: t(tab.labelKey) });
-      btn.addEventListener("click", () => { this.switchTab(tab.id); this.renderActive(); });
-      this.tabButtons.set(tab.id, btn);
-    }
+    const panels: HubPanel<TabId>[] = [
+      this.makePanel("overview", (el) => renderOverview(el, this.cache!, this)),
+      this.makePanel("detail", (el) =>
+        renderDetail(el, this.cache!, this.detail, (s) => { this.detail = s; this.hub?.refreshActive(); }, this)),
+      this.makePanel("workouts", (el) => renderWorkouts(el, this.cache!)),
+    ];
+    this.hub = buildHubInto(root, panels, "overview");
+  }
 
-    const content = root.createDiv({ cls: "ah-content" });
-    for (const tab of TABS) {
-      const panel = content.createDiv({ cls: "ah-panel" });
-      this.panels.set(tab.id, panel);
-    }
-    this.switchTab(this.active);
-    this.renderActive();
+  // Mount-once (Kit-Vertrag): der Container bleibt über Tab-Wechsel hinweg gemountet,
+  // onShow räumt ihn leer und rendert neu — entspricht dem bisherigen renderActive()
+  // pro Panel, nur jetzt über den Kit-Steuerkanal statt eigener Sichtbarkeits-Logik.
+  private makePanel(id: TabId, render: (container: HTMLElement) => void): HubPanel<TabId> {
+    const meta = TAB_META[id];
+    let container: HTMLElement | null = null;
+    return {
+      id,
+      get label(): string { return t(meta.labelKey); },
+      icon: meta.icon,
+      mount: (el: HTMLElement) => { container = el; },
+      onShow: () => { if (container) { container.empty(); render(container); } },
+      destroy: () => {},
+    };
   }
 
   private renderImportScreen(root: HTMLElement): void {
@@ -138,29 +145,7 @@ export class DashboardView extends ItemView {
 
     if (this.importState.status === "done") {
       this.cache = await this.host.loadCache();
-      this.active = "overview";
       this.renderRoot();
-    }
-  }
-
-  private switchTab(id: TabId): void {
-    this.active = id;
-    for (const [tid, panel] of this.panels) panel.toggleClass("is-hidden", tid !== id);
-    for (const [tid, btn] of this.tabButtons) btn.toggleClass("is-active", tid === id);
-  }
-
-  // Mount-once: nur der aktive Panel-Inhalt wird (neu) gerendert; State der anderen bleibt im DOM.
-  private renderActive(): void {
-    if (!this.cache) return;
-    const panel = this.panels.get(this.active);
-    if (!panel) return;
-    panel.empty();
-    if (this.active === "overview") {
-      renderOverview(panel, this.cache, this);
-    } else if (this.active === "detail") {
-      renderDetail(panel, this.cache, this.detail, (s) => { this.detail = s; this.renderActive(); }, this);
-    } else {
-      renderWorkouts(panel, this.cache);
     }
   }
 
@@ -170,6 +155,7 @@ export class DashboardView extends ItemView {
     // (der neue View-Instanz liest den Cache, den der erste Lauf noch nicht geschrieben
     // hat) und könnte einen zweiten, parallelen Import auf denselben Cache-Pfad starten.
     this.importCtrl?.abort();
+    this.hub?.destroy();
     this.contentEl.empty();
   }
 }

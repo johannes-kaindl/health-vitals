@@ -10,6 +10,9 @@ function makeEl(): any {
       child.tag = tag;
       if (o && o.cls) child.cls = o.cls;
       if (o && o.text) { child.text = o.text; child.textContent = o.text; }
+      // Der Kit-Hub (buildHubInto) liest keine Attribute zurueck, setzt sie aber ueber
+      // `attr` — ohne Aufzeichnung waeren role="tablist"/"data-tab" fuer Tests unsichtbar.
+      if (o && o.attr) child.attrs = o.attr;
       el.children.push(child);
       return child;
     },

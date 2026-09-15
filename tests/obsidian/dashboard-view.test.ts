@@ -128,4 +128,60 @@ describe("DashboardView", () => {
     capturedOnStates[1]({ status: "aborted" });
     expect(privates(v).importState).toEqual({ status: "aborted" });
   });
+
+  // Welle 2: Umstellung des Eigenbaus (ah-tabbar) auf den Kit-Hub (buildHubInto,
+  // obsidian-kit@0.35.0). Diese Tests belegen den DOM-Vertrag des Kit-Moduls, nicht
+  // mehr die alte switchTab()/renderActive()-Logik.
+  type TestableHubView = { hub: { currentTab(): string } | null };
+  function hubOf(v: DashboardView) { return (v as unknown as TestableHubView).hub; }
+
+  it("onOpen mit Cache baut die Kit-Hub-Struktur: drei Tabs, drei Panels", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    const root = (v as unknown as { contentEl: any }).contentEl;
+
+    const tabs = root.querySelector(".okit-hub-tabs");
+    expect(tabs).toBeTruthy();
+    expect(tabs.children.map((c: any) => c.attrs?.["data-tab"])).toEqual(["overview", "detail", "workouts"]);
+
+    const content = root.querySelector(".okit-hub-content");
+    expect(content.children.length).toBe(3);
+    expect(content.children.map((c: any) => c.attrs?.["data-tab"])).toEqual(["overview", "detail", "workouts"]);
+  });
+
+  it("startet auf dem overview-Tab", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    expect(hubOf(v)?.currentTab()).toBe("overview");
+  });
+
+  it("openDetail wechselt auf den detail-Tab", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    v.openDetail("stepCount");
+    expect(hubOf(v)?.currentTab()).toBe("detail");
+  });
+
+  it("openDetail aktualisiert die metricId auch, wenn der detail-Tab schon aktiv ist", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    v.openDetail("stepCount");
+    expect(hubOf(v)?.currentTab()).toBe("detail"); // No-op laut Kit-Vertrag, da schon aktiv
+    v.openDetail("heartRate");
+    expect((v as unknown as { detail: { metricId: string | null } }).detail.metricId).toBe("heartRate");
+  });
+
+  it("refreshOverview ist ein No-Op, solange ein anderer Tab aktiv ist", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    v.openDetail("stepCount");
+    expect(() => v.refreshOverview()).not.toThrow();
+    expect(hubOf(v)?.currentTab()).toBe("detail"); // unveraendert
+  });
+
+  it("onClose zerstoert den Hub, ohne zu werfen", async () => {
+    const v = new DashboardView(fakeLeaf(), host(emptyCache));
+    await v.onOpen();
+    await expect(v.onClose()).resolves.toBeUndefined();
+  });
 });

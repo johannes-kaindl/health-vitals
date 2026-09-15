@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Die Tab-Leiste des Dashboards (Übersicht/Detail/Workouts) läuft jetzt über den
+  verbindlichen Kit-Baustein `buildHubInto` (obsidian-kit 0.35.0) statt über einen
+  Eigenbau. Verhaltensänderung: vollständiges ARIA-Tabs-Muster (`tablist`/`tab`/
+  `tabpanel`, roving tabindex, Pfeiltasten-/Home-/End-Navigation) statt des vorherigen
+  `role="tab"` ohne `tablist`-Elter (ungültiges ARIA). CSS-Klassen `ah-tabbar`/`ah-tab*`
+  → `okit-hub-*` (nur Klassennamen, das Umbruch-Rezept bleibt unverändert).
+
 ## [0.7.0] — 2026-09-02
 
 ### Added

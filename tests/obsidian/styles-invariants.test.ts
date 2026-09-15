@@ -33,32 +33,34 @@ describe("styles.css — Design-Invarianten", () => {
   });
 });
 
-describe("styles.css — Tab-Leiste bricht um (uebernommen aus obsidian-kit HUB_CSS)", () => {
+describe("styles.css — Hub-Tab-Leiste bricht um (uebernommen aus obsidian-kit HUB_CSS)", () => {
   // Vier Zutaten, jede einzeln wirkungslos — der Modulkopf von obsidian-kit
-  // `src/obsidian/hub.ts` begruendet sie im Detail. Ohne sie schiebt eine schmale Sidebar
-  // die letzten Tabs aus dem Panel, wo sie unerreichbar sind; vault-rag und vim-dojo haben
-  // genau das unabhaengig voneinander gefunden, hier fehlten am 2026-09-02 alle vier.
+  // `src/vendor/kit-obsidian/hub.ts` begruendet sie im Detail. Ohne sie schiebt eine
+  // schmale Sidebar die letzten Tabs aus dem Panel, wo sie unerreichbar sind; vault-rag
+  // und vim-dojo haben genau das unabhaengig voneinander gefunden.
   //
-  // Warum als Test und nicht nur als Kommentar: das Modul ist NICHT vendoriert, hier liegt
-  // also nur die sichtbare Haelfte. Eine Kopie ohne Waechter ist genau das, was beim
-  // naechsten Umbau still verschwindet — und der Fehler zeigt sich erst in schmaler
-  // Sidebar, also nicht dort, wo jemand hinsieht.
+  // Seit Welle 2 (Kit-Pin 0.35.0) baut buildHubInto die Leiste selbst
+  // (okit-hub-tabs/okit-hub-tab/-label/-icon statt des vorherigen Eigenbaus
+  // ah-tabbar/ah-tab); das CSS bleibt trotzdem Sache des Consumers, das Kit injiziert
+  // bewusst keines. Warum als Test und nicht nur als Kommentar: eine Kopie ohne Waechter
+  // ist genau das, was beim naechsten Umbau still verschwindet — und der Fehler zeigt
+  // sich erst in schmaler Sidebar, also nicht dort, wo jemand hinsieht.
   //
   // Was der Test NICHT kann: beweisen, dass die Leiste tatsaechlich umbricht. Das
   // entscheidet das echte Rendering; hier steht nur, dass die Zutaten nicht verlorengehen.
   it("(1) die Leiste darf eine zweite Zeile bilden", () => {
-    expect(rule(".ah-tabbar")).toMatch(/flex-wrap:\s*wrap/);
+    expect(rule(".okit-hub-tabs")).toMatch(/flex-wrap:\s*wrap/);
   });
 
   it("(2)+(3) der Tab geht mit seiner Inhaltsbreite in die Umbruch-Entscheidung ein", () => {
-    const tab = rule(".ah-tab");
+    const tab = rule(".okit-hub-tab");
     expect(tab).toMatch(/flex:\s*1\s+1\s+auto/);
     // min-width:auto waere min-content — ein langes Label sprengte die Zeile trotz wrap.
     expect(tab).toMatch(/min-width:\s*0/);
   });
 
   it("(4) das Label ellipsiert, statt aus dem geschrumpften Tab zu quellen", () => {
-    const label = rule(".ah-tab-label");
+    const label = rule(".okit-hub-tab-label");
     expect(label).toBeTruthy();
     expect(label).toMatch(/overflow:\s*hidden/);
     expect(label).toMatch(/text-overflow:\s*ellipsis/);
@@ -66,7 +68,7 @@ describe("styles.css — Tab-Leiste bricht um (uebernommen aus obsidian-kit HUB_
   });
 
   it("das Icon schrumpft nicht mit — sonst frisst ein langes Label es auf", () => {
-    expect(rule(".ah-tab-icon")).toMatch(/flex:\s*0\s+0\s+auto/);
+    expect(rule(".okit-hub-tab-icon")).toMatch(/flex:\s*0\s+0\s+auto/);
   });
 });
 
