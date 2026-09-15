@@ -19,7 +19,7 @@ KIT=../obsidian-kit
 # Bewusst NICHT genommen: obsidian-kit traegt unter src/vendor/code-kit/ eigene Kopien.
 # Eine Zwischenkopie als Quelle erzeugt eine Kopier-Kette, und die sieht bei der naechsten
 # Zaehlung wie ein unabhaengiger Beleg aus (Dach-AGENTS, Kit-first Punkt 1).
-CODE_KIT=../../code-kit
+CODE_KIT="${CODE_KIT_DIR:-../../libs/code-kit}"
 
 # Gelesen wird aus einer festen Ref, nicht aus dem Arbeitsstand des Nachbar-Repos
 # (CORE-META-22). Umgestellt 2026-09-07; vorher las dieses Skript per `cp` aus
@@ -31,8 +31,8 @@ CODE_KIT=../../code-kit
 # EIN Commit hinter dem Tag. Dass der Inhalt trotzdem stimmte, war Glueck: jener
 # Commit beruehrte nur AGENTS.md. Version und SHA widersprachen sich, und nur die
 # SHA war wahr.
-KIT_REF=${KIT_REF:-0.30.0}
-CODE_KIT_REF=${CODE_KIT_REF:-0.5.0}
+KIT_REF=${KIT_REF:-0.35.0}
+CODE_KIT_REF=${CODE_KIT_REF:-0.6.0}
 
 for paar in "$KIT|$KIT_REF" "$CODE_KIT|$CODE_KIT_REF"; do
   repo=${paar%%|*}; ref=${paar##*|}
@@ -172,7 +172,7 @@ for m in $PURE_MODULE; do
   echo "vendored $quelle@$ver/$rel"
 done
 
-for m in collapsible folder-suggest clipboard; do
+for m in collapsible folder-suggest clipboard hub; do
   vendor_aus_ref "src/vendor/kit-obsidian/$m.ts" "$KIT" "$KIT_REF" "src/obsidian/$m.ts"
   relayer "src/vendor/kit-obsidian/$m.ts"
   stamp "src/vendor/kit-obsidian/$m.ts" "src/obsidian/$m.ts"
@@ -194,7 +194,7 @@ cat > src/vendor/kit-obsidian/VENDOR.json <<JSON
   "source": "obsidian-kit",
   "version": "$VER",
   "sha": "$SHA",
-  "vendored": "collapsible.ts, folder-suggest.ts, clipboard.ts",
+  "vendored": "collapsible.ts, folder-suggest.ts, clipboard.ts, hub.ts",
   "note": "Verbatim snapshot. Never hand-edit. Re-vendor via tools/sync-kit.sh. version/sha gelten AUSSCHLIESSLICH fuer die unter \"vendored\" gelisteten Dateien. EINE mechanische Abweichung von verbatim: kit-interne Importe ../pure/ -> ../kit/ (Vendor-Layout) in clipboard.ts; bei jedem Re-Vendor reproduzieren, sonst darf nichts abweichen."
 }
 JSON
