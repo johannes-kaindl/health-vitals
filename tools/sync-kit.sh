@@ -31,7 +31,7 @@ CODE_KIT="${CODE_KIT_DIR:-../../libs/code-kit}"
 # EIN Commit hinter dem Tag. Dass der Inhalt trotzdem stimmte, war Glueck: jener
 # Commit beruehrte nur AGENTS.md. Version und SHA widersprachen sich, und nur die
 # SHA war wahr.
-KIT_REF=${KIT_REF:-0.35.0}
+KIT_REF=${KIT_REF:-0.37.1}
 CODE_KIT_REF=${CODE_KIT_REF:-0.6.0}
 
 for paar in "$KIT|$KIT_REF" "$CODE_KIT|$CODE_KIT_REF"; do

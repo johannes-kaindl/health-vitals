@@ -1,7 +1,7 @@
 {
   "source": "obsidian-kit",
-  "version": "0.35.0",
-  "sha": "e7e3e19",
+  "version": "0.37.1",
+  "sha": "4cfa746",
   "code_kit_version": "0.6.0",
   "vendored": "i18n.ts, vault-path.ts, cooperative-yield.ts, run-state.ts, clipboard.ts, num.ts, settings_schema.ts",
   "note": "Verbatim snapshot aus ZWEI Quellen (obsidian-kit + code-kit); welche Datei woher stammt, sagt ihr eigener Kopf. Never hand-edit. Re-vendor via tools/sync-kit.sh. version/sha gelten AUSSCHLIESSLICH fuer die unter \"vendored\" gelisteten Dateien. kit-obsidian/ siehe dessen VENDOR.json."
