@@ -1078,12 +1078,75 @@ async function main(): Promise<void> {
   let warOffen = false;
   let sidebarsVorher: { links: boolean; rechts: boolean } | null = null;
 
+  // Dieselbe Aufraeumarbeit wie im `finally` unten — als eigene Funktion, damit der
+  // SIGINT/SIGTERM-Handler sie aufrufen kann, ohne Code zu duplizieren. Ein Ctrl-C mitten
+  // im Lauf ueberspringt das `finally` NICHT (try/catch-Semantik), sondern beendet den
+  // Node-Prozess sofort — ohne eigenen Handler blieben Theme-CSS abgeschaltet, Sidebars
+  // verstellt und data.json im Smoke-Zustand stehen; der Nutzer sitzt dann vor einem
+  // Obsidian ohne sein Theme.
+  const cleanupState = async (): Promise<void> => {
+    await setzeThemeCss(cdp, true).catch(() => undefined);
+    await setzeTheme(cdp, themeWarDunkel).catch(() => undefined);
+    if (sidebarsVorher !== null) {
+      await stelleSidebarsWiederHer(cdp, sidebarsVorher).catch(() => undefined);
+    }
+    if (dataVorher !== null && dataPfad !== null) {
+      const wieder = await cdp
+        .evaluate<string>(`
+          const pfad = ${JSON.stringify(dataPfad)};
+          await app.vault.adapter.write(pfad, ${JSON.stringify(dataVorher)});
+          await app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]?.loadPluginData?.();
+          return await app.vault.adapter.read(pfad);
+        `)
+        .catch(() => null);
+      console.log(
+        wieder === dataVorher
+          ? "data.json: byte-gleich wiederhergestellt"
+          : `data.json: ABWEICHUNG — bitte prüfen (${dataPfad})`,
+      );
+    }
+    if (!warOffen) {
+      await cdp
+        .evaluate(`app.workspace.detachLeavesOfType(${JSON.stringify(VIEW_TYPE)}); return true;`)
+        .catch(() => undefined);
+    }
+  };
+
+  let signalCleanupRunning = false;
+  const onAbortSignal = (signal: NodeJS.Signals) => {
+    if (signalCleanupRunning) return;
+    signalCleanupRunning = true;
+    void (async () => {
+      console.log(`\n\nAbbruch durch ${signal} — raeume Smoke-Zustand auf...`);
+      await cleanupState();
+      cdp.close();
+      process.exit(130);
+    })();
+  };
+  process.on("SIGINT", onAbortSignal);
+  process.on("SIGTERM", onAbortSignal);
+
   try {
     // Fokus-Emulation: bei mehreren offenen Fenstern bekommt unseres den echten
     // Tastaturfokus oft nicht; Chromium kann ihn dem Renderer vorspielen und die
     // Hintergrund-Drosselung entfällt, ohne fremde Fenster anzufassen.
     await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }).catch(() => undefined);
     await requireVisible(cdp);
+
+    // Ein abgeschaltetes Theme-CSS (`styleEl.disabled === true`) ist unter normaler Nutzung
+    // nie der Fall — nur `setzeThemeCss(cdp, false)` in diesem Treiber setzt es. Ein Rest aus
+    // einem per SIGINT/SIGTERM abgebrochenen frueheren Lauf ist daran erkennbar, BEVOR
+    // dieser Lauf selbst das CSS abschaltet. Ohne diesen Punkt saesse der Nutzer nach einem
+    // Abbruch vor einem Obsidian ohne sein Theme, ohne dass ein spaeterer Lauf es meldet.
+    const themeCssAus = await cdp.evaluate<boolean>(`return app.customCss?.styleEl?.disabled === true;`);
+    record(
+      "Kein liegen gebliebenes abgeschaltetes Theme-CSS aus einem abgebrochenen frueheren Lauf",
+      !themeCssAus,
+      themeCssAus
+        ? "Theme-CSS war abgeschaltet und wurde wieder aktiviert — vermutlich Ctrl-C/Crash im vorigen Lauf vor dessen Aufraeumen; dieser Lauf faehrt normal weiter"
+        : "Theme-CSS war aktiv",
+    );
+    if (themeCssAus) await setzeThemeCss(cdp, true);
 
     // Der eigene Fehlerkanal des Prüflings — ohne Mitschnitt meldet der Treiber
     // „Sektion fehlt", während die Ursache ungelesen daneben steht.
@@ -1194,39 +1257,11 @@ async function main(): Promise<void> {
     }
   } finally {
     // Aufräumen darf nie am Ergebnis hängen: auch ein abgebrochener Lauf gibt den Vault so
-    // zurück, wie er ihn vorgefunden hat. Das Theme-CSS zuerst — bricht der Lauf mitten in
-    // der Gegenprobe ab, sitzt der Nutzer sonst vor einem Obsidian ohne sein Theme.
-    await setzeThemeCss(cdp, true).catch(() => undefined);
-    await setzeTheme(cdp, themeWarDunkel).catch(() => undefined);
-    if (sidebarsVorher !== null) {
-      await stelleSidebarsWiederHer(cdp, sidebarsVorher).catch(() => undefined);
-    }
-
-    if (dataVorher !== null && dataPfad !== null) {
-      // Zurückschreiben UND das Plugin die Datei neu einlesen lassen: Es hält seine Daten
-      // im Speicher und schriebe beim nächsten eigenen `saveData` den Smoke-Zustand
-      // wieder über die gerade wiederhergestellte Datei.
-      const wieder = await cdp
-        .evaluate<string>(`
-          const pfad = ${JSON.stringify(dataPfad)};
-          await app.vault.adapter.write(pfad, ${JSON.stringify(dataVorher)});
-          await app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]?.loadPluginData?.();
-          return await app.vault.adapter.read(pfad);
-        `)
-        .catch(() => null);
-      // Das Ergebnis gehört ins Protokoll, nicht ins Vertrauen.
-      console.log(
-        wieder === dataVorher
-          ? "data.json: byte-gleich wiederhergestellt"
-          : `data.json: ABWEICHUNG — bitte prüfen (${dataPfad})`,
-      );
-    }
-
-    if (!warOffen) {
-      await cdp
-        .evaluate(`app.workspace.detachLeavesOfType(${JSON.stringify(VIEW_TYPE)}); return true;`)
-        .catch(() => undefined);
-    }
+    // zurück, wie er ihn vorgefunden hat. Dieselbe Funktion wie der SIGINT/SIGTERM-Handler
+    // oben — kein Doppelcode.
+    process.off("SIGINT", onAbortSignal);
+    process.off("SIGTERM", onAbortSignal);
+    await cleanupState();
     cdp.close();
   }
 
