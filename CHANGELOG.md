@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-09-26
+
 ### Changed
 
 - Die Tab-Leiste des Dashboards (Übersicht/Detail/Workouts) läuft jetzt über den
