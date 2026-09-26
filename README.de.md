@@ -3,18 +3,20 @@
 Obsidian-Plugin, das **Apple-Health-Exports** einliest und die Daten im Vault
 durchsuchbar und visualisierbar macht.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/gitea/v/release/jkaindl/health-vitals?gitea_url=https%3A%2F%2Fgit.jkaindl.de&label=release)](https://git.jkaindl.de/jkaindl/health-vitals/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE)
+[![Doku: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE-DOCS)
+[![Release](https://img.shields.io/github/v/release/johannes-kaindl/health-vitals?label=release)](https://github.com/johannes-kaindl/health-vitals/releases)
 [![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20nur%20Desktop-purple)](https://obsidian.md)
 
-> **Hinweis:** Diese Übersetzung folgt der englischen [`README.md`](README.md).
-> Bei Abweichungen gilt die englische Fassung.
+> [🇬🇧 English](https://github.com/johannes-kaindl/health-vitals/blob/main/README.md) · 🇩🇪 Deutsch
+>
+> **Hinweis:** Diese Übersetzung folgt der englischen README. Bei Abweichungen gilt die englische Fassung.
 
 Kein HealthKit-Zugriff — Obsidian läuft in Electron, HealthKit ist eine native
 iOS/macOS-API. Das Plugin arbeitet mit der Export-Datei, die du dir aus der
 Health-App schickst.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/overview.png" width="820" alt="Das Health-Vitals-Dashboard in Obsidian: Favoriten-Kacheln für Schritte, Ruhepuls und Schlaf mit Sparklines, darunter die aufgeklappte Kategorie Aktivität"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/overview.png" width="820" alt="Das Health-Vitals-Dashboard in Obsidian: Favoriten-Kacheln für Schritte, Ruhepuls und Schlaf mit Sparklines, darunter die aufgeklappte Kategorie Aktivität"></p>
 
 ## Features
 
@@ -76,7 +78,7 @@ dann `main.js`, `manifest.json` und `styles.css` in denselben Ordner kopieren.
 3. Im Dashboard **„Export auswählen"** klicken und die `Export.zip` (oder eine
    entpackte `Export.xml`) im Dateidialog wählen.
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/import.png" width="820" alt="Das Dashboard vor dem ersten Import: „Noch keine Daten“, ein Hinweis auf Profil und Alle Gesundheitsdaten exportieren in der Health-App und die Schaltfläche Export auswählen">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/import.png" width="820" alt="Das Dashboard vor dem ersten Import: „Noch keine Daten“, ein Hinweis auf Profil und Alle Gesundheitsdaten exportieren in der Health-App und die Schaltfläche Export auswählen">
 
 Der Lauf dauert bei großen Exports einige Minuten. Fortschritt, Phase und ein
 Abbrechen-Button stehen währenddessen im Dashboard; danach öffnet sich die
@@ -112,14 +114,14 @@ Charts sind handgezeichnetes SVG ohne Chart-Library und nutzen ausschließlich
 Obsidian-Theme-Variablen — sie passen sich also jedem Theme (hell/dunkel/
 Community) an.
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/detail-chart.png" width="820" alt="Detailansicht des Ruhepulses über drei Monate: Linie mit Min-Max-Band, beschriftete Achsen, gestrichelte Wochenanfänge und darunter Mittelwert, Minimum, Maximum und letzter Wert">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/detail-chart.png" width="820" alt="Detailansicht des Ruhepulses über drei Monate: Linie mit Min-Max-Band, beschriftete Achsen, gestrichelte Wochenanfänge und darunter Mittelwert, Minimum, Maximum und letzter Wert">
 
 Die Werte-Tabelle unter dem Chart lässt sich aufklappen und in die Zwischenablage oder
 als Markdown- bzw. CSV-Datei in den Vault schreiben:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/values-export.png" width="820" alt="Die aufgeklappte Werte-Sektion: Schaltflächen Kopieren und Speichern, Umschalter Markdown/CSV, ein Ordner-Feld und die ersten Tabellenzeilen mit Datum, Mittelwert, Minimum und Maximum">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/values-export.png" width="820" alt="Die aufgeklappte Werte-Sektion: Schaltflächen Kopieren und Speichern, Umschalter Markdown/CSV, ein Ordner-Feld und die ersten Tabellenzeilen mit Datum, Mittelwert, Minimum und Maximum">
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="Der Workouts-Tab: ein Balken je Monat und darunter eine Liste der jüngsten Einheiten mit Typ, Datum und Dauer">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/workouts.png" width="820" alt="Der Workouts-Tab: ein Balken je Monat und darunter eine Liste der jüngsten Einheiten mit Typ, Datum und Dauer">
 
 ### Zugriff außerhalb des Vaults
 
@@ -212,13 +214,13 @@ Wählt man im Detail-Bereich „Schlaf", erscheint unter dem Verlauf ein gestape
 je Nacht — Tief-, Kern- und REM-Schlaf, wobei die Balkenhöhe weiterhin die Schlafdauer
 ist:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages.png" width="820" alt="Die Sektion Schlafphasen: je Nacht ein gestapelter Balken über drei Monate, aufgeteilt in Tief-, Kern- und REM-Schlaf, mit Legende und der durchschnittlichen Wachzeit darunter">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/sleep-stages.png" width="820" alt="Die Sektion Schlafphasen: je Nacht ein gestapelter Balken über drei Monate, aufgeteilt in Tief-, Kern- und REM-Schlaf, mit Legende und der durchschnittlichen Wachzeit darunter">
 
 Nächte aus der Zeit vor watchOS 9 tragen keine Aufschlüsselung. Sie bleiben neutral
 gefärbt, und sobald sie den Zeitraum dominieren, sagt eine Hinweiszeile das, statt das
 Grau raten zu lassen:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages-unspecified.png" width="820" alt="Dieselbe Sektion über den gesamten Zeitraum: die ältere Hälfte der Nächte ist ein einzelner neutraler Block, die neuere ist in Phasen aufgeteilt, und eine Hinweiszeile nennt den Anteil ohne Aufschlüsselung">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/sleep-stages-unspecified.png" width="820" alt="Dieselbe Sektion über den gesamten Zeitraum: die ältere Hälfte der Nächte ist ein einzelner neutraler Block, die neuere ist in Phasen aufgeteilt, und eine Hinweiszeile nennt den Anteil ohne Aufschlüsselung">
 
 ## Datenschutz
 
@@ -268,8 +270,14 @@ getrennt. Konventionen und Architektur-Notizen: `AGENTS.md`.
 Web-Worker) ist in Node-Unit-Tests unsichtbar — Änderungen an der
 Obsidian-Schicht brauchen zusätzlich einen manuellen Test in echtem Obsidian.
 
+## Dokumentation
+
+- [Dokumentations-Index](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/README.md) (Englisch)
+- [Getting started](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/getting-started.md) — vom Export auf dem iPhone zum ersten Dashboard
+- [Troubleshooting](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/troubleshooting.md) — die Meldungen, die auftreten können, was sie bedeuten und was zu tun ist
+
 ## Lizenz
 
 Copyright © 2026 Johannes Kaindl
 
-Lizenziert unter der [GNU AGPL v3.0 oder später](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE).
+Lizenziert unter der [GNU AGPL v3.0 oder später](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE). Die Dokumentation steht unter CC BY-SA 4.0, siehe [LICENSE-DOCS](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE-DOCS).

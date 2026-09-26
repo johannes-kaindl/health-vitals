@@ -3,16 +3,17 @@
 An Obsidian plugin that reads **Apple Health exports** and makes the data searchable
 and visualizable inside your vault.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/gitea/v/release/jkaindl/health-vitals?gitea_url=https%3A%2F%2Fgit.jkaindl.de&label=release)](https://git.jkaindl.de/jkaindl/health-vitals/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE)
+[![Docs: CC BY-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--SA%204.0-lightgrey.svg)](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE-DOCS)
+[![Release](https://img.shields.io/github/v/release/johannes-kaindl/health-vitals?label=release)](https://github.com/johannes-kaindl/health-vitals/releases)
 [![Obsidian](https://img.shields.io/badge/obsidian-1.8.7%2B%20·%20desktop%20only-purple)](https://obsidian.md)
 
-*Auch auf Deutsch verfügbar: [`README.de.md`](README.de.md).*
+> 🇬🇧 English · [🇩🇪 Deutsch](https://github.com/johannes-kaindl/health-vitals/blob/main/README.de.md)
 
 No HealthKit access — Obsidian runs in Electron, and HealthKit is a native iOS/macOS
 API. This plugin works with the export file you send yourself from the Health app.
 
-<p align="center"><img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/overview.png" width="820" alt="The Health Vitals dashboard in Obsidian: favourite tiles for steps, resting heart rate and sleep with sparklines, below them the Activity category expanded"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/overview.png" width="820" alt="The Health Vitals dashboard in Obsidian: favourite tiles for steps, resting heart rate and sleep with sparklines, below them the Activity category expanded"></p>
 
 ## Features
 
@@ -70,12 +71,12 @@ into `<vault>/.obsidian/plugins/health-vitals/`, then enable the plugin under
 
 1. In the **Health app** (iPhone): Profile → *Export all health data* → move the
    resulting `Export.zip` to your computer.
-2. In Obsidian: the **Health Vitals Dashboard** ribbon icon (or the command palette →
+2. In Obsidian: the **Health Vitals dashboard** ribbon icon (heart-pulse) (or the command palette →
    **"Health Vitals: Open dashboard"**).
 3. Click **"Choose export"** in the dashboard and pick the `Export.zip` (or an unpacked
    `Export.xml`) in the file dialog.
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/import.png" width="820" alt="The dashboard before the first import: No data yet, a hint pointing to Profile then Export All Health Data in the Health app, and a Choose export button">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/import.png" width="820" alt="The dashboard before the first import: No data yet, a hint pointing to Profile then Export All Health Data in the Health app, and a Choose export button">
 
 A large export takes a few minutes. Progress, current phase and a cancel button stay
 visible in the dashboard while it runs; the overview opens by itself afterwards.
@@ -107,14 +108,14 @@ untouched. Three tabs:
   date, duration, distance and active energy — distance shows "—" for workouts that
   don't have one, such as strength training.
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/detail-chart.png" width="820" alt="Detail view of resting heart rate over three months: a line with a min/max band, labelled axes, dashed week starts, and average, minimum, maximum and last value below">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/detail-chart.png" width="820" alt="Detail view of resting heart rate over three months: a line with a min/max band, labelled axes, dashed week starts, and average, minimum, maximum and last value below">
 
 The value table below the chart expands on demand, and can be copied or written into the
 vault as Markdown or CSV:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/values-export.png" width="820" alt="The expanded Values section: Copy and Save buttons, a Markdown/CSV switch, a folder field, and the first table rows with date, average, minimum and maximum">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/values-export.png" width="820" alt="The expanded Values section: Copy and Save buttons, a Markdown/CSV switch, a folder field, and the first table rows with date, average, minimum and maximum">
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/workouts.png" width="820" alt="The Workouts tab: one bar per month, a monthly summary of count, distance and active energy, and a list of recent sessions with type, date, duration, distance and active energy — a strength training session shows a dash for distance">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/workouts.png" width="820" alt="The Workouts tab: one bar per month, a monthly summary of count, distance and active energy, and a list of recent sessions with type, date, duration, distance and active energy — a strength training session shows a dash for distance">
 
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
@@ -206,13 +207,13 @@ begins in the evening would fall on the same calendar day.
 Picking "Sleep" in the Detail tab adds a stacked bar per night below the time series —
 deep, core and REM, with the bar height still being the time slept:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages.png" width="820" alt="The Sleep stages section: one stacked bar per night over three months, split into deep, core and REM, with a legend and the average awake time below">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/sleep-stages.png" width="820" alt="The Sleep stages section: one stacked bar per night over three months, split into deep, core and REM, with a legend and the average awake time below">
 
 Nights recorded before watchOS 9 carry no breakdown. They stay neutrally coloured, and
 once they make up more than half of the period, a note says so rather than leaving the
 grey to be guessed at:
 
-<img src="https://git.jkaindl.de/jkaindl/health-vitals/raw/branch/main/docs/images/sleep-stages-unspecified.png" width="820" alt="The same section over the full period: the older half of the nights is a single neutral grey block, the newer half is split into stages, and a note states that 54 percent of nights carry no breakdown">
+<img src="https://raw.githubusercontent.com/johannes-kaindl/health-vitals/main/docs/images/sleep-stages-unspecified.png" width="820" alt="The same section over the full period: the older half of the nights is a single neutral grey block, the newer half is split into stages, and a note states that 54 percent of nights carry no breakdown">
 
 ## Privacy
 
@@ -257,8 +258,14 @@ notes: `AGENTS.md`.
 workers) is invisible to Node unit tests — changes to the Obsidian layer need a manual
 test in real Obsidian on top.
 
+## Documentation
+
+- [Documentation index](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/README.md)
+- [Getting started](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/getting-started.md) — from the export on the iPhone to your first dashboard
+- [Troubleshooting](https://github.com/johannes-kaindl/health-vitals/blob/main/docs/troubleshooting.md) — the messages you may see, what they mean and what to do
+
 ## License
 
 Copyright © 2026 Johannes Kaindl
 
-Licensed under the [GNU AGPL v3.0 or later](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE).
+Licensed under the [GNU AGPL v3.0 or later](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE). The documentation is licensed CC BY-SA 4.0, see [LICENSE-DOCS](https://github.com/johannes-kaindl/health-vitals/blob/main/LICENSE-DOCS).
