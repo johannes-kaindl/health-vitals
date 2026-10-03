@@ -10,165 +10,162 @@ All notable changes to this project are documented here. The format follows
 
 - The GitHub release now also carries a ready-to-unpack `health-vitals.zip` (the plugin folder with `main.js`, `manifest.json` and `styles.css`) and a `checksums.sha256` file. For a manual install, download the zip and unpack it into `.obsidian/plugins/` instead of creating the folder and saving three files by hand.
 
-## [0.7.1] — 2026-09-26
+## [0.7.1]## [0.7.1] — 2026-09-26
 
 ### Changed
 
-- Die Tab-Leiste des Dashboards (Übersicht/Detail/Workouts) läuft jetzt über den
-  verbindlichen Kit-Baustein `buildHubInto` (obsidian-kit 0.35.0) statt über einen
-  Eigenbau. Verhaltensänderung: vollständiges ARIA-Tabs-Muster (`tablist`/`tab`/
-  `tabpanel`, roving tabindex, Pfeiltasten-/Home-/End-Navigation) statt des vorherigen
-  `role="tab"` ohne `tablist`-Elter (ungültiges ARIA). CSS-Klassen `ah-tabbar`/`ah-tab*`
-  → `okit-hub-*` (nur Klassennamen, das Umbruch-Rezept bleibt unverändert).
+- The dashboard's tab bar (Overview/Detail/Workouts) now runs on the mandatory kit
+  building block `buildHubInto` (obsidian-kit 0.35.0) instead of a custom build. Behaviour
+  change: the full ARIA tabs pattern (`tablist`/`tab`/`tabpanel`, roving tabindex,
+  arrow/Home/End key navigation) instead of the previous `role="tab"` without a `tablist`
+  parent (invalid ARIA). CSS classes `ah-tabbar`/`ah-tab*` → `okit-hub-*` (class names
+  only, the wrapping recipe stays unchanged).
 
 ## [0.7.0] — 2026-09-02
 
 ### Added
 
-- Workouts tragen jetzt Distanz und aktiv verbrannte Energie. Die Zahlen stammen aus den
-  `WorkoutStatistics`-Kindelementen des Exports — die Attribute `totalDistance`/
-  `totalEnergyBurned` gibt es dort nicht.
-- Der Workouts-Tab zeigt eine Monatssumme und die Kennzahlen je Zeile.
+- Workouts now carry distance and active energy burned. The figures come from the
+  `WorkoutStatistics` child elements of the export — the `totalDistance`/`totalEnergyBurned`
+  attributes do not exist there.
+- The Workouts tab shows a monthly total and the key figures per row.
 
 ### Changed
 
-- Cache-Version 3: Bestehende Caches werden verworfen und müssen neu importiert werden.
-  Die Kennzahlen lassen sich nicht nachrüsten, weil der Parser sie bisher gar nicht las.
-- Die Dauer eines Workouts wird über `durationUnit` umgerechnet statt als Minuten angenommen.
+- Cache version 3: existing caches are discarded and have to be re-imported. The key
+  figures cannot be retrofitted, because the parser did not read them at all until now.
+- The duration of a workout is converted via `durationUnit` instead of being assumed to be
+  minutes.
 
 ### Fixed
 
-- **Der Zielordner des Werte-Exports wird jetzt normalisiert.** Das Feld nimmt Freitext an;
-  ein Backslash oder ein doppelter Schrägstrich darin wanderte bisher unverändert in den
-  Pfad (`Notizen//Export` blieb `Notizen//Export`). Backslashes werden zu Schrägstrichen,
-  Mehrfach-Schrägstriche fallen zusammen.
+- **The target folder of the value export is now normalised.** The field accepts free text;
+  a backslash or a double slash in it used to end up unchanged in the path (`Notes//Export`
+  stayed `Notes//Export`). Backslashes become slashes, multiple slashes collapse.
 
 ### Internal
 
-- Sechs gemeinsame Bausteine kommen jetzt aus **obsidian-kit 0.27.0** statt aus lokalen
-  Fassungen (Ablaufzustand, kooperatives Nachgeben, Vault-Pfade, Zwischenablage,
-  Einstellungs-Validierung). `tools/sync-kit.sh` erzeugt die Kopien reproduzierbar, jede
-  trägt ihren Herkunftsstempel. Am sichtbaren Verhalten ändert sich außer dem Punkt oben
-  nichts; drei stille Verhaltensänderungen im Ablaufzustand sind durch neue Tests
-  festgehalten, damit ein späterer Rückbau nicht durch ein grünes Gate fällt.
+- Six shared building blocks now come from **obsidian-kit 0.27.0** instead of local
+  versions (run state, cooperative yielding, vault paths, clipboard, settings validation).
+  `tools/sync-kit.sh` produces the copies reproducibly, each one carries its provenance
+  stamp. Apart from the item above, nothing changes in the visible behaviour; three silent
+  behaviour changes in the run state are pinned by new tests, so that a later rollback
+  does not slip through a green gate.
 
 ## [0.6.0] — 2026-08-18
 
 ### Added
 
-- **Schlafphasen als gestapeltes Balkendiagramm.** Wählt man im Detail-Bereich die Metrik
-  „Schlaf", erscheint unter dem Verlauf eine neue Sektion: je Nacht ein Balken, dessen
-  Segmente Tief-, Kern- und REM-Schlaf übereinander zeigen. Die Balkenhöhe bleibt dabei
-  die Schlafdauer, kurze und lange Nächte sind also weiterhin unterscheidbar. Über einen
-  längeren Zeitraum zeigt ein Balken die **durchschnittliche** Nacht der Woche bzw. des
-  Monats — nicht deren Summe, sonst beantwortete die Grafik eine andere Frage als die,
-  die sie stellt.
-- Die durchschnittliche Wachzeit innerhalb der Nächte steht als Kennzahl unter dem
-  Phasen-Diagramm. Sie fließt bewusst nicht in den Stapel ein: Wachzeit ist kein Schlaf.
-- Ältere Exporte kennen nur „Schlaf" ohne Aufschlüsselung — vor watchOS 9 liefert Apple
-  keine Phasen. Solche Nächte erscheinen als neutral eingefärbtes Segment „Unbestimmt";
-  überwiegen sie im gewählten Zeitraum, nennt eine Zeile unter der Grafik ihren Anteil,
-  damit der einfarbige Bereich als Gerätegrenze lesbar ist und nicht als Fehler.
-- Die README zeigt jetzt, wie das Plugin aussieht: sieben Bilder vom Dashboard, vom
-  Verlauf mit Achsen, von beiden Zuständen des Phasen-Diagramms, von der Werte-Tabelle
-  mit Export, von den Workouts und vom Zustand vor dem ersten Import.
-- **Die Farben der Schlafphasen lassen sich per CSS-Snippet ändern** — der Abschnitt
-  „Konfiguration" nennt die vier Klassen und sagt dazu, worauf beim Farbwechsel zu achten
-  ist. Ein Einstellungs-Tab bleibt es bewusst nicht.
+- **Sleep phases as a stacked bar chart.** If you pick the metric "Sleep" in the Detail
+  area, a new section appears below the trend: one bar per night, whose segments show deep,
+  core and REM sleep stacked on top of each other. The bar height remains the sleep
+  duration, so short and long nights are still distinguishable. Over a longer period a bar
+  shows the **average** night of the week or month — not their sum, otherwise the chart
+  would answer a different question than the one it asks.
+- The average time awake within the nights appears as a key figure below the phase chart.
+  It deliberately does not feed into the stack: time awake is not sleep.
+- Older exports only know "Sleep" without a breakdown — before watchOS 9 Apple delivers
+  no phases. Such nights appear as a neutrally coloured "Unspecified" segment; if they
+  dominate the selected period, a line below the chart states their share, so that the
+  single-colour area reads as a device limit and not as an error.
+- The README now shows what the plugin looks like: seven images of the dashboard, of the
+  trend with axes, of both states of the phase chart, of the values table with export, of
+  the workouts and of the state before the first import.
+- **The sleep phase colours can be changed via a CSS snippet** — the "Configuration"
+  section names the four classes and says what to watch for when changing colours. A
+  settings tab deliberately stays out.
 
 ### Fixed
 
-- **Die Phase „Kern" war in hellen Themes zu blass.** Sie kam gegen den Hintergrund auf
-  1:2,3 und blieb damit unter dem, was für bedeutungstragende Flächen als lesbar gilt
-  (WCAG 1.4.11 verlangt 3:1) — auf einem hellen Theme verschwamm der größte Teil jedes
-  Balkens mit dem Untergrund. Die Farbe ist jetzt eine mit der Textfarbe abgedunkelte
-  Variante desselben Türkis: Der Farbton und damit die Ordnung Tief → Kern → REM bleiben,
-  der Kontrast liegt in hellen wie dunklen Themes über der Schwelle. In dunklen Themes
-  war und ist alles unverändert lesbar.
+- **The "Core" phase was too pale in light themes.** Against the background it reached
+  1:2.3 and thus stayed below what counts as legible for meaningful areas (WCAG 1.4.11
+  requires 3:1) — on a light theme most of every bar blended into the background. The
+  colour is now a variant of the same teal darkened with the text colour: the hue, and with
+  it the order Deep → Core → REM, stays, and the contrast is above the threshold in light
+  and dark themes alike. In dark themes everything was and is unchanged and legible.
 
 
 ## [0.5.1] — 2026-08-04
 
 ### Fixed
 
-- Eine CSS-Eigenschaft (`column-gap`) durch die gleichwertige Kurzform (`gap`) ersetzt.
-  Rein intern, ohne sichtbare Wirkung: Die Regel beschreibt den Spaltenabstand eines
-  Grid-Layouts, wurde von der automatischen Store-Prüfung aber als mehrspaltiger Textsatz
-  gewertet und als möglicherweise unvollständig unterstützt gemeldet.
+- Replaced a CSS property (`column-gap`) with the equivalent shorthand (`gap`). Purely
+  internal, without visible effect: the rule describes the column gap of a grid layout, but
+  the automatic store review treated it as multi-column text and flagged it as possibly
+  not fully supported.
 
 ## [0.5.0] — 2026-08-04
 
 ### Fixed
 
-- **Die Schlafauswertung zählte Zeit mehrfach und zeigte dadurch teils unmögliche Werte**
-  (bis zu 33,6 Stunden Schlaf an einem Tag). Drei Ursachen, jede für sich ausreichend:
-  Die Liegezeit und die Schlafphasen darin wurden addiert; mehrere Geräte beschrieben
-  dieselbe Nacht und wurden jeweils voll gezählt; und zwei Nächte fielen auf denselben
-  Kalendertag, weil nach dem Startdatum gruppiert wurde. Überlappende Zeiträume werden
-  jetzt vereinigt statt summiert, und eine Nacht gehört dem Tag, an dem man aufwacht.
-- Die Liegezeit konnte kürzer ausfallen als die Schlafzeit, wenn nur die Uhr Phasen für
-  eine Nacht lieferte. Sie schließt die Schlafphasen jetzt ein.
+- **The sleep analysis counted time more than once and thereby sometimes showed impossible
+  values** (up to 33.6 hours of sleep on one day). Three causes, each sufficient on its
+  own: the time in bed and the sleep phases within it were added up; several devices
+  described the same night and were each counted in full; and two nights fell on the same
+  calendar day because grouping used the start date. Overlapping periods are now merged
+  instead of summed, and a night belongs to the day you wake up.
+- The time in bed could turn out shorter than the sleep time if only the watch delivered
+  phases for a night. It now includes the sleep phases.
 
 ### Changed
 
-- **Schlaf erscheint als zwei gleichrangige Metriken** — „Schlaf" (tatsächlich
-  geschlafen) und „Liegezeit" —, statt als eine einzelne Zahl. Ein bestehender
-  Favorit auf „Schlaf" wird automatisch übernommen.
-- Dauerwerte werden als Stunden und Minuten angezeigt statt in Minuten (`7h 12m` statt
-  `432 min`, ab einem Tag `1.799 h`). Betrifft Kacheln, Achsenbeschriftung,
-  Statistikzeile und Werte-Tabelle; der CSV-Export behält unverändert die Rohwerte.
-  Die Achtsamkeits-Kachel trug dadurch bisher gar keine Einheit.
-- **Der gespeicherte Auswertungsstand wird beim ersten Start dieser Version verworfen**
-  und muss einmal neu eingelesen werden. Er lässt sich nicht umrechnen: Die dafür nötige
-  Unterscheidung zwischen Liegezeit und Schlafphase wurde beim Einlesen verworfen. Ein
-  Hinweis im Programm sagt es beim Öffnen.
+- **Sleep appears as two equal-ranking metrics** — "Sleep" (actually slept) and "Time in
+  bed" — instead of a single number. An existing favourite on "Sleep" is adopted
+  automatically.
+- Duration values are shown as hours and minutes instead of minutes (`7h 12m` instead of
+  `432 min`, from one day on `1.799 h`). Affects tiles, axis labels, statistics row and
+  values table; the CSV export keeps the raw values unchanged. The mindfulness tile
+  therefore carried no unit at all until now.
+- **The stored analysis state is discarded on the first start of this version** and has to
+  be read in once more. It cannot be converted: the distinction between time in bed and
+  sleep phase that is needed for it was discarded during import. A notice in the app says
+  so when you open it.
 
 ## [0.4.2] — 2026-07-29
 
 ### Fixed
 
-- Weitere interne Testlücke aus derselben Ursache wie in 0.4.1, die auch dort das
-  Release-Gate nach dem Tag scheitern ließ. Damit ist 0.4.2 die erste Version dieser
-  Reihe, die als GitHub-Release erscheint; die Funktionalität von 0.4.0 ist unverändert
-  enthalten.
+- Another internal test gap with the same cause as in 0.4.1, which also made the release
+  gate fail after the tag. 0.4.2 is thus the first version of this series that appears as
+  a GitHub release; the functionality of 0.4.0 is included unchanged.
 
 ## [0.4.1] — 2026-07-29
 
 ### Fixed
 
-- Interne Testlücke, die das Release-Gate von 0.4.0 nach dem Tag scheitern ließ, weshalb
-  0.4.0 nie als GitHub-Release erschien und den Store nicht erreichte. Die Funktionalität
-  von 0.4.0 ist unverändert und in dieser Version enthalten.
+- Internal test gap that made the release gate of 0.4.0 fail after the tag, which is why
+  0.4.0 never appeared as a GitHub release and never reached the store. The functionality
+  of 0.4.0 is unchanged and included in this version.
 
 ## [0.4.0] — 2026-07-29
 
 ### Added
 
-- Übersicht: Kacheln und der Favoriten-Stern sind per Tastatur erreichbar und mit
-  Enter oder Leertaste auslösbar; der Fokus bleibt nach dem Umschalten eines Favoriten
-  auf dem betätigten Stern.
+- Overview: tiles and the favourite star are reachable by keyboard and can be triggered
+  with Enter or Space; after toggling a favourite, focus stays on the star that was
+  activated.
 
 ### Changed
 
-- Übersicht: Der Aufklappzustand der Kategorien überlebt jetzt den Neustart von
-  Obsidian — er liegt im selben Speicher wie der Zustand der Werte-Tabelle.
-- Export: Der Kopiervorgang wird am Knopf selbst quittiert statt über eine Meldung am
-  Bildschirmrand.
+- Overview: the expanded state of the categories now survives a restart of Obsidian — it
+  lives in the same store as the state of the values table.
+- Export: the copy action is acknowledged on the button itself instead of via a message at
+  the edge of the screen.
 
 ### Fixed
 
-- Übersicht öffnet spürbar schneller: Die Kacheln werden pro Import einmal berechnet
-  statt bei jedem Tabwechsel und jedem Favoriten-Klick neu.
+- Overview opens noticeably faster: the tiles are computed once per import instead of anew
+  on every tab switch and every favourite click.
 
 ## [0.3.0] — 2026-07-28
 
 ### Added
-- Detail-Chart: Achsenbeschriftung (Datum, Kalenderwoche oder Monat je Zeitraum) und
-  Werte an den Gitterlinien.
-- Detail-Chart: Wochenanfänge sind bei Tagesauflösung markiert.
-- Detail-Ansicht: aufklappbare Werte-Tabelle unter dem Chart.
-- Werte-Export als Markdown-Tabelle oder CSV — in die Zwischenablage oder als Datei
-  ins Vault, mit Ordnerauswahl. Bestehende Dateien werden nie überschrieben.
+- Detail chart: axis labels (date, calendar week or month depending on the period) and
+  values at the grid lines.
+- Detail chart: week starts are marked at daily resolution.
+- Detail view: collapsible values table below the chart.
+- Value export as a Markdown table or CSV — to the clipboard or as a file into the vault,
+  with folder selection. Existing files are never overwritten.
 
 ## [0.2.0] — 2026-07-23
 
