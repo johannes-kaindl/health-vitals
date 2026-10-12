@@ -4,28 +4,21 @@ Was gegen ein **laufendes** Obsidian geprüft wird, statt gegen einen Mock (CORE
 
 Automatisiert fährt das `scripts/gui-smoke.ts`:
 
-⚠️ **Zuerst prüfen, wer sonst an Obsidian hängt.** Obsidian ist Single-Instance — ein
-`quit` trifft die Instanz, an der möglicherweise eine andere Session arbeitet, und zerstört
-deren Zustand. Der eigene Lauf ist danach sauber grün; der Schaden entsteht woanders und
-fällt nicht auf.
+⚠️ **Gelaufen wird in einer Zweitinstanz mit eigenem Profil und eigenem Port — nie in der regulären Instanz, nie per Quit, nie gegen den Arbeitsvault.** Der Vault ist der Staging-Vault `health-vitals` aus dem getrackten Fixture (`docs/images/fixture`, synthetische Daten).
 
 ```bash
-lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "läuft bereits — NICHT beenden"
+npm run build
+npm run smoke:gui -- --setup --port <port>   # Staging-Vault aus dem Fixture herstellen
+# Profil /tmp/obs-test-health-vitals: aktuelle obsidian-*.asar hineinkopieren, Vault und "language":"en" in obsidian.json eintragen
+# starten mit --user-data-dir und --remote-debugging-port=<port> (vorher: lsof -nP -iTCP:<port> -sTCP:LISTEN)
+python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label health-vitals --intent "GUI-Smoke" --exclusive focus --port <port> --ttl 300
+npm run smoke:gui -- --port <port>
+python3 ~/.claude/hooks/obsidian-cdp-lock.py release
 ```
 
-Hört der Port schon, dann **mitnutzen statt neu starten**: ein eigenes Fenster per
-`vault-open` über IPC öffnen, dann `attachTo("workspace", port, vault)` — der Vault-Name
-wählt, nicht die Reihenfolge. ⚠️ Die Port-Prüfung ersetzt die Frage nicht: sie zeigt aktive
-CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den Port wartet.
+`--port` ist Pflicht (auch als `CDP_PORT` lesbar), `--vault` hat den Default `health-vitals`. Vertrauensdialog und Restricted Mode erledigt der Treiber (`bereiteInstanzVor`). Je Messlauf ein frischer Prozess.
 
-Erst wenn nichts läuft — oder nach Absprache mit dem, der es benutzt — gilt das Rezept unten.
-
-```bash
-osascript -e 'quit app "Obsidian"'
-open -a Obsidian --args --remote-debugging-port=9222
-OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/health-vitals" npm run deploy
-npm run smoke:gui -- --vault <vault-name>
-```
+Die Bilanz hat vier Zustände (CORE-TEST-19): grün · rot · übersprungen · nichts gemessen. Die Soll-Liste `PUNKTE` (28 Prüfpunkte) ist der Nenner; ein nie aufgezeichneter Punkt zählt als „nichts gemessen“ und setzt Exit 1 (mit `--section` zählen die übrigen Abschnitte so), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht anwendbar ist (kein sauberer Messplatz für die verbindliche Farbmessung).
 
 Der Lauf braucht einen **importierten Cache** im Ziel-Vault; ohne ihn zeigt das Dashboard
 den Import-Screen und der Treiber bricht mit Ansage ab, statt rote Punkte zu melden.

@@ -32,36 +32,35 @@
  *
  * ## Voraussetzung
  *
- * ⚠️ **Zuerst prüfen, wer sonst an Obsidian hängt.** Obsidian ist Single-Instance — ein
- * `quit` trifft die Instanz, an der möglicherweise eine andere Session arbeitet, und zerstört
- * deren Zustand. Der eigene Lauf ist danach sauber grün; der Schaden entsteht woanders und
- * fällt nicht auf.
+ * Gelaufen wird in einer **Zweitinstanz** mit eigenem Profil und eigenem Port (Dach-AGENTS
+ * § Staging-Vaults) — nie in der regulären Instanz, nie per Quit. Der Vault ist der
+ * Staging-Vault `health-vitals` aus dem getrackten Fixture (`docs/images/fixture`, synthetische
+ * Daten), **nie** der Arbeitsvault:
  *
  * ```bash
- * lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "läuft bereits — NICHT beenden"
+ * npm run build
+ * npm run smoke:gui -- --setup --port <port>    # Staging-Vault aus dem Fixture herstellen
+ * #   Profil UD=/tmp/obs-test-health-vitals: aktuelle obsidian-*.asar hineinkopieren, Vault und
+ * #   "language":"en" in $UD/obsidian.json eintragen, mit --user-data-dir="$UD" und
+ * #   --remote-debugging-port=<port> starten (vorher: lsof -nP -iTCP:<port> -sTCP:LISTEN)
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label health-vitals \
+ *   --intent "GUI-Smoke" --exclusive focus --port <port> --ttl 300
+ * npm run smoke:gui -- --port <port>            # Vertrauensdialog und Restricted Mode erledigt der Treiber
+ * npm run smoke:gui -- --port <port> --section phasen
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py release
  * ```
  *
- * Hört der Port schon, dann **mitnutzen statt neu starten**: ein eigenes Fenster per
- * `vault-open` über IPC öffnen, dann `attachTo("workspace", port, vault)` — der Vault-Name
- * wählt, nicht die Reihenfolge. ⚠️ Die Port-Prüfung ersetzt die Frage nicht: sie zeigt aktive
- * CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den Port wartet.
+ * `--port` ist Pflicht (auch als `CDP_PORT` lesbar): ohne Angabe bricht der Treiber mit Exit 2
+ * ab, statt auf die reguläre Instanz (9222) zu greifen. `--vault` hat den Default `health-vitals`.
+ * Je Messlauf ein frischer Prozess.
  *
- * Erst wenn nichts läuft — oder nach Absprache mit dem, der es benutzt — gilt das Rezept unten.
- *
- * Obsidian muss mit offenem Debug-Port laufen (der eine Handgriff, der Handarbeit bleibt):
- *
- * ```bash
- * osascript -e 'quit app "Obsidian"'
- * open -a Obsidian --args --remote-debugging-port=9222
- * OBSIDIAN_PLUGIN_DIR="<vault>/.obsidian/plugins/health-vitals" npm run deploy
- * ```
- *
- * Dann:
- *
- * ```bash
- * npm run smoke:gui
- * npm run smoke:gui -- --port 9222 --vault 10_Pallas --section phasen
- * ```
+ * Bilanz in vier Zuständen (CORE-TEST-19, `tools/obsidian-cdp/bilanz.ts`): grün · rot ·
+ * übersprungen · nichts gemessen. `PUNKTE` ist der Nenner; ein nie aufgezeichneter Punkt zählt
+ * als „nichts gemessen“ und setzt Exit 1 (mit `--section` heißt das: die übrigen Abschnitte
+ * zählen so), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht
+ * anwendbar ist (kein sauberer Messplatz); ein Gegenstand, der nicht erreicht wurde, ist
+ * „nichts gemessen“. Die `hinweis`-Zeilen (Messung ohne Urteil, fremdes Theme) bleiben
+ * außerhalb der Bilanz.
  *
  * Das Dashboard braucht einen **importierten Cache** (`health-cache.json`); ohne ihn zeigt
  * es den Import-Screen und der Lauf bricht mit Ansage ab, statt rote Punkte zu melden.
@@ -74,11 +73,13 @@ import { join } from "node:path";
 import {
   Cdp,
   attachTo,
+  bereiteInstanzVor,
   closeExtraLeaves,
   pollUntil,
   requireVisible,
 } from "../../tools/obsidian-cdp/cdp.js";
-import { requireEigenerBuild } from "../../tools/obsidian-cdp/vault.js";
+import { createBilanz, parseArgs, runDriver } from "../../tools/obsidian-cdp/bilanz.js";
+import { buildVault, requireEigenerBuild, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
 
 const PLUGIN_ID = "health-vitals";
 /** `VIEW_TYPE_DASHBOARD` aus src/obsidian/dashboard-view.ts — historisch, bleibt (PROF-OBS-11). */
@@ -99,31 +100,61 @@ const NOTE_SCHWELLE = 0.5;
 
 // --- Protokoll ---------------------------------------------------------------
 
-interface Check {
-  name: string;
-  passed: boolean;
-  detail: string;
-}
+const REPO_NAME = "health-vitals";
 
-const results: Check[] = [];
+/** Soll-Liste (Nenner der Bilanz). Dynamisch benannte Punkte stehen ausgeschrieben, damit ein
+ *  nie erreichter Punkt als „nichts gemessen“ zählt. */
+const PUNKTE = [
+  "Kein liegen gebliebenes abgeschaltetes Theme-CSS aus einem abgebrochenen frueheren Lauf",
+  "Dashboard-Gerüst",
+  "Tab-Wechsel wirkt sichtbar",
+  "Sparkline hat Fläche",
+  "Detail-Render wirft keine Ausnahme",
+  "Detail-Chart hat Fläche",
+  "Chart-Inhalt hat Fläche",
+  "Achsenbeschriftung sichtbar",
+  "x-Beschriftung überlappt nicht",
+  "Wochenlinien qualitativ unterschieden",
+  "Phasen-Szene herstellbar",
+  "Phasen-Segmente gerendert",
+  "Jedes Segment hat Fläche",
+  "Render lief zu Ende",
+  "Legende zeigt die Chart-Farbe",
+  "Jedes Segment hat einen Tooltip",
+  "Hinweiszeile folgt dem Anteil (All)",
+  "Hinweiszeile folgt dem Anteil (1M)",
+  "Farb-Szene herstellbar",
+  "Standard dunkel: Phasenfarben haben Kontrast (≥ 3:1)",
+  "Standard dunkel: Phasenfarben paarweise verschieden",
+  "Standard hell: Phasenfarben haben Kontrast (≥ 3:1)",
+  "Standard hell: Phasenfarben paarweise verschieden",
+  "Werte-Szene herstellbar",
+  "Werte-Tabelle sichtbar",
+  "Workouts-Szene herstellbar",
+  "Workouts — Monatssumme",
+  "Workouts — Zeilenwerte gefuellt",
+] as const;
 
-function record(name: string, passed: boolean, detail: string): void {
-  results.push({ name, passed, detail });
-  console.log(`${passed ? "  ✓" : "  ✗"} ${name}${detail ? ` — ${detail}` : ""}`);
-}
+const bilanz = createBilanz({ punkte: PUNKTE });
+
+// Dünne Hüllen: die dynamisch gebauten Namen kommen als `string`; `createBilanz` wirft zur
+// Laufzeit bei einem Namen außerhalb von `PUNKTE`.
+const record = (name: string, passed: boolean, detail: string): void =>
+  bilanz.record(name as (typeof PUNKTE)[number], passed, detail);
+
+/** Nicht anwendbar in dieser Lage (z. B. kein sauberer Messplatz) — zählt als übersprungen. */
+const skipped = (name: string, reason: string): void =>
+  bilanz.skipped(name as (typeof PUNKTE)[number], reason);
+
+/** Der Gegenstand wurde nicht erreicht — zählt als „nichts gemessen“ (Exit 1), nicht als grün. */
+const unmeasured = (name: string, reason: string): void =>
+  bilanz.unmeasured(name as (typeof PUNKTE)[number], reason);
 
 /** Eine Messung, die KEIN Urteil über den Prüfling erlaubt und deshalb nicht in die Bilanz
  *  geht. Sie steht trotzdem im Protokoll: der gemessene Wert ist echt, nur die
  *  Zurechnung fehlt (ein fremdes Theme belegt die Variablen, die unser CSS wählt). */
 function hinweis(name: string, detail: string): void {
   console.log(`  · ${name} — ${detail}`);
-}
-
-/** Was der Lauf bewusst NICHT misst. Steht im Protokoll, damit eine Lücke nicht wie
- *  Abdeckung aussieht — ein stillschweigend ausgelassener Punkt liest sich hinterher wie
- *  ein grüner. */
-function skipped(name: string, reason: string): void {
-  console.log(`  – ${name} — übersprungen: ${reason}`);
 }
 
 // --- Farbrechnung (Node-Seite) ----------------------------------------------
@@ -326,9 +357,9 @@ async function zeigeMetrik(cdp: Cdp, metricId: string): Promise<{ ok: boolean; f
  * eine Reihe von Skips liest sich hinterher wie Abdeckung. `auchGruen` steuert nur, ob der
  * gelungene Fall eine eigene Zeile bekommt — einmal reicht.
  */
-async function stelleDetailHer(cdp: Cdp, name: string, auchGruen: boolean): Promise<boolean> {
+async function stelleDetailHer(cdp: Cdp, name: string): Promise<boolean> {
   const r = await zeigeMetrik(cdp, METRIC_SLEEP);
-  if (!r.ok || auchGruen) record(name, r.ok, r.fehler ?? "Render durchgelaufen");
+  record(name, r.ok, r.fehler ?? "Render durchgelaufen");
   return r.ok;
 }
 
@@ -420,7 +451,7 @@ async function pruefeSparkline(cdp: Cdp): Promise<void> {
     return { w: Math.round(r.width), h: Math.round(r.height) };
   `);
   if (spark === null) {
-    skipped("Sparkline hat Fläche", "keine Kachel in der Übersicht (leerer Cache?)");
+    unmeasured("Sparkline hat Fläche", "keine Kachel in der Übersicht (leerer Cache?)");
     return;
   }
   // Die Sparkline überschreibt die allgemeine Chart-Höhe bewusst (`.ah-tile-spark svg`,
@@ -517,7 +548,7 @@ async function pruefeDetailChart(cdp: Cdp): Promise<void> {
     return { paare, anzahl: boxen.length, luecke: Math.round(luecke) };
   `);
   if (ueberlappung === null) {
-    skipped("x-Beschriftung überlappt nicht", "weniger als zwei x-Labels");
+    unmeasured("x-Beschriftung überlappt nicht", "weniger als zwei x-Labels");
   } else {
     record(
       "x-Beschriftung überlappt nicht",
@@ -539,7 +570,7 @@ async function pruefeDetailChart(cdp: Cdp): Promise<void> {
     };
   `);
   if (wochen === null || wochen.anzahl === 0) {
-    skipped("Wochenlinien qualitativ unterschieden", "keine Wochenmarken im gewählten Zeitraum");
+    unmeasured("Wochenlinien qualitativ unterschieden", "keine Wochenmarken im gewählten Zeitraum");
   } else {
     // Lehre aus Slice 3c: Ein Element mit eigener Aussage darf sich nicht nur quantitativ
     // (blasser, dünner) von der Hilfsgeometrie abheben, gegen die es sich abheben soll —
@@ -673,7 +704,7 @@ function pruefeFarben(m: PhasenMessung, praefix: string, verbindlich: boolean): 
 async function pruefePhasen(cdp: Cdp): Promise<PhasenMessung | null> {
   const m = await messePhasen(cdp);
   if (m === null) {
-    skipped("Schlafphasen-Chart", "keine Phasen-Sektion im Zeitraum (Cache ohne Phasendaten?)");
+    unmeasured("Phasen-Segmente gerendert", "keine Phasen-Sektion im Zeitraum (Cache ohne Phasendaten?)");
     return null;
   }
 
@@ -823,6 +854,8 @@ async function messplatzLage(cdp: Cdp): Promise<{ vanilla: boolean; grund: strin
  * Plugin garantieren und gehört deshalb nicht in die Bilanz. Der Wert wird trotzdem
  * gemessen und als Hinweis protokolliert — er ist echt, nur nicht zurechenbar.
  */
+const FARB_PUNKTE = [`Phasenfarben haben Kontrast (≥ ${KONTRAST_MIN}:1)`, "Phasenfarben paarweise verschieden"] as const;
+
 async function pruefeFarbenInThemes(cdp: Cdp, warDunkel: boolean, themeName: string): Promise<void> {
   const platz = await messplatzLage(cdp);
 
@@ -832,15 +865,17 @@ async function pruefeFarbenInThemes(cdp: Cdp, warDunkel: boolean, themeName: str
     const m = await messePhasen(cdp);
     const name = dunkel ? "dunkel" : "hell";
     if (m === null || m.segmente === 0) {
-      skipped(`Standard ${name}: Phasenfarben`, "Phasen-Sektion nicht messbar");
+      for (const was of FARB_PUNKTE) unmeasured(`Standard ${name}: ${was}`, "Phasen-Sektion nicht messbar");
       continue;
     }
     if (!platz.vanilla) {
-      skipped(
-        `Standard ${name}: Phasenfarben`,
-        `kein sauberer Messplatz (${platz.grund}) — die Variablen sind auch ohne Theme-CSS fremd belegt. `
-        + "Verbindlich messbar nur in einem vanilla Vault.",
-      );
+      for (const was of FARB_PUNKTE) {
+        skipped(
+          `Standard ${name}: ${was}`,
+          `kein sauberer Messplatz (${platz.grund}) — die Variablen sind auch ohne Theme-CSS fremd belegt. `
+          + "Verbindlich messbar nur in einem vanilla Vault.",
+        );
+      }
       pruefeFarben(m, `Standard ${name}: `, false);
       continue;
     }
@@ -881,7 +916,7 @@ async function pruefeWerteSektion(cdp: Cdp): Promise<void> {
     };
   `);
   if (werte === null) {
-    skipped("Werte-Tabelle sichtbar", "keine Werte-Sektion (Zeitraum ohne Punkte?)");
+    unmeasured("Werte-Tabelle sichtbar", "keine Werte-Sektion (Zeitraum ohne Punkte?)");
     return;
   }
   record(
@@ -954,7 +989,7 @@ const SECTIONS: Section[] = [
     key: "detail",
     title: "Detail-Chart",
     run: async (cdp) => {
-      await stelleDetailHer(cdp, "Detail-Render wirft keine Ausnahme", true);
+      await stelleDetailHer(cdp, "Detail-Render wirft keine Ausnahme");
       await waehleZeitraum(cdp, 1); // 3M — dort gibt es Wochenmarken
       await pruefeDetailChart(cdp);
     },
@@ -963,26 +998,27 @@ const SECTIONS: Section[] = [
     key: "phasen",
     title: "Schlafphasen-Chart",
     run: async (cdp) => {
-      await stelleDetailHer(cdp, "Phasen-Szene herstellbar", false);
+      await stelleDetailHer(cdp, "Phasen-Szene herstellbar");
 
-      const alles = await waehleZeitraum(cdp, 3);
+      await waehleZeitraum(cdp, 3);
       const mAlles = await pruefePhasen(cdp);
-      if (mAlles) pruefeHinweiszeile(mAlles, alles ?? "Alles");
+      if (mAlles) pruefeHinweiszeile(mAlles, "All");
+      else unmeasured("Hinweiszeile folgt dem Anteil (All)", "keine Phasen-Sektion im Zeitraum „Alles“");
 
       // Zweiter Zeitraum ausschliesslich für die Hinweiszeile: erst der Wechsel zwischen
       // einem Anteil über und einem unter der Schwelle zeigt, dass die Zeile den Daten
       // folgt und nicht bloss immer (oder nie) da ist.
-      const kurz = await waehleZeitraum(cdp, 0);
+      await waehleZeitraum(cdp, 0);
       const mKurz = await messePhasen(cdp);
-      if (mKurz) pruefeHinweiszeile(mKurz, kurz ?? "1M");
-      else skipped("Hinweiszeile folgt dem Anteil (1M)", "keine Phasen-Sektion im kurzen Zeitraum");
+      if (mKurz) pruefeHinweiszeile(mKurz, "1M");
+      else unmeasured("Hinweiszeile folgt dem Anteil (1M)", "keine Phasen-Sektion im kurzen Zeitraum");
     },
   },
   {
     key: "farben",
     title: "Farben (verbindlich nur gegen die Standardbelegung)",
     run: async (cdp) => {
-      await stelleDetailHer(cdp, "Farb-Szene herstellbar", false);
+      await stelleDetailHer(cdp, "Farb-Szene herstellbar");
       await waehleZeitraum(cdp, 3);
       await pruefeFarbenInThemes(cdp, themeWarDunkel, themeName);
     },
@@ -991,7 +1027,7 @@ const SECTIONS: Section[] = [
     key: "werte",
     title: "Werte-Sektion",
     run: async (cdp) => {
-      await stelleDetailHer(cdp, "Werte-Szene herstellbar", false);
+      await stelleDetailHer(cdp, "Werte-Szene herstellbar");
       await waehleZeitraum(cdp, 0);
       await pruefeWerteSektion(cdp);
     },
@@ -1008,15 +1044,36 @@ const SECTIONS: Section[] = [
 
 // --- Lauf --------------------------------------------------------------------
 
+function setup(): void {
+  const repoRoot = process.cwd();
+  const vaultDir = stagingVaultDir(REPO_NAME);
+  console.log(`Staging-Vault: ${vaultDir}`);
+  for (const zeile of buildVault({
+    repoRoot,
+    vaultDir,
+    fixtureDir: join(repoRoot, "docs/images/fixture"),
+    generator: "make-health-cache.mjs",
+    pluginId: PLUGIN_ID,
+  })) {
+    console.log(`  ${zeile}`);
+  }
+  console.log(
+    "\nNaechster Schritt: Zweitinstanz mit eigenem Profil und Port auf diesen Vault starten (Dateikopf).\n"
+    + "Vertrauensdialog und Restricted Mode erledigt der Treiber selbst.",
+  );
+}
+
 async function main(): Promise<void> {
-  const argv = process.argv.slice(2);
-  const flag = (name: string): string | undefined => {
-    const index = argv.indexOf(`--${name}`);
-    return index === -1 ? undefined : argv[index + 1];
-  };
-  const port = Number(flag("port") ?? 9222);
-  const vault = flag("vault");
-  const sectionArg = flag("section");
+  const args = parseArgs(process.argv.slice(2));
+  const portText = args.value("port") ?? process.env.CDP_PORT;
+  if (!portText || !Number.isInteger(Number(portText))) {
+    throw new Error("--port <port> fehlt (oder CDP_PORT). Kein Default: 9222 ist die regulaere Instanz.");
+  }
+  const port = Number(portText);
+  if (args.has("setup")) return setup();
+
+  const vault = args.value("vault") ?? REPO_NAME;
+  const sectionArg = args.value("section");
 
   const sections = sectionArg ? SECTIONS.filter((s) => s.key === sectionArg) : SECTIONS;
   if (sections.length === 0) {
@@ -1039,10 +1096,15 @@ async function main(): Promise<void> {
   const cdp = await attachTo("workspace", port, vault);
   if (!cdp) {
     throw new Error(
-      `Kein Obsidian-Fenster mit Workspace auf Port ${port}${vault ? ` (Vault "${vault}")` : ""}. `
-      + "Läuft Obsidian mit `--remote-debugging-port`?",
+      `Kein Obsidian-Fenster mit Workspace auf Port ${port} (Vault "${vault}"). `
+      + "Läuft die Zweitinstanz mit `--remote-debugging-port` und ist der Staging-Vault eingetragen?",
     );
   }
+
+  // Frisches Profil: Vertrauensdialog bestätigen, Restricted Mode aufheben, Plugin laden. Wirft
+  // nicht; der Hinweis erklärt, warum ein Plugin fehlt, falls der Lauf unten abbricht.
+  const instanz = await bereiteInstanzVor(cdp, { pluginIds: [PLUGIN_ID], nurVault: vault, sprache: "en" });
+  console.log(`Instanz vorbereitet: ${instanz.hinweis}`);
 
   // Läuft dieser Lauf gegen den eigenen Stand? `manifest.version` ist dafür strukturell
   // blind: Store-Build und Repo-Build tragen dieselbe Nummer — ein veralteter eigener Deploy
@@ -1184,7 +1246,7 @@ async function main(): Promise<void> {
       const p = app.plugins.plugins[id];
       return p ? { ok: true, version: p.manifest.version, dir: p.manifest.dir } : { ok: false };
     `);
-    if (!plugin.ok) throw new Error(`Plugin ${PLUGIN_ID} ist nicht aktiv. Erst \`npm run deploy\`.`);
+    if (!plugin.ok) throw new Error(`Plugin ${PLUGIN_ID} ist nicht aktiv (${instanz.hinweis}). Erst \`npm run build\` und \`--setup\`.`);
 
     // Die Version kommt von der PLATTE, nicht aus `p.manifest.version`. `enablePlugin` lädt
     // den Code neu, das Manifest NICHT — das liest Obsidian beim Vault-Start. Die Registry
@@ -1246,7 +1308,13 @@ async function main(): Promise<void> {
 
     for (const section of sections) {
       console.log(`── ${section.title}`);
-      await section.run(cdp);
+      try {
+        await section.run(cdp);
+      } catch (e) {
+        // Was der Abschnitt bis zum Abbruch nicht erreicht hat, bleibt unaufgezeichnet und zählt
+        // über den Nenner als „nichts gemessen“.
+        console.log(`  ! Abschnitt „${section.title}“ abgebrochen: ${(e as Error).message}`);
+      }
       console.log("");
     }
 
@@ -1265,16 +1333,7 @@ async function main(): Promise<void> {
     cdp.close();
   }
 
-  const failed = results.filter((check) => !check.passed);
-  console.log(`\n${results.length - failed.length}/${results.length} grün`);
-  if (failed.length > 0) {
-    console.log("Rot:");
-    for (const check of failed) console.log(`  - ${check.name}: ${check.detail}`);
-    process.exitCode = 1;
-  }
+  bilanz.abschluss();
 }
 
-main().catch((error: unknown) => {
-  console.error(`\nAbbruch: ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-});
+runDriver(main);

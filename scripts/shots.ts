@@ -8,33 +8,25 @@
  *
  * ## Ablauf
  *
- * ⚠️ **Vor dem Quit koordinieren — Obsidian ist geteilte Infrastruktur.** Dieses Rezept
- * braucht den frischen Start (ein Bild pro Start, jeder Lauf hinterlässt Zustand); Mitnutzen ist
- * hier keine Alternative. Aber Obsidian ist Single-Instance: der Quit trifft die Instanz, an der
- * möglicherweise eine andere Session arbeitet, und zerstört deren Zustand. Der eigene Lauf ist
- * danach sauber grün; der Schaden fällt nicht auf.
+ * Aufgenommen wird in einer **Zweitinstanz** mit eigenem Profil und eigenem Port (Dach-AGENTS
+ * § Staging-Vaults) — nie in der regulären Instanz, nie per Quit:
  *
  * ```bash
- * lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "belegt — erst fragen, wem"
+ * npm run build && npm run shots -- --setup --port <port>   # Vault + synthetischer Cache
+ * #   Profil UD=/tmp/obs-test-health-vitals: aktuelle obsidian-*.asar hineinkopieren, Vault und
+ * #   "language":"en" in $UD/obsidian.json eintragen, mit --user-data-dir="$UD" und
+ * #   --remote-debugging-port=<port> starten (vorher: lsof -nP -iTCP:<port> -sTCP:LISTEN)
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label health-vitals \
+ *   --intent "README-Bilder" --exclusive focus --port <port> --ttl 900
+ * npm run shots -- --port <port>                       # alles aufnehmen
+ * npm run shots -- --port <port> --only sleep-stages.png  # eines nachziehen
+ * npm run shots -- --list                              # Vertrag als Liste
+ * python3 ~/.claude/hooks/obsidian-cdp-lock.py release
  * ```
  *
- * Hört der Port, hängt jemand dran: **erst fragen, dann quitten.** ⚠️ Und die Prüfung ersetzt die
- * Frage nicht — sie zeigt aktive CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den
- * Port wartet; am 2026-08-30 hätte sie einen zwei Stunden alten Reindex nicht gezeigt, denn der
- * hing an Ollama, nicht am Port.
- *
- * ```bash
- * export STAGING_VAULTS_DIR="$HOME/StagingVaults"   # einmalig
- * npm run build && npm run shots -- --setup         # Vault + synthetischer Cache
- *
- * osascript -e 'quit app "Obsidian"'                # Handarbeit: Debug-Port
- * open -a Obsidian --args --remote-debugging-port=9222
- * #   ... Vault "health-vitals" öffnen und einmalig als vertrauenswürdig bestätigen
- *
- * npm run shots                                     # alles aufnehmen
- * npm run shots -- --only sleep-stages.png          # eines nachziehen
- * npm run shots -- --list                           # Vertrag als Liste
- * ```
+ * `--port` ist Pflicht (auch als `SHOTS_PORT` lesbar): ohne Angabe bricht der Treiber ab, statt
+ * auf die reguläre Instanz (9222) zu greifen. Vertrauensdialog und Restricted Mode erledigt
+ * `bereiteInstanzVor`.
  *
  * ## Was dieses Plugin besonders macht
  *
@@ -52,6 +44,7 @@ import { join } from "node:path";
 import { argv, cwd, env, exit } from "node:process";
 
 import {
+  bereiteInstanzVor,
   Cdp,
   attachTo,
   closeExtraLeaves,
@@ -629,23 +622,17 @@ async function main(): Promise<void> {
       console.log(`  ${zeile}`);
     }
     console.log(
-      "\n⚠️  Lief Obsidian während dieses Setups, muss es JETZT neu starten. --setup hat\n"
-      + "   Notizen, Layout und Plugin-Einstellungen ersetzt; ein laufendes Obsidian hält\n"
-      + "   den alten Stand im Speicher und schreibt ihn zurück.\n"
-      + "\n⚠️  Erst prüfen, ob schon ein Obsidian läuft — ein Quit zerstört den Zustand\n"
-      + "    einer fremden Session, und der eigene Lauf ist danach trotzdem grün:\n"
-      + "      lsof -nP -iTCP:9222 -sTCP:LISTEN\n"
-      + "    Hört der Port, hängt jemand dran: erst fragen, dann quitten.\n"
-      + "\nObsidian mit offenem Debug-Port starten und diesen Vault öffnen:\n"
-      + "  osascript -e 'quit app \"Obsidian\"'\n"
-      + "  open -a Obsidian --args --remote-debugging-port=9222\n"
-      + "Beim ersten Mal fragt Obsidian, ob es dem Vault-Autor vertraut — bestätigen,\n"
-      + "sonst läuft das Plugin nicht und das Dashboard bleibt leer.",
+      "\nNaechster Schritt: Zweitinstanz mit eigenem Profil und Port auf diesen Vault starten (Dateikopf).\n"
+      + "Vertrauensdialog und Restricted Mode erledigt der Treiber selbst.",
     );
     return;
   }
 
-  const port = Number(flag("--port") ?? env.SHOTS_PORT ?? 9222);
+  const portText = flag("--port") ?? env.SHOTS_PORT;
+  if (!portText || !Number.isInteger(Number(portText))) {
+    throw new Error("--port <port> fehlt (oder SHOTS_PORT). Kein Default: 9222 ist die regulaere Instanz.");
+  }
+  const port = Number(portText);
   const nur = flag("--only");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
@@ -653,10 +640,11 @@ async function main(): Promise<void> {
   if (!cdp) {
     throw new Error(
       `Kein Obsidian-Fenster mit dem Vault "${REPO_NAME}" auf Port ${port}.\n`
-      + "Den Aufnahme-Vault öffnen (er darf neben anderen Vaults offen sein):\n"
-      + `  open -a Obsidian "$STAGING_VAULTS_DIR/${REPO_NAME}"`,
+      + "Läuft die Zweitinstanz mit `--remote-debugging-port` und ist der Aufnahme-Vault in ihrer obsidian.json eingetragen?",
     );
   }
+  // Frisches Profil: Vertrauensdialog bestätigen, Restricted Mode aufheben, Plugin laden.
+  await bereiteInstanzVor(cdp, { pluginIds: [PLUGIN_ID], nurVault: REPO_NAME });
   console.log(`Verbunden auf Port ${port}.\n`);
   await cdp.mitschnitt((zeile) => console.log(`      » ${zeile}`));
 

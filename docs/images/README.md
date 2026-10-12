@@ -58,32 +58,17 @@ einer realen Person sind auch einzeln personenbezogen. Deshalb erzeugt
 
 ## Reproduktionsrezept
 
-⚠️ **Vor dem Quit koordinieren — Obsidian ist geteilte Infrastruktur.** Dieses Rezept
-braucht den frischen Start (ein Bild pro Start, jeder Lauf hinterlässt Zustand); Mitnutzen ist
-hier keine Alternative. Aber Obsidian ist Single-Instance: der Quit trifft die Instanz, an der
-möglicherweise eine andere Session arbeitet, und zerstört deren Zustand. Der eigene Lauf ist
-danach sauber grün; der Schaden fällt nicht auf.
+Aufgenommen wird in einer **Zweitinstanz** mit eigenem Profil und eigenem Port, nie in der regulären Instanz und nie per Quit.
 
 ```bash
-lsof -nP -iTCP:9222 -sTCP:LISTEN >/dev/null && echo "belegt — erst fragen, wem"
-```
-
-Hört der Port, hängt jemand dran: **erst fragen, dann quitten.** ⚠️ Und die Prüfung ersetzt die
-Frage nicht — sie zeigt aktive CDP-Treiber, aber nicht, wer ein Fenster offen hält oder auf den
-Port wartet; am 2026-08-30 hätte sie einen zwei Stunden alten Reindex nicht gezeigt, denn der
-hing an Ollama, nicht am Port.
-
-```bash
-export STAGING_VAULTS_DIR="$HOME/StagingVaults"     # einmalig
 npm run build
-npm run shots -- --setup                            # Vault + synthetischer Cache
+npm run shots -- --setup --port <port>             # Vault + synthetischer Cache
+# Profil /tmp/obs-test-health-vitals: aktuelle obsidian-*.asar hineinkopieren, Vault und "language":"en" in obsidian.json eintragen
+# starten mit --user-data-dir und --remote-debugging-port=<port> (vorher: lsof -nP -iTCP:<port> -sTCP:LISTEN)
+python3 ~/.claude/hooks/obsidian-cdp-lock.py acquire --label health-vitals --intent "README-Bilder" --exclusive focus --port <port> --ttl 900
 
-osascript -e 'quit app "Obsidian"'                  # Handarbeit: Debug-Port
-open -a Obsidian --args --remote-debugging-port=9222
-#   ... Vault "health-vitals" öffnen, Vertrauen bestätigen
-
-npm run shots                                       # alles aufnehmen
-npm run shots -- --only sleep-stages.png            # eines nachziehen
+npm run shots -- --port <port>                     # alles aufnehmen
+npm run shots -- --port <port> --only sleep-stages.png  # eines nachziehen
 npm run shots -- --list                             # diesen Vertrag als Liste
 npm run shots:check                                 # Bild-Standard prüfen
 ```
