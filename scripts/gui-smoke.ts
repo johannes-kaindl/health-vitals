@@ -66,7 +66,6 @@
  * es den Import-Screen und der Lauf bricht mit Ansage ab, statt rote Punkte zu melden.
  */
 
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -1110,17 +1109,6 @@ async function main(): Promise<void> {
   }
 
   console.log(`GUI-Smoke — Obsidian auf Port ${port}`);
-
-  // macOS: `Page.bringToFront` holt das Fenster innerhalb der App nach vorn, nicht die App
-  // nach vorn. Ohne beides drosselt Chromium den Renderer und der DOM misst nichts.
-  if (process.platform === "darwin") {
-    try {
-      execFileSync("osascript", ["-e", 'tell application "Obsidian" to activate']);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    } catch {
-      console.log("  (Hinweis: `osascript activate` schlug fehl — Fenster ggf. von Hand nach vorn holen)");
-    }
-  }
 
   const cdp = await attachTo("workspace", port, vault);
   if (!cdp) {
