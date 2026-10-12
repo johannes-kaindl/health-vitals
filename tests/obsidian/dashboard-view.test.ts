@@ -142,11 +142,11 @@ describe("DashboardView", () => {
 
     const tabs = root.querySelector(".okit-hub-tabs");
     expect(tabs).toBeTruthy();
-    expect(tabs.children.map((c: any) => c.attrs?.["data-tab"])).toEqual(["overview", "detail", "workouts"]);
+    expect(tabs.children.map((c: any) => c.getAttribute("data-tab"))).toEqual(["overview", "detail", "workouts"]);
 
     const content = root.querySelector(".okit-hub-content");
     expect(content.children.length).toBe(3);
-    expect(content.children.map((c: any) => c.attrs?.["data-tab"])).toEqual(["overview", "detail", "workouts"]);
+    expect(content.children.map((c: any) => c.getAttribute("data-tab"))).toEqual(["overview", "detail", "workouts"]);
   });
 
   it("startet auf dem overview-Tab", async () => {
