@@ -18,7 +18,7 @@ python3 ~/.claude/hooks/obsidian-cdp-lock.py release
 
 `--port` ist Pflicht (auch als `CDP_PORT` lesbar), `--vault` hat den Default `health-vitals`. Vertrauensdialog und Restricted Mode erledigt der Treiber (`bereiteInstanzVor`). Je Messlauf ein frischer Prozess.
 
-Die Bilanz hat vier Zustände (CORE-TEST-19): grün · rot · übersprungen · nichts gemessen. Die Soll-Liste `PUNKTE` (28 Prüfpunkte) ist der Nenner; ein nie aufgezeichneter Punkt zählt als „nichts gemessen“ und setzt Exit 1 (mit `--section` zählen die übrigen Abschnitte so), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht anwendbar ist (kein sauberer Messplatz für die verbindliche Farbmessung).
+Die Bilanz hat vier Zustände (CORE-TEST-19): grün · rot · übersprungen · nichts gemessen. Die Soll-Liste `PUNKTE` (28 Prüfpunkte) ist der Nenner; ein nie aufgezeichneter Punkt zählt als „nichts gemessen“ und setzt Exit 1; mit `--section <key>` ist die Soll-Liste die gewählte Sektion (der Abschluss nennt „Teillauf: <Sektion>, N von 28 Punkten im Soll“), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht anwendbar ist (kein sauberer Messplatz für die verbindliche Farbmessung).
 
 Der Lauf braucht einen **importierten Cache** im Ziel-Vault; ohne ihn zeigt das Dashboard
 den Import-Screen und der Treiber bricht mit Ansage ab, statt rote Punkte zu melden.

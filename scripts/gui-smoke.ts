@@ -56,8 +56,8 @@
  *
  * Bilanz in vier Zuständen (CORE-TEST-19, `tools/obsidian-cdp/bilanz.ts`): grün · rot ·
  * übersprungen · nichts gemessen. `PUNKTE` ist der Nenner; ein nie aufgezeichneter Punkt zählt
- * als „nichts gemessen“ und setzt Exit 1 (mit `--section` heißt das: die übrigen Abschnitte
- * zählen so), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht
+ * als „nichts gemessen“ und setzt Exit 1; mit `--section` ist die Soll-Liste die gewählte Sektion
+ * (der Abschluss nennt „Teillauf: <Sektion>, N von M Punkten im Soll“), ein Abbruch ist Exit 2. „Übersprungen“ ist nur, was in dieser Lage nicht
  * anwendbar ist (kein sauberer Messplatz); ein Gegenstand, der nicht erreicht wurde, ist
  * „nichts gemessen“. Die `hinweis`-Zeilen (Messung ohne Urteil, fremdes Theme) bleiben
  * außerhalb der Bilanz.
@@ -135,7 +135,30 @@ const PUNKTE = [
   "Workouts — Zeilenwerte gefuellt",
 ] as const;
 
-const bilanz = createBilanz({ punkte: PUNKTE });
+/** Prüfpunkte je Abschnitt (Teilmenge von `PUNKTE`). Ein Teillauf mit `--section` bekommt als
+ *  Soll-Liste genau diese Punkte plus den Vorlauf-Punkt; die übrigen sind „nicht verlangt“. */
+const VORLAUF_PUNKT = PUNKTE[0];
+const SEKTION_PUNKTE: Record<string, readonly (typeof PUNKTE)[number][]> = {
+  geruest: ["Dashboard-Gerüst", "Tab-Wechsel wirkt sichtbar", "Sparkline hat Fläche"],
+  detail: [
+    "Detail-Render wirft keine Ausnahme", "Detail-Chart hat Fläche", "Chart-Inhalt hat Fläche",
+    "Achsenbeschriftung sichtbar", "x-Beschriftung überlappt nicht", "Wochenlinien qualitativ unterschieden",
+  ],
+  phasen: [
+    "Phasen-Szene herstellbar", "Phasen-Segmente gerendert", "Jedes Segment hat Fläche", "Render lief zu Ende",
+    "Legende zeigt die Chart-Farbe", "Jedes Segment hat einen Tooltip",
+    "Hinweiszeile folgt dem Anteil (All)", "Hinweiszeile folgt dem Anteil (1M)",
+  ],
+  farben: [
+    "Farb-Szene herstellbar",
+    "Standard dunkel: Phasenfarben haben Kontrast (≥ 3:1)", "Standard dunkel: Phasenfarben paarweise verschieden",
+    "Standard hell: Phasenfarben haben Kontrast (≥ 3:1)", "Standard hell: Phasenfarben paarweise verschieden",
+  ],
+  werte: ["Werte-Szene herstellbar", "Werte-Tabelle sichtbar"],
+  workouts: ["Workouts-Szene herstellbar", "Workouts — Monatssumme", "Workouts — Zeilenwerte gefuellt"],
+};
+
+let bilanz = createBilanz({ punkte: PUNKTE });
 
 // Dünne Hüllen: die dynamisch gebauten Namen kommen als `string`; `createBilanz` wirft zur
 // Laufzeit bei einem Namen außerhalb von `PUNKTE`.
@@ -1079,6 +1102,12 @@ async function main(): Promise<void> {
   if (sections.length === 0) {
     throw new Error(`Unbekannter --section ${sectionArg}. Bekannt: ${SECTIONS.map((s) => s.key).join(", ")}`);
   }
+  if (sectionArg) {
+    // Teillauf: die Soll-Liste ist die gewählte Sektion (plus Vorlauf-Punkt), nicht die volle Liste.
+    const soll = [VORLAUF_PUNKT, ...(SEKTION_PUNKTE[sectionArg] ?? [])] as const;
+    bilanz = createBilanz({ punkte: soll }) as unknown as typeof bilanz;
+    console.log(`Teillauf: ${sectionArg}, ${soll.length} von ${PUNKTE.length} Punkten im Soll`);
+  }
 
   console.log(`GUI-Smoke — Obsidian auf Port ${port}`);
 
@@ -1333,7 +1362,8 @@ async function main(): Promise<void> {
     cdp.close();
   }
 
-  bilanz.abschluss();
+  const a = bilanz.abschluss();
+  if (sectionArg) console.log(`Teillauf: ${sectionArg}, ${a.gesamt} von ${PUNKTE.length} Punkten im Soll`);
 }
 
 runDriver(main);
