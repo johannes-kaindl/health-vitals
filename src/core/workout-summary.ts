@@ -3,7 +3,7 @@ import type { WorkoutEntry } from "./types";
 export interface WorkoutRow {
   type: string;
   date: string;
-  durationMin: number;
+  durationMin?: number;
   distanceKm?: number;
   energyKcal?: number;
 }
@@ -43,7 +43,8 @@ export function summarizeWorkouts(workouts: WorkoutEntry[], recentLimit: number)
     .sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0))
     .slice(0, recentLimit)
     .map((w) => {
-      const row: WorkoutRow = { type: w.type, date: w.start.slice(0, 10), durationMin: w.durationMin };
+      const row: WorkoutRow = { type: w.type, date: w.start.slice(0, 10) };
+      if (w.durationMin !== undefined) row.durationMin = w.durationMin;
       if (w.distanceKm !== undefined) row.distanceKm = round2(w.distanceKm);
       if (w.energyKcal !== undefined) row.energyKcal = round2(w.energyKcal);
       return row;

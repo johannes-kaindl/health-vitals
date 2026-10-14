@@ -25,16 +25,16 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
 
   // Der jüngste Monat mit Daten — er ist der letzte Balken des Charts, die Zeile
   // darunter liest sich als dessen Beschriftung.
-  const letzter = summary.monthly[summary.monthly.length - 1];
-  if (letzter) {
+  const latest = summary.monthly[summary.monthly.length - 1];
+  if (latest) {
     el.createDiv({
       cls: "ah-workout-total",
       text: t(
         "workouts.total",
-        formatTickLabel(letzter.key, "month"),
-        letzter.value,
-        letzter.distanceKm > 0 ? formatValue(letzter.distanceKm, "km") : t("workouts.noValue"),
-        letzter.energyKcal > 0 ? formatValue(letzter.energyKcal, "kcal") : t("workouts.noValue"),
+        formatTickLabel(latest.key, "month"),
+        latest.value,
+        latest.distanceKm > 0 ? formatValue(latest.distanceKm, "km") : t("workouts.noValue"),
+        latest.energyKcal > 0 ? formatValue(latest.energyKcal, "kcal") : t("workouts.noValue"),
       ),
     });
   }
@@ -43,9 +43,10 @@ export function renderWorkouts(el: HTMLElement, cache: HealthCache): void {
   const list = el.createDiv({ cls: "ah-workout-list" });
   for (const w of summary.recent) {
     const row = list.createDiv({ cls: "ah-workout-row" });
-    row.createSpan({ cls: "ah-workout-type", text: workoutTypeName(w.type) });
+    const typeName = workoutTypeName(w.type);
+    row.createSpan({ cls: "ah-workout-type", text: typeName, attr: { title: typeName } });
     row.createSpan({ cls: "ah-workout-date", text: w.date });
-    row.createSpan({ cls: "ah-workout-dur", text: formatDuration(w.durationMin) });
+    row.createSpan({ cls: "ah-workout-dur", text: w.durationMin !== undefined ? formatDuration(w.durationMin) : t("workouts.noValue") });
     row.createSpan({
       cls: "ah-workout-dist",
       text: w.distanceKm !== undefined ? formatValue(w.distanceKm, "km") : t("workouts.noValue"),

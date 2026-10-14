@@ -54,6 +54,15 @@ describe("renderWorkouts", () => {
     expect(text).toContain("842");    // kcal-Summe Februar
   });
 
+  it("Workout ohne Dauer zeigt „—“ statt „0 min“", () => {
+    const el = fakeEl();
+    renderWorkouts(el, { ...cache, workouts: [{ type: "Running", start: "2026-01-05T08:00" }] });
+    expect(allText(el)).not.toContain("0 min");
+    expect(countClass(el, "ah-workout-dur")).toBe(1);
+    const row = el.children.find((c: any) => c.cls === "ah-workout-list").children[0];
+    expect(row.children.find((c: any) => c.cls === "ah-workout-dur").text).toBe("—");
+  });
+
   it("zeigt Distanz und Energie je Zeile", () => {
     const el = fakeEl();
     renderWorkouts(el, cache);

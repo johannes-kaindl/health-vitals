@@ -33,8 +33,8 @@ export class Aggregator {
       const entry: WorkoutEntry = {
         type: e.activityType,
         start: e.startDate.slice(0, 16).replace(" ", "T"),
-        durationMin: e.duration,
       };
+      if (e.duration !== undefined) entry.durationMin = e.duration;
       if (e.distanceKm !== undefined) entry.distanceKm = e.distanceKm;
       if (e.energyKcal !== undefined) entry.energyKcal = e.energyKcal;
       this.workouts.push(entry);

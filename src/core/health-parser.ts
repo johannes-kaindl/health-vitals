@@ -22,7 +22,8 @@ export interface WorkoutEvent {
   activityType: string;
   startDate: string;
   endDate: string;
-  duration: number;
+  /** Minuten; fehlt, wenn das Attribut fehlt, leer ist oder seine Einheit unbekannt war — nie eine erfundene 0. */
+  duration?: number;
   /** Summe aller `…Distance*`-Statistics des Workouts, in km. Fehlt, wenn der Export
    *  keine trägt (Yoga) oder die Einheit unbekannt war. */
   distanceKm?: number;
@@ -32,7 +33,8 @@ export interface WorkoutEvent {
 
 export type HealthEvent = RecordEvent | WorkoutEvent;
 
-export function eventFromTag(tag: StartTag): HealthEvent | null {
+/** Deutet nur `<Record>`; Workouts entstehen im `EventReader`, weil sie Kindelemente brauchen. */
+export function eventFromTag(tag: StartTag): RecordEvent | null {
   const a = tag.attrs;
   if (tag.name === "Record") {
     if (!a.type || !a.startDate) return null;
@@ -69,25 +71,25 @@ const ENERGY_TYPE = "HKQuantityTypeIdentifierActiveEnergyBurned";
  * Kennzahlen wären unvollständig.
  */
 export class EventReader {
-  private offen: WorkoutEvent | null = null;
+  private open: WorkoutEvent | null = null;
 
   push(tok: Token): HealthEvent | null {
     if (tok.kind === "end") {
       if (tok.name !== WORKOUT_TAG) return null;
-      const fertig = this.offen;
-      this.offen = null;
-      return fertig;
+      const done = this.open;
+      this.open = null;
+      return done;
     }
 
     if (tok.name === WORKOUT_TAG) {
       const w = workoutFromTag(tok);
-      if (tok.selfClosing) { this.offen = null; return w; }
-      this.offen = w;
+      if (tok.selfClosing) { this.open = null; return w; }
+      this.open = w;
       return null;
     }
 
     if (tok.name === STATS_TAG) {
-      if (this.offen) addStatistic(this.offen, tok);
+      if (this.open) addStatistic(this.open, tok);
       return null;
     }
 
@@ -103,14 +105,18 @@ function workoutFromTag(tag: StartTag): WorkoutEvent | null {
   const a = tag.attrs;
   if (!a.workoutActivityType || !a.startDate) return null;
   // Einheit lesen statt Minuten annehmen: `durationUnit` steht an jedem Workout.
-  const min = toMinutes(Number(a.duration), a.durationUnit ?? "min");
-  return {
+  // Leerstring eigens abfangen: `Number("")` ist 0, keine gemessene Dauer.
+  const min = a.duration === undefined || a.duration.trim() === ""
+    ? null
+    : toMinutes(Number(a.duration), a.durationUnit ?? "min");
+  const w: WorkoutEvent = {
     kind: "workout",
     activityType: a.workoutActivityType,
     startDate: a.startDate,
     endDate: a.endDate ?? a.startDate,
-    duration: min ?? 0,
   };
+  if (min !== null) w.duration = min;
+  return w;
 }
 
 /**

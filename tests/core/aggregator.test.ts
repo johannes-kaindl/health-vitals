@@ -53,6 +53,14 @@ describe("Aggregator", () => {
     expect(m.daily["2022-11-26"]).toEqual({ sum: 0, count: 1 });
   });
 
+  it("Workout ohne Dauer: der Eintrag trägt kein durationMin", () => {
+    const agg = new Aggregator();
+    agg.add({ kind: "workout", activityType: "HKWorkoutActivityTypeX", startDate: "2022-11-25 18:00:00 +0200", endDate: "2022-11-25 18:30:00 +0200" });
+    const w = agg.finalize(META).workouts[0];
+    expect(w).toEqual({ type: "HKWorkoutActivityTypeX", start: "2022-11-25T18:00" });
+    expect("durationMin" in w).toBe(false);
+  });
+
   it("Epoch-Artefakt (1969-12-30) dehnt den Tagesbereich nicht auf", () => {
     const agg = new Aggregator();
     agg.add(rec("HKQuantityTypeIdentifierStepCount", 0, "1969-12-30 00:00:00 +0000"));

@@ -55,8 +55,8 @@ export async function aggregateStream(
   const pacer = createCooperativeYield({ yieldToUi, everyMs: yieldEveryMs });
 
   const reader = new EventReader();
-  const handle = (tok_: Token): void => {
-    const e = reader.push(tok_);
+  const handle = (token: Token): void => {
+    const e = reader.push(token);
     if (!e) return;
     agg.add(e);
     if (e.kind === "record") seen++;

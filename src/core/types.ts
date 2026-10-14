@@ -15,7 +15,8 @@ export interface MetricSeries {
 export interface WorkoutEntry {
   type: string;        // workoutActivityType
   start: string;       // "YYYY-MM-DDTHH:MM"
-  durationMin: number;
+  /** Fehlt, wenn die Dauer im Export nicht lesbar war (Anzeige „—“, nie „0 min“). */
+  durationMin?: number;
   /** Gesamtstrecke in km. Fehlt bei Workouts ohne Distanz (Yoga, Krafttraining). */
   distanceKm?: number;
   /** Aktiv verbrannte Energie in kcal, ohne Grundumsatz. */

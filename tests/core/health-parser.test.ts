@@ -83,13 +83,45 @@ describe("EventReader — Workout-Rahmen", () => {
     expect(w.duration).toBe(30);
   });
 
-  it("unbekannte durationUnit → Dauer 0 statt falscher Zahl", () => {
+  it("fehlende durationUnit → Minuten (Default-Zweig)", () => {
+    const r = new EventReader();
+    const w = r.push(start("Workout", {
+      workoutActivityType: "HKWorkoutActivityTypeRunning",
+      duration: "40", startDate: "2026-07-28 07:00:00 +0200",
+    })) as WorkoutEvent;
+    expect(w.duration).toBe(40);
+  });
+
+  it("leeres oder fehlendes duration-Attribut → keine Dauer statt 0", () => {
+    for (const attrs of [{ duration: "" }, {}] as Array<Record<string, string>>) {
+      const w = new EventReader().push(start("Workout", {
+        workoutActivityType: "HKWorkoutActivityTypeRunning", startDate: "2026-07-28 07:00:00 +0200", ...attrs,
+      })) as WorkoutEvent;
+      expect(w.duration).toBeUndefined();
+    }
+  });
+
+  it("selbstschließendes Workout verwirft einen offenen Rahmen still (wie ein zweites <Workout>)", () => {
+    const r = new EventReader();
+    r.push(start("Workout", {
+      workoutActivityType: "HKWorkoutActivityTypeRunning", duration: "52", durationUnit: "min",
+      startDate: "2026-07-28 07:00:00 +0200",
+    }, false));
+    const sc = r.push(start("Workout", {
+      workoutActivityType: "HKWorkoutActivityTypeYoga", duration: "35", durationUnit: "min",
+      startDate: "2026-07-29 19:00:00 +0200",
+    })) as WorkoutEvent;
+    expect(sc.activityType).toBe("HKWorkoutActivityTypeYoga");
+    expect(r.push(end("Workout"))).toBeNull();
+  });
+
+  it("unbekannte durationUnit → keine Dauer statt falscher Zahl", () => {
     const r = new EventReader();
     const w = r.push(start("Workout", {
       workoutActivityType: "HKWorkoutActivityTypeRunning",
       duration: "5", durationUnit: "fortnights", startDate: "2026-07-28 07:00:00 +0200",
     })) as WorkoutEvent;
-    expect(w.duration).toBe(0);
+    expect(w.duration).toBeUndefined();
   });
 
   it("Records laufen zustandslos durch, auch innerhalb eines offenen Rahmens", () => {

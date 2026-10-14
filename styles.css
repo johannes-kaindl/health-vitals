@@ -99,7 +99,13 @@
   padding: var(--size-4-1) 0;
   border-bottom: 1px solid var(--background-modifier-border);
 }
-.ah-workout-type { color: var(--text-normal); }
+.ah-workout-type {
+  color: var(--text-normal);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ah-workout-date, .ah-workout-dur { color: var(--text-muted); }
 /* Zahlenspalten rechtsbündig und mit gleich breiten Ziffern: sonst tanzen die Werte
    von Zeile zu Zeile und die Spalte ist nicht mehr überfliegbar. */

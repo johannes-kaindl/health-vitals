@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format follows
 
 - A Health export that carries a bogus 1969 date (an epoch artefact) no longer stretches every chart over 57 years; dates before 2000 are ignored for the date range.
 
+- A workout whose duration is missing or has an unknown unit shows "—" instead of an invented "0 min" (re-import to pick this up).
+- Long workout type names are shortened with an ellipsis (full name as tooltip) instead of wrapping.
+
 ### Changed
 
 - Stand Hours count the hours you actually stood (one per "stood" hour), not the length of every hourly record. **Import the export once more:** the cache format changed, the old cache is discarded with a notice.
