@@ -12,6 +12,8 @@ type Acc = MeasureAcc | SumAcc | DurAcc;
 interface SeriesAcc { unit: string; policy: Policy; daily: Map<string, Acc>; }
 
 const STAND_HOUR_TYPE = "HKCategoryTypeIdentifierAppleStandHour";
+/** Früher als Apple Health selbst existiert (2014): ein Epoch-Artefakt wie "1969-12-30", kein Tag. */
+const EARLIEST_PLAUSIBLE_DAY = "2000-01-01";
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const round = (n: number): number => Math.round(n * 100) / 100;
 
@@ -102,7 +104,7 @@ export class Aggregator {
   }
 
   private touchDay(day: string): void {
-    if (!DAY_RE.test(day)) return;
+    if (!DAY_RE.test(day) || day < EARLIEST_PLAUSIBLE_DAY) return;
     if (this.minDay === null || day < this.minDay) this.minDay = day;
     if (this.maxDay === null || day > this.maxDay) this.maxDay = day;
   }

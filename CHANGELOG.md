@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows
 
 - Four frequent metrics now have proper names and sit under Activity instead of "Other": Physical Effort, Walking Speed, Walking Step Length and Stand Hours (English and German).
 
+### Fixed
+
+- A Health export that carries a bogus 1969 date (an epoch artefact) no longer stretches every chart over 57 years; dates before 2000 are ignored for the date range.
+
 ### Changed
 
 - Stand Hours count the hours you actually stood (one per "stood" hour), not the length of every hourly record. **Import the export once more:** the cache format changed, the old cache is discarded with a notice.

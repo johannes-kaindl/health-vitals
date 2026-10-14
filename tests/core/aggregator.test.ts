@@ -53,6 +53,13 @@ describe("Aggregator", () => {
     expect(m.daily["2022-11-26"]).toEqual({ sum: 0, count: 1 });
   });
 
+  it("Epoch-Artefakt (1969-12-30) dehnt den Tagesbereich nicht auf", () => {
+    const agg = new Aggregator();
+    agg.add(rec("HKQuantityTypeIdentifierStepCount", 0, "1969-12-30 00:00:00 +0000"));
+    agg.add(rec("HKQuantityTypeIdentifierStepCount", 10, "2022-11-25 08:00:00 +0200"));
+    expect(agg.finalize(META).dateRange).toEqual({ from: "2022-11-25", to: "2022-11-25" });
+  });
+
   describe("Schlaf verlässt den generischen Weg", () => {
     function sleep(categoryValue: string, start: string, end: string): HealthEvent {
       return {
