@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Command **Write values to today's daily note**: copies steps, sleep hours, resting heart rate, HRV and active energy of today into `health_*` properties of the daily note. It only fills properties that are missing, never creates a note and never runs by itself.
 - A settings tab (Settings → Health Vitals): a Help row with a link to the documentation and the issue tracker, plus the export folder and the export format (MD or CSV), which until now could only be changed inside the dashboard.
 - Four frequent metrics now have proper names and sit under Activity instead of "Other": Physical Effort, Walking Speed, Walking Step Length and Stand Hours (English and German).
 

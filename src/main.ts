@@ -7,6 +7,7 @@ import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
 import { validateSettings, oneOf, check, arrayThen, isPlainObject } from "./vendor/kit/settings_schema";
+import { writeDailyValues } from "./obsidian/daily-note";
 import { HealthVitalsSettingTab } from "./obsidian/settings-tab";
 import { t, registerI18n } from "./i18n/strings";
 
@@ -56,11 +57,33 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
       name: t("cmd.openDashboard"),
       callback: () => { void this.activateView(); },
     });
+    this.addCommand({
+      id: "write-daily-values",
+      name: t("cmd.writeDaily"),
+      callback: () => { void this.writeDailyValuesCommand(); },
+    });
     this.addSettingTab(new HealthVitalsSettingTab(this.app, this, this));
     this.addRibbonIcon("heart-pulse", t("ribbon.tooltip"), () => { void this.activateView(); });
   }
 
   onunload(): void {}
+
+  /** Bewusst ausgelöst, nie automatisch: schreibt in eine Notiz, die dem Nutzer gehört. */
+  private async writeDailyValuesCommand(): Promise<void> {
+    const cache = await this.loadCache();
+    if (!cache) { new Notice(t("daily.noCache")); return; }
+    try {
+      const r = await writeDailyValues(this.app, cache, new Date());
+      switch (r.status) {
+        case "written": new Notice(t("daily.written", r.keys.length, r.path)); break;
+        case "nothing-new": new Notice(t("daily.nothingNew", r.path)); break;
+        case "no-note": new Notice(t("daily.noNote", r.path)); break;
+        case "no-values": new Notice(t("daily.noValues", r.day)); break;
+      }
+    } catch (err) {
+      new Notice(t("daily.failed", err instanceof Error ? err.message : String(err)));
+    }
+  }
 
   // --- Persistence ---
   async loadPluginData(): Promise<void> {

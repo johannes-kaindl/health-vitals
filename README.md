@@ -120,6 +120,17 @@ vault as Markdown or CSV:
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
 
+### Values in your daily note
+
+The command **Write values to today's daily note** copies today's values into the
+properties of the daily note: `health_steps`, `health_sleep_h`, `health_resting_hr`,
+`health_hrv_ms`, `health_active_kcal` — so Bases and Dataview can combine them with the rest
+of your vault. It runs only when you start it, never after an import. It writes only these
+`health_*` properties and never overwrites one that is already there (a value you corrected
+by hand stays), it does not create the note, and it leaves the text of the note alone. The
+note's folder and name come from the core *Daily notes* plugin. The export has to contain
+today's date; an export that ends last week has nothing to write.
+
 ### Access outside the vault
 
 This plugin reads **one file outside your vault**: the health export you pick in the
