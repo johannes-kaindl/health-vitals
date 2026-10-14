@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Internal only, nothing changes for users: the Kit pins move to obsidian-kit 0.57.0 and code-kit 0.24.0 (the eleven vendored modules are unchanged apart from their headers). The file-name cleaning for value exports (`sanitizeBase`, fallback "Export") now comes from the shared code-kit module `filename-template` and behaves exactly as before. The test setup takes the timer shim and the Obsidian mock from the Kit instead of local copies.
+- Internal only, nothing changes for users: the Kit pins move to obsidian-kit 0.60.0 and code-kit 0.27.0 (the vendored modules are unchanged apart from their headers; none of the skipped Kit releases changes anything for this plugin). The file-name cleaning for value exports (`sanitizeBase`, fallback "Export") now comes from the shared code-kit module `filename-template` and behaves exactly as before. The test setup takes the timer shim and the Obsidian mock from the Kit instead of local copies.
 
 ## [0.7.2] — 2026-10-03
 
