@@ -1,4 +1,4 @@
-import { buildChartGeometry } from "../../src/core/chart-geometry";
+import { buildChartGeometry, buildOverlayGeometry } from "../../src/core/chart-geometry";
 import type { RollupPoint } from "../../src/core/rollup";
 
 const dims = { width: 100, height: 50, padding: 5 };
@@ -137,5 +137,43 @@ describe("chart-geometry", () => {
     // Wiederverwendung der Slot-Formel im Linien-Pfad auffangen.
     expect(g.weekMarks).toHaveLength(1);
     expect(g.weekMarks[0]).toBeCloseTo(50);
+  });
+});
+
+describe("buildOverlayGeometry", () => {
+  const primary: RollupPoint[] = [{ key: "a", value: 1 }, { key: "b", value: 2 }, { key: "c", value: 3 }];
+  const pts = (m: Record<string, number>): RollupPoint[] => Object.entries(m).map(([key, value]) => ({ key, value }));
+
+  it("eigene y-Skala: Minimum unten, Maximum oben, unabhängig von der ersten Serie", () => {
+    const o = buildOverlayGeometry(primary, "line", pts({ a: 50, b: 60, c: 70 }), dims);
+    expect(o.yTicks.map((t) => t.value)).toEqual([50, 60, 70]);
+    expect(o.yTicks[0].y).toBeCloseTo(45);
+    expect(o.yTicks[2].y).toBeCloseTo(5);
+    expect(o.markers).toHaveLength(3);
+  });
+
+  it("x-Positionen sind die der ersten Serie: Linie erster Punkt links, Balken in der Slot-Mitte", () => {
+    const line = buildOverlayGeometry(primary, "line", pts({ a: 1, b: 2, c: 3 }), dims);
+    expect(line.markers[0].x).toBeCloseTo(5);
+    expect(line.markers[2].x).toBeCloseTo(95);
+    const bar = buildOverlayGeometry(primary, "bar", pts({ a: 1, b: 2, c: 3 }), dims);
+    const slot = (100 - 10) / 3;
+    expect(bar.markers[0].x).toBeCloseTo(5 + slot / 2);
+  });
+
+  it("Lücke im Bucket trennt die Linie in Abschnitte, statt Werte zu erfinden", () => {
+    const o = buildOverlayGeometry(primary, "line", pts({ a: 1, c: 3 }), dims);
+    expect(o.segments).toHaveLength(2);
+    expect(o.markers).toHaveLength(2);
+  });
+
+  it("Schlüssel, die die erste Serie nicht hat, werden ignoriert; nichts Gemeinsames → leer", () => {
+    expect(buildOverlayGeometry(primary, "line", pts({ x: 1, y: 2 }), dims)).toEqual({ segments: [], markers: [], yTicks: [] });
+    expect(buildOverlayGeometry([], "line", pts({ a: 1 }), dims).segments).toEqual([]);
+  });
+
+  it("konstante zweite Serie → keine Division durch 0", () => {
+    const o = buildOverlayGeometry(primary, "line", pts({ a: 5, b: 5, c: 5 }), dims);
+    for (const m of o.markers) { expect(m.y).toBeGreaterThanOrEqual(5); expect(m.y).toBeLessThanOrEqual(45); }
   });
 });

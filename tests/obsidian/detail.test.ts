@@ -8,7 +8,10 @@ function fakeEl(): any {
       const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
       el.children.push(c); return c;
     },
-    createEl(tag: string, o?: any) { const c = fakeEl(); c.tag = tag; c.text = (o && o.text) || ""; el.children.push(c); return c; },
+    createEl(tag: string, o?: any) {
+      const c = fakeEl(); c.tag = tag; c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
+      c.attrs = (o && o.attr) || {}; el.children.push(c); return c;
+    },
     createSpan(o?: any) {
       const c = fakeEl(); c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
       el.children.push(c); return c;
@@ -17,7 +20,7 @@ function fakeEl(): any {
       const c = fakeEl(); c.tag = tag; c.cls = (o && o.cls) || ""; c.text = (o && o.text) || "";
       c.attrs = (o && o.attr) || {}; el.children.push(c); return c;
     },
-    addEventListener(_ev: string, cb: any) { el._click = cb; }, setAttribute() {}, toggleClass() {},
+    addEventListener(ev: string, cb: any) { el._click = cb; (el.listeners ??= {})[ev] = cb; }, setAttribute(k: string, v: string) { (el.attrs ??= {})[k] = v; }, toggleClass() {},
     // setText fehlte hier — der Kopier-Knopf ruft es aus einem `.then()` auf, also erst
     // nach dem Ende des Tests, der geklickt hat. Der TypeError landete damit als
     // unbehandelte Promise-Ablehnung ausserhalb jeder Testgrenze: lokal blieb der Lauf
@@ -315,5 +318,71 @@ describe("renderDetail — Schlafphasen-Sektion", () => {
     renderDetail(el, without, { metricId: "SleepAsleep", range: "1M" }, () => {}, fakeView());
 
     expect(findText(el, "Schlafphasen")).toBe(false);
+  });
+});
+
+const MASS = "HKQuantityTypeIdentifierBodyMass";
+const STEPS = "HKQuantityTypeIdentifierStepCount";
+const twoMetrics: HealthCache = {
+  ...cache,
+  metrics: {
+    ...cache.metrics,
+    [MASS]: { unit: "kg", policy: "measure", daily: {
+      "2026-01-10": { min: 78, max: 79, avg: 78.5, count: 1 },
+      "2026-02-05": { min: 76, max: 77, avg: 76.5, count: 1 },
+    } },
+  },
+};
+function all(el: any): any[] { return [el, ...el.children.flatMap(all)]; }
+
+describe("renderDetail — Vergleich zweier Metriken", () => {
+  it("zweite Metrik ist wählbar, „Keine“ steht vorn, die erste Metrik fehlt in der Liste", () => {
+    const el = fakeEl();
+    renderDetail(el, twoMetrics, { metricId: STEPS, range: "all" }, () => {}, fakeView());
+    const select = findByTag(el, "select");
+    expect(select).not.toBeNull();
+    const options = select.children.map((o: any) => [o.attrs.value, o.text]);
+    expect(options).toEqual([["", "Keine"], [MASS, "Gewicht"]]);
+  });
+
+  it("Wahl meldet compareId an onState, Zurück auf „Keine“ meldet null", () => {
+    const el = fakeEl();
+    let got: unknown = "unset";
+    renderDetail(el, twoMetrics, { metricId: STEPS, range: "all" }, (s) => { got = s.compareId; }, fakeView());
+    const select = findByTag(el, "select");
+    select.value = MASS;
+    select.listeners.change();
+    expect(got).toBe(MASS);
+    select.value = "";
+    select.listeners.change();
+    expect(got).toBeNull();
+  });
+
+  it("mit zweiter Metrik: gestrichelte Linie, Marken, rechte Achse und Legende mit beiden Namen", () => {
+    const el = fakeEl();
+    renderDetail(el, twoMetrics, { metricId: STEPS, range: "all", compareId: MASS }, () => {}, fakeView());
+    const nodes = all(el);
+    expect(nodes.filter((n) => n.cls === "ah-chart-line2").length).toBeGreaterThan(0);
+    expect(nodes.filter((n) => n.cls === "ah-chart-marker").length).toBe(2);
+    expect(nodes.some((n) => n.cls === "ah-axis-y2")).toBe(true);
+    expect(findText(el, "Schritte (count)")).toBe(true);
+    expect(findText(el, "Gewicht (kg)")).toBe(true);
+    expect(findText(el, "rechte Achse")).toBe(true);
+  });
+
+  it("ohne zweite Metrik: keine zweite Linie, keine rechte Achse, keine Legende", () => {
+    const el = fakeEl();
+    renderDetail(el, twoMetrics, { metricId: STEPS, range: "all" }, () => {}, fakeView());
+    const nodes = all(el);
+    expect(nodes.some((n) => n.cls === "ah-chart-line2" || n.cls === "ah-axis-y2")).toBe(false);
+    expect(findText(el, "rechte Achse")).toBe(false);
+  });
+
+  it("Bereichswechsel behält die zweite Metrik", () => {
+    const el = fakeEl();
+    let got: any = null;
+    renderDetail(el, twoMetrics, { metricId: STEPS, range: "all", compareId: MASS }, (s) => { got = s; }, fakeView());
+    findByText(el, "1M")._click();
+    expect(got).toMatchObject({ range: "1M", compareId: MASS });
   });
 });

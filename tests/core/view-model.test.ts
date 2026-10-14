@@ -1,4 +1,4 @@
-import { buildOverviewVM, buildDetailVM, buildActivityVM } from "../../src/core/view-model";
+import { buildOverviewVM, buildDetailVM, buildActivityVM, compareChoices } from "../../src/core/view-model";
 import type { HealthCache } from "../../src/core/types";
 
 function cache(): HealthCache {
@@ -282,5 +282,36 @@ describe("buildActivityVM", () => {
     expect(vm.windowDays).toBe(30);
     expect(vm.reachedDays).toBe(15);
     expect(window.filter((d) => act[d] === closed).length).toBe(15);
+  });
+});
+
+describe("Vergleich zweier Metriken", () => {
+  const STEPS = "HKQuantityTypeIdentifierStepCount";
+  const MASS = "HKQuantityTypeIdentifierBodyMass";
+  const cmp = (id: string | null) => buildDetailVM(cache(), STEPS, "all", dims, id === null ? {} : { compareId: id });
+
+  it("ohne zweite Metrik: kein overlay", () => {
+    expect(cmp(null).overlay).toBeUndefined();
+  });
+  it("zweite Metrik: Linie auf eigener Skala mit Name, Einheit und rechter Achse", () => {
+    const o = cmp(MASS).overlay!;
+    expect(o.id).toBe(MASS);
+    expect(o.name).toBe("Gewicht");
+    expect(o.unit).toBe("kg");
+    expect(o.geom.markers).toHaveLength(1);
+    expect(o.axisY).toHaveLength(3);
+    // Die erste Serie bleibt unverändert.
+    expect(cmp(MASS).chart).toEqual(cmp(null).chart);
+  });
+  it("dieselbe oder unbekannte Metrik und eine ohne Werte im Zeitraum → kein overlay", () => {
+    expect(cmp(STEPS).overlay).toBeUndefined();
+    expect(cmp("HKQuantityTypeIdentifierNope").overlay).toBeUndefined();
+    const c = cache();
+    c.metrics[MASS].daily = { "2025-01-01": { min: 1, max: 1, avg: 1, count: 1 } };
+    expect(buildDetailVM(c, STEPS, "1M", dims, { compareId: MASS }).overlay).toBeUndefined();
+  });
+  it("Auswahlliste: ohne die erste Metrik, nach Name sortiert", () => {
+    expect(compareChoices(cache(), STEPS).map((c) => c.id)).toEqual([MASS]);
+    expect(compareChoices(cache(), MASS).map((c) => c.id)).toEqual([STEPS]);
   });
 });

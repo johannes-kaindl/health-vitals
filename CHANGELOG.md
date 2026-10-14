@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Detail tab: **Compare with** a second metric. It is drawn over the first one as a dashed line with square markers on its own right-hand axis, and a legend names both series and their axes. The two series differ in shape, not only in colour. "None" is the default.
 - The Overview shows your Activity rings (Move, Exercise, Stand) for the latest day with their goals, and on how many of the last 30 days all three rings were closed. Value, goal and percent are written next to every ring. Exports without activity summaries show no ring card. **Import the export once more** to get them.
 - A `health-vitals` code block renders a chart, the key figures or the value table of a metric inside any note (`metric`, `range`, `rollup`, `kind`). Problems appear as a readable line in the block, and open notes update after an import.
 - Command **Write values to today's daily note**: copies steps, sleep hours, resting heart rate, HRV and active energy of today into `health_*` properties of the daily note. It only fills properties that are missing, never creates a note and never runs by itself.

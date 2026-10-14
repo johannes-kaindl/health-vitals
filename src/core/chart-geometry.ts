@@ -105,6 +105,65 @@ export function buildChartGeometry(
 }
 
 // ---------------------------------------------------------------------------
+// Zweite Serie über der ersten (Vergleich zweier Metriken)
+// ---------------------------------------------------------------------------
+
+export interface OverlayGeometry {
+  /** Zusammenhängende Abschnitte als `x,y x,y …`; eine Lücke (kein Wert in diesem Bucket) trennt
+   *  zwei Abschnitte, statt über sie hinwegzuzeichnen — die Linie würde sonst Werte behaupten. */
+  segments: string[];
+  /** Eine Marke je vorhandenem Wert: Das Strichmuster der Linie und die Marken tragen die
+   *  Unterscheidung von der ersten Serie, nicht allein die Farbe. */
+  markers: Array<{ x: number; y: number; value: number }>;
+  /** Eigene Skala, unabhängig von der ersten Serie (die Einheiten sind fast nie vergleichbar). */
+  yTicks: Array<{ y: number; value: number }>;
+}
+
+/**
+ * Legt eine zweite Serie als Linie über das Chart der ersten. Die x-Positionen sind die der
+ * ersten Serie (`primary`: dieselben Buckets, dieselbe Rechnung wie `buildChartGeometry`, bei
+ * Balken die Slot-Mitte), die y-Skala ist ihre eigene. `second` ist nach dem Bucket-Schlüssel
+ * ausgerichtet; fehlt ein Bucket, entsteht eine Lücke.
+ */
+export function buildOverlayGeometry(
+  primary: RollupPoint[], primaryKind: ChartKind, second: RollupPoint[], dims: ChartDims,
+): OverlayGeometry {
+  const empty: OverlayGeometry = { segments: [], markers: [], yTicks: [] };
+  if (primary.length === 0) return empty;
+  const byKey = new Map(second.map((p) => [p.key, p.value]));
+  const values = primary.map((p) => byKey.get(p.key));
+  const present = values.filter((v): v is number => v !== undefined);
+  if (present.length === 0) return empty;
+
+  const { width, height, padding } = dims;
+  let lo = Math.min(...present);
+  let hi = Math.max(...present);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const innerW = width - 2 * padding;
+  const innerH = height - 2 * padding;
+  const n = primary.length;
+  const slotW = innerW / n;
+  const x = (i: number): number =>
+    primaryKind === "bar" ? padding + i * slotW + slotW / 2 : padding + (n <= 1 ? innerW / 2 : (innerW * i) / (n - 1));
+  const y = (v: number): number => padding + innerH * (1 - (v - lo) / (hi - lo));
+
+  const segments: string[] = [];
+  const markers: OverlayGeometry["markers"] = [];
+  let run: string[] = [];
+  values.forEach((v, i) => {
+    if (v === undefined) {
+      if (run.length > 0) { segments.push(run.join(" ")); run = []; }
+      return;
+    }
+    run.push(`${x(i)},${y(v)}`);
+    markers.push({ x: x(i), y: y(v), value: v });
+  });
+  if (run.length > 0) segments.push(run.join(" "));
+  const yTicks = [lo, (lo + hi) / 2, hi].map((value) => ({ y: y(value), value }));
+  return { segments, markers, yTicks };
+}
+
+// ---------------------------------------------------------------------------
 // Gestapelte Balken (Schlafphasen)
 // ---------------------------------------------------------------------------
 

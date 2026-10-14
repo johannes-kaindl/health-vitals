@@ -2,7 +2,7 @@ import { Notice } from "obsidian";
 import type { HealthCache } from "../../core/types";
 import type { RangeKey } from "../../core/rollup";
 import type { DetailVM, TableVM } from "../../core/view-model";
-import { buildDetailVM, buildSleepStagesVM } from "../../core/view-model";
+import { buildDetailVM, buildSleepStagesVM, compareChoices } from "../../core/view-model";
 import type { SleepStagesVM } from "../../core/view-model";
 import { METRIC_SLEEP_ASLEEP } from "../../core/sleep-session";
 import { renderChart, renderStackChart } from "../chart-render";
@@ -17,7 +17,8 @@ import { copyToClipboard } from "../../vendor/kit-obsidian/clipboard";
 import { writeExport } from "../export-writer";
 import { FolderSuggest } from "../../vendor/kit-obsidian/folder-suggest";
 
-export interface DetailState { metricId: string | null; range: RangeKey; }
+/** `compareId`: zweite Metrik im Vergleich; fehlt oder `null` heißt keine (der Standard). */
+export interface DetailState { metricId: string | null; range: RangeKey; compareId?: string | null; }
 
 const RANGES: RangeKey[] = ["1M", "3M", "1Y", "all"];
 const CHART_DIMS = { width: 640, height: 260, padding: 24 };
@@ -32,7 +33,8 @@ export function renderDetail(
     hint.createSpan({ text: t("detail.pickMetric") });
     return;
   }
-  const vm = buildDetailVM(cache, state.metricId, state.range, CHART_DIMS);
+  const compareId = state.compareId && state.compareId !== state.metricId ? state.compareId : null;
+  const vm = buildDetailVM(cache, state.metricId, state.range, CHART_DIMS, { compareId });
 
   const head = el.createDiv({ cls: "ah-detail-head" });
   head.createEl("h2", { text: vm.name });
@@ -43,15 +45,17 @@ export function renderDetail(
     const btn = tabs.createEl("button", { text: t("range." + rk) });
     btn.addClass("ah-range-btn");
     if (rk === state.range) btn.addClass("is-active");
-    btn.addEventListener("click", () => onState({ metricId: state.metricId, range: rk }));
+    btn.addEventListener("click", () => onState({ ...state, range: rk }));
   }
+  renderComparePicker(el, cache, state, onState);
 
   if (vm.empty) {
     const hint = el.createDiv({ cls: "ah-detail-hint" });
     hint.createSpan({ text: t("detail.noData") });
   } else {
     const chartBox = el.createDiv({ cls: "ah-detail-chart" });
-    renderChart(chartBox, vm.chart, { axis: vm.axis });
+    renderChart(chartBox, vm.chart, { axis: vm.axis, overlay: vm.overlay });
+    if (vm.overlay) renderCompareLegend(el, vm);
   }
 
   const stats = el.createDiv({ cls: "ah-stat-row" });
@@ -71,6 +75,36 @@ export function renderDetail(
 
   // Kein Export von nichts: ohne Punkte im Zeitraum entfällt die Sektion ganz.
   if (!vm.empty) renderValuesSection(el, vm, view);
+}
+
+/** Zweite Metrik wählen — „keine" ist der Standard. Ein natives <select>: tastaturbedienbar und
+ *  für Screenreader benannt, ohne eigenen Baustein. */
+function renderComparePicker(el: HTMLElement, cache: HealthCache, state: DetailState, onState: (s: DetailState) => void): void {
+  const choices = compareChoices(cache, state.metricId ?? "");
+  if (choices.length === 0) return;
+  const row = el.createDiv({ cls: "ah-compare-row" });
+  const id = "ah-compare-select";
+  row.createEl("label", { cls: "ah-compare-label", text: t("compare.label"), attr: { for: id } });
+  const select = row.createEl("select", { cls: "dropdown", attr: { id } });
+  select.createEl("option", { text: t("compare.none"), attr: { value: "" } });
+  for (const c of choices) {
+    const opt = select.createEl("option", { text: c.name, attr: { value: c.id } });
+    if (c.id === state.compareId) opt.setAttribute("selected", "");
+  }
+  select.addEventListener("change", () => onState({ ...state, compareId: select.value === "" ? null : select.value }));
+}
+
+/** Legende: welche Linie welche Serie ist und welche Achse zu ihr gehört. Die Form der Linie
+ *  (Fläche/Balken gegen gestrichelt mit Marken) trägt die Zuordnung, nicht nur die Farbe. */
+function renderCompareLegend(el: HTMLElement, vm: DetailVM): void {
+  if (!vm.overlay) return;
+  const legend = el.createDiv({ cls: "ah-legend ah-compare-legend" });
+  const first = legend.createDiv({ cls: "ah-legend-item" });
+  first.createSpan({ cls: "ah-legend-swatch ah-legend-first" });
+  first.createSpan({ cls: "ah-legend-label", text: `${vm.name}${vm.unit ? ` (${vm.unit})` : ""} — ${t("compare.leftAxis")}` });
+  const second = legend.createDiv({ cls: "ah-legend-item" });
+  second.createSpan({ cls: "ah-legend-swatch ah-legend-second" });
+  second.createSpan({ cls: "ah-legend-label", text: `${vm.overlay.name}${vm.overlay.unit ? ` (${vm.overlay.unit})` : ""} — ${t("compare.rightAxis")}` });
 }
 
 function renderValuesSection(el: HTMLElement, vm: DetailVM, view: DashboardView): void {

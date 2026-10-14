@@ -138,6 +138,9 @@ const PUNKTE = [
   "Einstellungen — Hilfe-Zeile steht zuerst",
   "Einstellungen — Export-Format bedienbar",
   "Ringe — drei Ringe mit Fläche und Text",
+  "Vergleich — zweite Serie gestrichelt mit Marken",
+  "Vergleich — rechte Achse und Legende",
+  "Vergleich — „Keine“ entfernt die zweite Serie",
   "Codeblock — Chart hat Fläche",
   "Codeblock — Fehler stehen als Zeile im Block",
 ] as const;
@@ -165,6 +168,7 @@ const SEKTION_PUNKTE: Record<string, readonly (typeof PUNKTE)[number][]> = {
   workouts: ["Workouts-Szene herstellbar", "Workouts — Monatssumme", "Workouts — Zeilenwerte gefuellt"],
   einstellungen: ["Einstellungen — Hilfe-Zeile steht zuerst", "Einstellungen — Export-Format bedienbar"],
   ringe: ["Ringe — drei Ringe mit Fläche und Text"],
+  vergleich: ["Vergleich — zweite Serie gestrichelt mit Marken", "Vergleich — rechte Achse und Legende", "Vergleich — „Keine“ entfernt die zweite Serie"],
   codeblock: ["Codeblock — Chart hat Fläche", "Codeblock — Fehler stehen als Zeile im Block"],
 };
 
@@ -1039,6 +1043,64 @@ async function pruefeRinge(cdp: Cdp): Promise<void> {
   );
 }
 
+// --- Abschnitt: Zwei Metriken vergleichen ---------------------------------------
+
+async function pruefeVergleich(cdp: Cdp): Promise<void> {
+  const szene = await zeigeMetrik(cdp, "HKQuantityTypeIdentifierStepCount");
+  if (!szene.ok) {
+    for (const n of ["Vergleich — zweite Serie gestrichelt mit Marken", "Vergleich — rechte Achse und Legende", "Vergleich — „Keine“ entfernt die zweite Serie"]) {
+      unmeasured(n, `Szene nicht herstellbar: ${szene.fehler}`);
+    }
+    return;
+  }
+  await waehleZeitraum(cdp, 1);
+  const waehle = (wert: string): Promise<boolean> => cdp.evaluate<boolean>(`
+    const sel = ${PANEL}?.querySelector("#ah-compare-select");
+    if (!sel) return false;
+    sel.value = ${JSON.stringify(wert)};
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 800));
+    return true;
+  `);
+  const mitZweiter = await waehle("HKQuantityTypeIdentifierRestingHeartRate");
+  const m = await cdp.evaluate<{ linie: number; strich: string; marken: number; markenGroesse: number; y2: number; y2Labels: string[]; legende: string[] } | null>(`
+    const panel = ${PANEL};
+    const linie = panel?.querySelectorAll(".ah-chart-line2");
+    if (!linie || linie.length === 0) return null;
+    const marken = panel.querySelectorAll(".ah-chart-marker");
+    // Ein Null-Längen-Strich hat keine Bounding-Box (0×0): die Größe der Marke ist seine Strichstärke,
+    // und stroke-linecap square macht daraus erst ein sichtbares Quadrat.
+    const stil = marken[0] ? getComputedStyle(marken[0]) : null;
+    return {
+      linie: linie.length,
+      strich: getComputedStyle(linie[0]).strokeDasharray,
+      marken: marken.length,
+      markenGroesse: stil && stil.strokeLinecap === "square" ? Math.round(parseFloat(stil.strokeWidth)) : 0,
+      y2: Math.round(panel.querySelector(".ah-axis-y2")?.getBoundingClientRect().width ?? 0),
+      y2Labels: Array.from(panel.querySelectorAll(".ah-axis-y2 .ah-axis-label")).map((e) => e.textContent ?? ""),
+      legende: Array.from(panel.querySelectorAll(".ah-compare-legend .ah-legend-label")).map((e) => e.textContent ?? ""),
+    };
+  `);
+  if (!mitZweiter || m === null) {
+    unmeasured("Vergleich — zweite Serie gestrichelt mit Marken", "Auswahl oder zweite Linie nicht im DOM");
+    unmeasured("Vergleich — rechte Achse und Legende", "Auswahl oder zweite Linie nicht im DOM");
+  } else {
+    record(
+      "Vergleich — zweite Serie gestrichelt mit Marken",
+      m.strich !== "none" && m.marken > 0 && m.markenGroesse > 0,
+      `${m.linie} Abschnitt(e), Strichmuster „${m.strich}“, ${m.marken} Marken à ${m.markenGroesse}px`,
+    );
+    record(
+      "Vergleich — rechte Achse und Legende",
+      m.y2 > 0 && m.y2Labels.length === 3 && m.y2Labels.every((l) => l.length > 0) && m.legende.length === 2,
+      `Achse ${m.y2}px, Labels ${m.y2Labels.join("/")}; Legende: ${m.legende.join(" | ")}`,
+    );
+  }
+  const ohne = await waehle("");
+  const rest = await cdp.evaluate<number>(`return ${PANEL}?.querySelectorAll(".ah-chart-line2, .ah-axis-y2, .ah-chart-marker").length ?? -1;`);
+  record("Vergleich — „Keine“ entfernt die zweite Serie", ohne && rest === 0, `übrig: ${rest}`);
+}
+
 // --- Abschnitt: Codeblock in einer Notiz ---------------------------------------
 
 const BLOCK_NOTE = "w22-codeblock-smoke.md";
@@ -1197,6 +1259,11 @@ const SECTIONS: Section[] = [
       if (!(await stelleWorkoutsHer(cdp))) return;
       await pruefeWorkouts(cdp);
     },
+  },
+  {
+    key: "vergleich",
+    title: "Zwei Metriken vergleichen",
+    run: pruefeVergleich,
   },
   {
     key: "ringe",

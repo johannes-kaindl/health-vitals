@@ -1,5 +1,5 @@
 import type { ChartGeometry } from "../core/chart-geometry";
-import type { AxisVM, SleepStagesVM } from "../core/view-model";
+import type { AxisVM, OverlayVM, SleepStagesVM } from "../core/view-model";
 import { formatDuration } from "../core/format";
 import { t } from "../vendor/kit/i18n";
 
@@ -30,11 +30,13 @@ import { t } from "../vendor/kit/i18n";
  * fachlich zur Detail-Ansicht, nicht zu jedem beliebigen Grid.
  */
 export function renderChart(
-  parent: HTMLElement, geom: ChartGeometry, opts?: { axis?: AxisVM; grid?: boolean },
+  parent: HTMLElement, geom: ChartGeometry, opts?: { axis?: AxisVM; grid?: boolean; overlay?: OverlayVM },
 ): void {
   const axis = opts?.axis;
   const showGrid = Boolean(axis) || Boolean(opts?.grid);
-  const host = axis ? parent.createDiv({ cls: "ah-chart-frame" }) : parent;
+  // Die zweite Serie braucht eine rechte Achse und damit die Achsen-Form; ohne `axis` gibt es keine.
+  const overlay = axis ? opts?.overlay : undefined;
+  const host = axis ? parent.createDiv({ cls: overlay ? ["ah-chart-frame", "ah-chart-frame-dual"] : "ah-chart-frame" }) : parent;
 
   if (axis) {
     const yCol = host.createDiv({ cls: "ah-axis-y" });
@@ -92,6 +94,25 @@ export function renderChart(
     });
   }
 
+  if (overlay) {
+    // Linie mit Strichmuster plus Marken je Wert: so unterscheidet sich die zweite Serie von der
+    // ersten auch ohne Farbe (Farbfehlsichtigkeit, Theme mit gestauchter Palette). Die Marken sind
+    // Null-Längen-Striche mit konstanter Größe, damit die gestreckte viewBox sie nicht verzerrt.
+    for (const seg of overlay.geom.segments) {
+      svg.createSvg("polyline", { cls: "ah-chart-line2", attr: { points: seg, fill: "none" } });
+    }
+    for (const m of overlay.geom.markers) {
+      svg.createSvg("line", { cls: "ah-chart-marker", attr: { x1: m.x, y1: m.y, x2: m.x, y2: m.y } });
+    }
+    const y2 = host.createDiv({ cls: "ah-axis-y2" });
+    const maxLen = overlay.axisY.reduce((m, tick) => Math.max(m, tick.label.length), 0);
+    if (maxLen > 0) y2.setCssStyles({ width: `${maxLen}ch` });
+    for (const tick of overlay.axisY) {
+      const label = y2.createSpan({ cls: "ah-axis-label", text: tick.label });
+      label.setCssStyles({ top: `${tick.topPct}%` });
+    }
+  }
+
   if (axis) {
     host.createDiv({ cls: "ah-axis-corner" });
     const xRow = host.createDiv({ cls: "ah-axis-x" });
@@ -99,6 +120,7 @@ export function renderChart(
       const label = xRow.createSpan({ cls: "ah-axis-label", text: tick.label });
       label.setCssStyles({ left: `${tick.leftPct}%` });
     }
+    if (overlay) host.createDiv({ cls: "ah-axis-corner" });
   }
 }
 

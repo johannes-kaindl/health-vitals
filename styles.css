@@ -69,6 +69,13 @@
 .ah-range-btn { color: var(--text-muted); }
 .ah-range-btn.is-active { color: var(--text-on-accent); background: var(--interactive-accent); }
 
+.ah-compare-row { display: flex; align-items: center; gap: var(--size-4-2); margin: var(--size-4-2) 0; }
+.ah-compare-label { font-size: var(--font-ui-small); color: var(--text-muted); }
+.ah-legend-first { background-color: var(--interactive-accent); }
+.ah-legend-second {
+  flex: none; width: 2.2em; height: 0; border-radius: 0;
+  border-top: 2px dashed var(--text-normal);
+}
 .ah-detail-head { display: flex; align-items: baseline; gap: var(--size-4-2); }
 .ah-detail-range { color: var(--text-faint); font-size: var(--font-ui-small); }
 .ah-detail-hint { color: var(--text-muted); padding: var(--size-4-4); text-align: center; }
@@ -176,6 +183,19 @@
    solange kein Tick vorliegt. */
 .ah-axis-y { position: relative; min-width: 1ch; }
 .ah-axis-x { position: relative; height: 1.6em; }
+/* Vergleich: dritte Spalte für die rechte Achse der zweiten Serie. */
+.ah-chart-frame-dual { grid-template-columns: auto 1fr auto; }
+.ah-axis-y2 { position: relative; min-width: 1ch; }
+.ah-axis-y2 .ah-axis-label { left: 0; transform: translateY(-50%); }
+/* Zweite Serie: Strichmuster plus Marken, nicht nur eine andere Farbe. */
+.ah-chart-line2 {
+  stroke: var(--text-normal); stroke-width: 2; fill: none;
+  stroke-dasharray: 6 4; vector-effect: non-scaling-stroke;
+}
+.ah-chart-marker {
+  stroke: var(--text-normal); stroke-width: 5; stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
 .ah-axis-label {
   position: absolute;
   font-size: var(--font-ui-smaller);

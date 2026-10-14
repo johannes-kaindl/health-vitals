@@ -1,7 +1,7 @@
 import type { HealthCache } from "./types";
 import { describeMetric, type Category } from "./metric-catalog";
 import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granularity } from "./rollup";
-import { buildChartGeometry, buildStackGeometry, type ChartDims, type ChartGeometry, type StackGeometry } from "./chart-geometry";
+import { buildChartGeometry, buildOverlayGeometry, buildStackGeometry, type ChartDims, type ChartGeometry, type OverlayGeometry, type StackGeometry } from "./chart-geometry";
 import { rollupSleepStages, STAGE_ORDER, type StageKey } from "./sleep-stages";
 import { computeStats } from "./series-stats";
 import { formatByPolicy, formatAxisTick, formatTickLabel, formatDuration, formatValue } from "./format";
@@ -24,10 +24,27 @@ export interface TableVM {
   rows: string[][];     // locale-formatiert — Anzeige und Markdown
   rowsRaw: string[][];  // rohe Zahlen mit Punkt — CSV
 }
+/** Die zweite Serie eines Vergleichs: Linie mit Strichmuster und Marken, rechte Achse. */
+export interface OverlayVM {
+  id: string; name: string; unit: string;
+  geom: OverlayGeometry;
+  /** Beschriftung der rechten Achse, `topPct` wie bei `AxisVM.y`. */
+  axisY: Array<{ topPct: number; label: string }>;
+}
 export interface DetailVM {
   id: string; name: string; unit: string; empty: boolean;
   rangeLabel: string; chart: ChartGeometry; stats: StatRow[];
   axis: AxisVM; table: TableVM;
+  /** Nur im Vergleich (zweite Metrik gewählt und im Zeitraum mit mindestens einem Wert). */
+  overlay?: OverlayVM;
+}
+
+/** Metriken, die als zweite Serie zur Wahl stehen: alle mit Daten außer der ersten, nach Name. */
+export function compareChoices(cache: HealthCache, exceptId: string): Array<{ id: string; name: string }> {
+  return Object.entries(cache.metrics)
+    .filter(([id, s]) => id !== exceptId && Object.keys(s.daily).length > 0)
+    .map(([id, s]) => ({ id, name: describeMetric(id, s.policy).name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 const EMPTY_TABLE: TableVM = { headers: [], rows: [], rowsRaw: [] };
@@ -153,7 +170,7 @@ export function buildOverviewVM(cache: HealthCache, favorites: string[], sparkDi
 
 export function buildDetailVM(
   cache: HealthCache, metricId: string, range: RangeKey, dims: ChartDims,
-  opts: { granularity?: Granularity } = {},
+  opts: { granularity?: Granularity; compareId?: string | null } = {},
 ): DetailVM {
   const series = cache.metrics[metricId];
   if (!series || !cache.dateRange) {
@@ -195,7 +212,23 @@ export function buildDetailVM(
         { label: t("stat.total"), value: s.total !== undefined ? formatByPolicy(s.total, series.unit, series.policy) : "—" },
       ];
   const rangeLabel = points.length ? `${points[0].key} – ${points[points.length - 1].key}` : "";
-  return { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats, axis, table };
+  const vm: DetailVM = { id: metricId, name: info.name, unit: series.unit, empty: points.length === 0, rangeLabel, chart, stats, axis, table };
+  const second = opts.compareId && opts.compareId !== metricId ? cache.metrics[opts.compareId] : undefined;
+  if (second && opts.compareId && points.length > 0) {
+    // Dieselben Buckets wie die erste Serie (derselbe aufgelöste Zeitraum und dieselbe Granularität),
+    // sonst stünden die x-Positionen nicht übereinander.
+    const geom = buildOverlayGeometry(points, info.chartKind, rollupDaily(second.daily, second.policy, r), dims);
+    if (geom.markers.length > 0) {
+      vm.overlay = {
+        id: opts.compareId, name: describeMetric(opts.compareId, second.policy).name, unit: second.unit, geom,
+        axisY: geom.yTicks.map((tick) => ({
+          topPct: (tick.y / dims.height) * 100,
+          label: formatAxisTick(tick.value, "", second.policy),
+        })),
+      };
+    }
+  }
+  return vm;
 }
 
 /** Schwelle, ab der die Hinweiszeile erscheint: mehr als die Hälfte der Nächte

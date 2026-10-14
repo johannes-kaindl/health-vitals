@@ -120,6 +120,13 @@ vault as Markdown or CSV:
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
 
+### Comparing two metrics
+
+In the Detail tab, *Compare with* adds a second metric to the chart — for example resting heart
+rate over your steps. The second series is a dashed line with square markers on its own axis
+at the right, because the units rarely match; the legend says which line belongs to which axis.
+A gap in the second series stays a gap.
+
 ### Activity rings
 
 If your export carries activity summaries, the Overview starts with the three rings of the
