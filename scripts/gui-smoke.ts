@@ -134,6 +134,8 @@ const PUNKTE = [
   "Workouts-Szene herstellbar",
   "Workouts — Monatssumme",
   "Workouts — Zeilenwerte gefuellt",
+  "Einstellungen — Hilfe-Zeile steht zuerst",
+  "Einstellungen — Export-Format bedienbar",
 ] as const;
 
 /** Prüfpunkte je Abschnitt (Teilmenge von `PUNKTE`). Ein Teillauf mit `--section` bekommt als
@@ -157,6 +159,7 @@ const SEKTION_PUNKTE: Record<string, readonly (typeof PUNKTE)[number][]> = {
   ],
   werte: ["Werte-Szene herstellbar", "Werte-Tabelle sichtbar"],
   workouts: ["Workouts-Szene herstellbar", "Workouts — Monatssumme", "Workouts — Zeilenwerte gefuellt"],
+  einstellungen: ["Einstellungen — Hilfe-Zeile steht zuerst", "Einstellungen — Export-Format bedienbar"],
 };
 
 let bilanz = createBilanz({ punkte: PUNKTE });
@@ -950,6 +953,58 @@ async function pruefeWerteSektion(cdp: Cdp): Promise<void> {
   );
 }
 
+// --- Abschnitt: Einstellungen --------------------------------------------------
+
+/** Öffnet den Einstellungs-Tab des Plugins und liest seine Zeilen; schließt ihn danach wieder. */
+async function pruefeEinstellungen(cdp: Cdp): Promise<void> {
+  const messung = await cdp.evaluate<{ namen: string[]; hilfeKnoepfe: number; format: string | null; nachher: string | null } | null>(`
+    app.setting.open();
+    app.setting.openTabById(${JSON.stringify(PLUGIN_ID)});
+    await new Promise((r) => setTimeout(r, 800));
+    // Die Einstellungen öffnen in der Zweitinstanz ggf. als eigenes Pop-out-Fenster (Dach-AGENTS
+    // § Staging-Vaults): ein \`document.querySelector\` im Hauptfenster sieht sie nicht. Der Tab
+    // trägt sein Wurzelelement selbst.
+    const inhalt = app.setting.activeTab?.id === ${JSON.stringify(PLUGIN_ID)} ? app.setting.activeTab.containerEl : null;
+    if (!inhalt) return null;
+    const zeilen = Array.from(inhalt.querySelectorAll(".setting-item"));
+    const namen = zeilen.map((z) => z.querySelector(".setting-item-name")?.textContent ?? "");
+    const hilfe = zeilen[0];
+    const hilfeKnoepfe = hilfe ? hilfe.querySelectorAll("button, .clickable-icon").length : 0;
+    const select = inhalt.querySelector("select");
+    const format = select ? select.value : null;
+    let nachher = null;
+    if (select) {
+      const ziel = select.value === "csv" ? "md" : "csv";
+      select.value = ziel;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 300));
+      nachher = (app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]).getExportFormat();
+      // zurück auf den Ausgangswert
+      select.value = format;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return { namen, hilfeKnoepfe, format, nachher: nachher === null ? null : nachher + "|" + (app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]).getExportFormat() };
+  `);
+  if (messung === null) {
+    unmeasured("Einstellungen — Hilfe-Zeile steht zuerst", "Einstellungs-Tab nicht geöffnet");
+    unmeasured("Einstellungen — Export-Format bedienbar", "Einstellungs-Tab nicht geöffnet");
+    return;
+  }
+  record(
+    "Einstellungen — Hilfe-Zeile steht zuerst",
+    /^(Help|Hilfe)$/.test(messung.namen[0] ?? "") && messung.hilfeKnoepfe >= 2,
+    `Zeilen: ${messung.namen.join(" | ")}; Knöpfe in Zeile 1: ${messung.hilfeKnoepfe}`,
+  );
+  const [gesetzt, zurueck] = (messung.nachher ?? "|").split("|");
+  record(
+    "Einstellungen — Export-Format bedienbar",
+    messung.format !== null && gesetzt !== undefined && gesetzt !== messung.format && zurueck === messung.format,
+    `Ausgang ${messung.format}, nach Wahl ${gesetzt}, zurückgesetzt ${zurueck}`,
+  );
+  await cdp.evaluate(`app.setting.close(); return true;`);
+}
+
 // --- Abschnitt: Workouts-Kennzahlen ------------------------------------------
 
 async function pruefeWorkouts(cdp: Cdp): Promise<void> {
@@ -1063,6 +1118,11 @@ const SECTIONS: Section[] = [
       if (!(await stelleWorkoutsHer(cdp))) return;
       await pruefeWorkouts(cdp);
     },
+  },
+  {
+    key: "einstellungen",
+    title: "Einstellungs-Tab",
+    run: pruefeEinstellungen,
   },
 ];
 

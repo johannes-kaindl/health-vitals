@@ -314,7 +314,7 @@ function baueCache() {
     .reduce((s, m) => s + Object.values(m.daily).reduce((a, b) => a + (b.count ?? 1), 0), 0);
 
   return {
-    version: 3,
+    version: 4,
     // Ein erfundener Dateiname: der echte Pfad des Maintainers gehört in kein Repo, und
     // der Wert steht dem Nutzer im Dashboard nirgends prominent gegenüber.
     sourceFile: "Export.zip",

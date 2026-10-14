@@ -1,6 +1,11 @@
 import { defineStrings, getLang, setLang, pickLang, t } from "../vendor/kit/i18n";
 export { setLang, getLang, pickLang, t };
 
+/** Beschriftung eines Export-Formats; dieselbe Quelle für Dashboard-Knöpfe und Einstellungen. */
+export function exportFormatLabel(id: "md" | "csv"): string {
+  return t(`export.format.${id}`);
+}
+
 export const EN: Record<string, string> = {
   // commands / chrome
   "cmd.openDashboard": "Open dashboard",
@@ -48,6 +53,12 @@ export const EN: Record<string, string> = {
   "export.copy": "Copy",
   "export.save": "Save",
   "export.folder": "Folder",
+  "export.format.md": "MD",
+  "export.format.csv": "CSV",
+  "settings.exportFolder.name": "Export folder",
+  "settings.exportFolder.desc": "Where saved value exports go. Empty means the vault root.",
+  "settings.exportFormat.name": "Export format",
+  "settings.exportFormat.desc": "File format for copied and saved value tables.",
   "export.copied": "Copied",
   "export.copyFailed": "Copy failed",
   "export.saved": "Saved to {0}",
@@ -178,6 +189,12 @@ export const DE: Record<string, string> = {
   "export.copy": "Kopieren",
   "export.save": "Speichern",
   "export.folder": "Ordner",
+  "export.format.md": "MD",
+  "export.format.csv": "CSV",
+  "settings.exportFolder.name": "Export-Ordner",
+  "settings.exportFolder.desc": "Wohin gespeicherte Werte-Exporte gehen. Leer heißt Vault-Wurzel.",
+  "settings.exportFormat.name": "Export-Format",
+  "settings.exportFormat.desc": "Dateiformat für kopierte und gespeicherte Wertetabellen.",
   "export.copied": "Kopiert",
   "export.copyFailed": "Kopieren fehlgeschlagen",
   "export.saved": "Gespeichert: {0}",

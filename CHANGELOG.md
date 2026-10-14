@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- A settings tab (Settings → Health Vitals): a Help row with a link to the documentation and the issue tracker, plus the export folder and the export format (MD or CSV), which until now could only be changed inside the dashboard.
 - Four frequent metrics now have proper names and sit under Activity instead of "Other": Physical Effort, Walking Speed, Walking Step Length and Stand Hours (English and German).
 
 ### Fixed

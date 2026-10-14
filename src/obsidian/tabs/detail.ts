@@ -9,6 +9,7 @@ import { renderChart, renderStackChart } from "../chart-render";
 import type { DashboardView, ExportFormat } from "../dashboard-view";
 import { collapsibleSection } from "../../vendor/kit-obsidian/collapsible";
 import { t } from "../../vendor/kit/i18n";
+import { exportFormatLabel } from "../../i18n/strings";
 import { toCsv, toMarkdownTable } from "../../core/serialize";
 import { buildExportName } from "../../core/export-path";
 import { flashCopied } from "../clipboard";
@@ -83,10 +84,7 @@ function renderValuesSection(el: HTMLElement, vm: DetailVM, view: DashboardView)
   renderValuesTable(body, vm.table);
 }
 
-const FORMATS: Array<{ id: ExportFormat; label: string }> = [
-  { id: "md", label: "MD" },
-  { id: "csv", label: "CSV" },
-];
+const FORMATS: ExportFormat[] = ["md", "csv"];
 
 function serializeTable(vm: DetailVM, format: ExportFormat): string {
   return format === "csv"
@@ -118,12 +116,12 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
   saveBtn.addEventListener("click", () => { void save(); });
 
   const formatBar = row.createDiv({ cls: "ah-range-bar" });
-  for (const f of FORMATS) {
-    const btn = formatBar.createEl("button", { text: f.label });
+  for (const id of FORMATS) {
+    const btn = formatBar.createEl("button", { text: exportFormatLabel(id) });
     btn.addClass("ah-range-btn");
-    if (f.id === host.getExportFormat()) btn.addClass("is-active");
+    if (id === host.getExportFormat()) btn.addClass("is-active");
     btn.addEventListener("click", () => {
-      host.setExportFormat(f.id);
+      host.setExportFormat(id);
       // Nur die Markierung umhängen statt neu zu rendern: ein Re-Render würde
       // den Fokus aus dem Ordner-Feld reißen, während man noch tippt.
       for (const el of Array.from(formatBar.children)) el.removeClass("is-active");

@@ -134,15 +134,15 @@ chose. Details under "Privacy".
 
 ## Configuration
 
-The plugin has **no settings tab**. What it remembers, you set where it takes effect —
-in the dashboard:
+The settings tab (*Settings → Health Vitals*) has a Help row and the two export settings;
+the rest you set where it takes effect — in the dashboard:
 
 | Setting | Where | Meaning |
 |---|---|---|
 | Favourites | Star on a tile (Overview) | Pinned metrics sit at the top |
 | Collapsed state | Category groups (Overview) | Which groups stay open |
-| Export folder | Detail tab, folder field with autocomplete | Target folder of the value table |
-| Export format | Detail tab | `.md` or `.csv` |
+| Export folder | Settings tab, or Detail tab (folder field with autocomplete) | Target folder of the value table |
+| Export format | Settings tab, or Detail tab | `.md` or `.csv` |
 
 That is stored in `data.json` in the plugin folder — not in the cache, which the next
 import overwrites. The interface language is deliberately not a setting: it follows

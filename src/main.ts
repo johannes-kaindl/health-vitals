@@ -7,6 +7,7 @@ import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
 import { validateSettings, oneOf, check, arrayThen, isPlainObject } from "./vendor/kit/settings_schema";
+import { HealthVitalsSettingTab } from "./obsidian/settings-tab";
 import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
@@ -55,6 +56,7 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
       name: t("cmd.openDashboard"),
       callback: () => { void this.activateView(); },
     });
+    this.addSettingTab(new HealthVitalsSettingTab(this.app, this, this));
     this.addRibbonIcon("heart-pulse", t("ribbon.tooltip"), () => { void this.activateView(); });
   }
 
