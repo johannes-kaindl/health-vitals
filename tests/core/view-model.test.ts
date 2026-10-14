@@ -1,9 +1,9 @@
-import { buildOverviewVM, buildDetailVM } from "../../src/core/view-model";
+import { buildOverviewVM, buildDetailVM, buildActivityVM } from "../../src/core/view-model";
 import type { HealthCache } from "../../src/core/types";
 
 function cache(): HealthCache {
   return {
-    version: 4, sourceFile: "x", importedAt: "", recordCount: 3, skippedCount: 0,
+    version: 5, sourceFile: "x", importedAt: "", recordCount: 3, skippedCount: 0,
     dateRange: { from: "2026-01-01", to: "2026-01-31" },
     metrics: {
       HKQuantityTypeIdentifierStepCount: {
@@ -93,7 +93,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
   const dims = { width: 640, height: 260, padding: 24 };
 
   const measureCache: HealthCache = {
-    version: 4, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
+    version: 5, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
     dateRange: { from: "2026-07-27", to: "2026-07-29" },
     metrics: {
       HKQuantityTypeIdentifierRestingHeartRate: {
@@ -108,7 +108,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
   };
 
   const sumCache: HealthCache = {
-    version: 4, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    version: 5, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
     dateRange: { from: "2026-07-27", to: "2026-07-28" },
     metrics: {
       HKQuantityTypeIdentifierStepCount: {
@@ -174,7 +174,7 @@ describe("buildDetailVM — Achse und Tabelle", () => {
 
 describe("duration-Metriken werden als Dauer dargestellt, nicht als Minutenzahl", () => {
   const sleepCache: HealthCache = {
-    version: 4, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+    version: 5, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
     dateRange: { from: "2026-01-05", to: "2026-01-05" },
     metrics: {
       SleepAsleep: {
@@ -234,7 +234,7 @@ describe("Y-Achse mischt keine Einheiten", () => {
     // Im Nachtest stand "0 min" unter "30 h" und "60 h" — der kleinste Wert sah aus,
     // als gehoere er zu einer anderen Skala.
     const c: HealthCache = {
-      version: 4, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
+      version: 5, sourceFile: "", importedAt: "", recordCount: 1, skippedCount: 0,
       dateRange: { from: "2026-01-01", to: "2026-01-07" },
       metrics: {
         SleepAsleep: {
@@ -247,5 +247,40 @@ describe("Y-Achse mischt keine Einheiten", () => {
     const vm = buildDetailVM(c, "SleepAsleep", "all", dims);
     const zero = vm.axis.y.find((tick) => tick.label === "0" || tick.label.startsWith("0 "));
     expect(zero?.label).toBe("0");
+  });
+});
+
+describe("buildActivityVM", () => {
+  const mk = (activity: HealthCache["activity"]): HealthCache => ({
+    version: 5, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null, metrics: {}, workouts: [], activity,
+  });
+  const closed = { moveKcal: 600, moveGoalKcal: 500, exerciseMin: 30, exerciseGoalMin: 30, standHours: 12, standGoalHours: 12 };
+  const open = { moveKcal: 250, moveGoalKcal: 500, exerciseMin: 45, exerciseGoalMin: 30, standHours: 6, standGoalHours: 12 };
+
+  it("ohne ActivitySummary → null (die Karte entfällt)", () => {
+    expect(buildActivityVM(mk(undefined))).toBeNull();
+    expect(buildActivityVM(mk({}))).toBeNull();
+  });
+  it("Ringe des jüngsten Tages: Anteil, Prozent (auch über 100), geschlossen", () => {
+    const vm = buildActivityVM(mk({ "2026-06-29": closed, "2026-06-30": open }))!;
+    expect(vm.day).toBe("2026-06-30");
+    expect(vm.rings.map((r) => [r.id, r.percent, r.closed])).toEqual([["move", 50, false], ["exercise", 150, true], ["stand", 50, false]]);
+    expect(vm.rings[1].fraction).toBe(1);
+    expect(vm.rings[0].fraction).toBe(0.5);
+  });
+  it("Zielerreichung: Tage mit allen drei Ringen geschlossen, nur über die jüngsten 30 Tage mit Daten", () => {
+    const act: NonNullable<HealthCache["activity"]> = {};
+    // 40 aufeinanderfolgende Tage; die ersten zehn (außerhalb des Fensters) sind alle geschlossen,
+    // danach wechselt es: ungerade offen, gerade geschlossen.
+    for (let i = 0; i < 40; i++) {
+      const d = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+      act[d] = i < 10 ? closed : (i % 2 ? open : closed);
+    }
+    const days = Object.keys(act).sort();
+    const window = days.slice(-30);
+    const vm = buildActivityVM(mk(act))!;
+    expect(vm.windowDays).toBe(30);
+    expect(vm.reachedDays).toBe(15);
+    expect(window.filter((d) => act[d] === closed).length).toBe(15);
   });
 });

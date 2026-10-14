@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The Overview shows your Activity rings (Move, Exercise, Stand) for the latest day with their goals, and on how many of the last 30 days all three rings were closed. Value, goal and percent are written next to every ring. Exports without activity summaries show no ring card. **Import the export once more** to get them.
 - A `health-vitals` code block renders a chart, the key figures or the value table of a metric inside any note (`metric`, `range`, `rollup`, `kind`). Problems appear as a readable line in the block, and open notes update after an import.
 - Command **Write values to today's daily note**: copies steps, sleep hours, resting heart rate, HRV and active energy of today into `health_*` properties of the daily note. It only fills properties that are missing, never creates a note and never runs by itself.
 - A settings tab (Settings → Health Vitals): a Help row with a link to the documentation and the issue tracker, plus the export folder and the export format (MD or CSV), which until now could only be changed inside the dashboard.

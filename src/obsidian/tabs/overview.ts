@@ -1,6 +1,7 @@
 import { setIcon } from "obsidian";
 import type { HealthCache } from "../../core/types";
-import { buildOverviewVM, type TileVM } from "../../core/view-model";
+import { buildActivityVM, buildOverviewVM, type TileVM } from "../../core/view-model";
+import { renderActivityRings } from "./activity";
 import { renderChart } from "../chart-render";
 import type { DashboardView } from "../dashboard-view";
 import { resolveCollapsed } from "../../vendor/kit-obsidian/collapsible";
@@ -37,6 +38,10 @@ function activatable(el: HTMLElement, label: string, onActivate: () => void): vo
 export function renderOverview(el: HTMLElement, cache: HealthCache, view: DashboardView): void {
   const favorites = view.host.getFavorites();
   const vm = buildOverviewVM(cache, favorites, SPARK_DIMS);
+
+  // Ohne ActivitySummary im Export entfällt die Karte ganz (keine Nullen, kein leerer Kasten).
+  const activity = buildActivityVM(cache);
+  if (activity) renderActivityRings(el, activity);
 
   if (vm.favorites.length) {
     const favSection = el.createDiv({ cls: "ah-fav-section" });

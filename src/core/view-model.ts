@@ -4,7 +4,7 @@ import { resolveRange, rollupDaily, type RangeKey, type RollupPoint, type Granul
 import { buildChartGeometry, buildStackGeometry, type ChartDims, type ChartGeometry, type StackGeometry } from "./chart-geometry";
 import { rollupSleepStages, STAGE_ORDER, type StageKey } from "./sleep-stages";
 import { computeStats } from "./series-stats";
-import { formatByPolicy, formatAxisTick, formatTickLabel, formatDuration } from "./format";
+import { formatByPolicy, formatAxisTick, formatTickLabel, formatDuration, formatValue } from "./format";
 import type { Policy } from "./types";
 import { t } from "../vendor/kit/i18n";
 import { localeTag } from "../i18n/strings";
@@ -254,4 +254,65 @@ export function buildSleepStagesVM(
   const stats: StatRow[] = [{ label: t("stat.awakeAvg"), value: formatDuration(awakeAvg) }];
 
   return { empty: false, chart, axis, legend, note, stats };
+}
+
+// --- Aktivitätsringe ----------------------------------------------------------
+
+export type RingId = "move" | "exercise" | "stand";
+export interface RingVM {
+  id: RingId;
+  label: string;
+  /** „412 kcal" — der Wert als Text, damit der Ring nicht allein über Farbe und Bogen spricht. */
+  value: string;
+  goal: string;
+  /** Anteil am Ziel, 0 … 1 für den Bogen (über 1 gekappt); die Prozentzahl steht in `percent`. */
+  fraction: number;
+  percent: number;
+  closed: boolean;
+}
+export interface ActivityVM {
+  /** Der jüngste Tag mit Ringen. */
+  day: string;
+  rings: RingVM[];
+  /** An wie vielen der letzten `windowDays` Tage mit Daten alle drei Ringe geschlossen waren. */
+  reachedDays: number;
+  windowDays: number;
+}
+
+/** Die Zahl der jüngsten Tage mit Ringen, über die die Zielerreichung zählt. */
+export const ACTIVITY_WINDOW = 30;
+
+function ring(id: RingId, label: string, value: number, goal: number, unit: string): RingVM {
+  const ratio = goal > 0 ? value / goal : 0;
+  return {
+    id, label,
+    value: formatValue(value, unit), goal: formatValue(goal, unit),
+    fraction: Math.max(0, Math.min(1, ratio)),
+    percent: Math.round(ratio * 100),
+    closed: ratio >= 1,
+  };
+}
+
+/** Ringe des jüngsten Tages plus Zielerreichung der letzten Tage; `null`, wenn der Export keine
+ *  ActivitySummary trägt (dann entfällt die Karte ganz, statt Nullen zu zeigen). */
+export function buildActivityVM(cache: HealthCache): ActivityVM | null {
+  const days = Object.keys(cache.activity ?? {}).sort();
+  if (days.length === 0 || !cache.activity) return null;
+  const latest = days[days.length - 1];
+  const a = cache.activity[latest];
+  const window = days.slice(-ACTIVITY_WINDOW);
+  const reachedDays = window.filter((d) => {
+    const x = cache.activity![d];
+    return x.moveKcal >= x.moveGoalKcal && x.exerciseMin >= x.exerciseGoalMin && x.standHours >= x.standGoalHours;
+  }).length;
+  return {
+    day: latest,
+    rings: [
+      ring("move", t("ring.move"), a.moveKcal, a.moveGoalKcal, "kcal"),
+      ring("exercise", t("ring.exercise"), a.exerciseMin, a.exerciseGoalMin, "min"),
+      ring("stand", t("ring.stand"), a.standHours, a.standGoalHours, "h"),
+    ],
+    reachedDays,
+    windowDays: window.length,
+  };
 }

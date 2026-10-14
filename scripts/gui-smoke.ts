@@ -137,6 +137,7 @@ const PUNKTE = [
   "Workouts — Zeilenwerte gefuellt",
   "Einstellungen — Hilfe-Zeile steht zuerst",
   "Einstellungen — Export-Format bedienbar",
+  "Ringe — drei Ringe mit Fläche und Text",
   "Codeblock — Chart hat Fläche",
   "Codeblock — Fehler stehen als Zeile im Block",
 ] as const;
@@ -163,6 +164,7 @@ const SEKTION_PUNKTE: Record<string, readonly (typeof PUNKTE)[number][]> = {
   werte: ["Werte-Szene herstellbar", "Werte-Tabelle sichtbar"],
   workouts: ["Workouts-Szene herstellbar", "Workouts — Monatssumme", "Workouts — Zeilenwerte gefuellt"],
   einstellungen: ["Einstellungen — Hilfe-Zeile steht zuerst", "Einstellungen — Export-Format bedienbar"],
+  ringe: ["Ringe — drei Ringe mit Fläche und Text"],
   codeblock: ["Codeblock — Chart hat Fläche", "Codeblock — Fehler stehen als Zeile im Block"],
 };
 
@@ -1009,6 +1011,34 @@ async function pruefeEinstellungen(cdp: Cdp): Promise<void> {
   await cdp.evaluate(`app.setting.close(); return true;`);
 }
 
+// --- Abschnitt: Aktivitätsringe (Übersicht) -----------------------------------
+
+async function pruefeRinge(cdp: Cdp): Promise<void> {
+  // Übersicht zeigen: der Tab-Wechsel hängt am Kit-Hub (`.okit-hub-tabs`), erster Tab ist die Übersicht.
+  const m = await cdp.evaluate<{ ringe: number; flaechen: number[]; texte: number; leereAria: number } | null>(`
+    const tabs = Array.from(document.querySelectorAll(".ah-dashboard .okit-hub-tabs [role=tab], .ah-dashboard .okit-hub-tabs button"));
+    if (tabs[0]) tabs[0].click();
+    await new Promise((r) => setTimeout(r, 600));
+    const ringe = Array.from(document.querySelectorAll(".ah-dashboard .ah-ring"));
+    if (ringe.length === 0) return null;
+    return {
+      ringe: ringe.length,
+      flaechen: ringe.map((r) => { const b = r.querySelector(".ah-ring-svg")?.getBoundingClientRect(); return b ? Math.round(b.width * b.height) : 0; }),
+      texte: ringe.filter((r) => /\\d/.test(r.querySelector(".ah-ring-value")?.textContent ?? "") && /%/.test(r.querySelector(".ah-ring-goal")?.textContent ?? "")).length,
+      leereAria: ringe.filter((r) => !(r.querySelector("svg")?.getAttribute("aria-label"))).length,
+    };
+  `);
+  if (m === null) {
+    unmeasured("Ringe — drei Ringe mit Fläche und Text", "keine Ringe in der Übersicht (Cache ohne ActivitySummary?)");
+    return;
+  }
+  record(
+    "Ringe — drei Ringe mit Fläche und Text",
+    m.ringe === 3 && m.flaechen.every((f) => f > 0) && m.texte === 3 && m.leereAria === 0,
+    `${m.ringe} Ringe, Flächen ${m.flaechen.join("/")} px², Text+Prozent ${m.texte}/3, ohne Namen ${m.leereAria}`,
+  );
+}
+
 // --- Abschnitt: Codeblock in einer Notiz ---------------------------------------
 
 const BLOCK_NOTE = "w22-codeblock-smoke.md";
@@ -1167,6 +1197,11 @@ const SECTIONS: Section[] = [
       if (!(await stelleWorkoutsHer(cdp))) return;
       await pruefeWorkouts(cdp);
     },
+  },
+  {
+    key: "ringe",
+    title: "Aktivitätsringe",
+    run: pruefeRinge,
   },
   {
     key: "codeblock",

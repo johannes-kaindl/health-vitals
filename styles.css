@@ -99,6 +99,18 @@
   padding: var(--size-4-1) 0;
   border-bottom: 1px solid var(--background-modifier-border);
 }
+/* Aktivitätsringe (Übersicht). Wert, Ziel und Prozent stehen als Text, der Bogen ist nur eine Aussage. */
+.ah-rings { margin-bottom: var(--size-4-4); }
+.ah-rings-head { display: flex; align-items: baseline; gap: var(--size-4-2); }
+.ah-rings-row { display: flex; flex-wrap: wrap; gap: var(--size-4-6); margin-top: var(--size-4-2); }
+.ah-ring { display: flex; flex-direction: column; align-items: center; min-width: 7em; }
+.ah-ring-track { stroke: var(--background-modifier-border); }
+.ah-ring-arc { stroke: var(--interactive-accent); }
+.ah-ring.is-closed .ah-ring-label { font-weight: var(--font-semibold); }
+.ah-ring-label { font-size: var(--font-ui-small); color: var(--text-normal); margin-top: var(--size-4-1); }
+.ah-ring-value { font-size: var(--font-ui-medium); color: var(--text-normal); }
+.ah-ring-goal { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.ah-rings-reached { font-size: var(--font-ui-small); color: var(--text-muted); margin-top: var(--size-4-2); }
 /* Codeblock in einer Notiz: Meldungen stehen als Zeile im Block, nie als Notice. */
 .ah-block { margin: var(--size-4-2) 0; }
 .ah-block-msg { font-size: var(--font-ui-small); padding: var(--size-4-1) 0; }

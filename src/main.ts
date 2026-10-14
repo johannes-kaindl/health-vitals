@@ -14,7 +14,7 @@ import { t, registerI18n } from "./i18n/strings";
 
 const CACHE_FILE = "health-cache.json";
 /** Muss mit `HealthCache["version"]` übereinstimmen — ältere Caches werden verworfen. */
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 
 interface PluginData {
   favorites: string[];
@@ -162,7 +162,7 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
       const cache = JSON.parse(raw) as HealthCache;
       // Ein Cache aus einer älteren Version kann Felder vermissen oder mit anderer
       // Semantik befüllt sein (bisherige Sprünge: Version 1→2 Schlafphasen-Fix,
-      // 2→3 Workout-Kennzahlen, 3→4 Stehstunden zählen Stood-Records statt Dauer).
+      // 2→3 Workout-Kennzahlen, 3→4 Stehstunden zählen Stood-Records statt Dauer, 4→5 Aktivitätsringe aus ActivitySummary).
       // Umrechnen geht generell nicht: Was fehlt, lässt sich nicht rekonstruieren. Also
       // verwerfen und neu einlesen lassen — stillschweigend weiterzuverwenden hieße, den
       // Fehler zu konservieren.

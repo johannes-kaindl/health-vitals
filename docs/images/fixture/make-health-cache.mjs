@@ -310,11 +310,25 @@ function baueCache() {
   metrics.SleepInBed = { unit: "min", policy: "duration", daily: inBed };
 
   const liste = workouts();
+  // Ringe NACH allem anderen: die Zufallszahlen für die Metriken bleiben so unverändert. Wert
+  // und Ziel sind erfunden, die Werte folgen den Tagessummen der Metriken (aktive Energie,
+  // Bewegungsminuten); das Ziel ist wie bei Apple eine feste Vorgabe des Nutzers.
+  const activity = {};
+  for (const t of ALLE) {
+    const energie = metrics.HKQuantityTypeIdentifierActiveEnergyBurned?.daily[t.iso]?.sum;
+    const training = metrics.HKQuantityTypeIdentifierAppleExerciseTime?.daily[t.iso]?.sum;
+    if (energie === undefined || training === undefined) continue;
+    activity[t.iso] = {
+      moveKcal: energie, moveGoalKcal: 500,
+      exerciseMin: training, exerciseGoalMin: 30,
+      standHours: klemme(Math.round(gauss(10, 2.5)), 0, 16), standGoalHours: 12,
+    };
+  }
   const recordCount = Object.values(metrics)
     .reduce((s, m) => s + Object.values(m.daily).reduce((a, b) => a + (b.count ?? 1), 0), 0);
 
   return {
-    version: 4,
+    version: 5,
     // Ein erfundener Dateiname: der echte Pfad des Maintainers gehört in kein Repo, und
     // der Wert steht dem Nutzer im Dashboard nirgends prominent gegenüber.
     sourceFile: "Export.zip",
@@ -325,6 +339,7 @@ function baueCache() {
     metrics,
     workouts: liste,
     sleepStages: stages,
+    activity,
   };
 }
 

@@ -282,3 +282,36 @@ describe("EventReader — WorkoutStatistics", () => {
     expect(w.energyKcal).toBeCloseTo(612, 6);
   });
 });
+
+describe("EventReader — ActivitySummary", () => {
+  const full = {
+    dateComponents: "2026-06-30",
+    activeEnergyBurned: "629", activeEnergyBurnedGoal: "500", activeEnergyBurnedUnit: "kcal",
+    appleExerciseTime: "42", appleExerciseTimeGoal: "30",
+    appleStandHours: "11", appleStandHoursGoal: "12",
+  };
+  const summary = (attrs: Record<string, string>): Token => ({ kind: "start", name: "ActivitySummary", attrs, selfClosing: true });
+
+  it("liest den Tag mit allen drei Ringen und Zielen", () => {
+    expect(new EventReader().push(summary(full))).toEqual({
+      kind: "summary", day: "2026-06-30", moveKcal: 629, moveGoalKcal: 500,
+      exerciseMin: 42, exerciseGoalMin: 30, standHours: 11, standGoalHours: 12,
+    });
+  });
+  it("rechnet Kilojoule nach kcal um", () => {
+    const e = new EventReader().push(summary({ ...full, activeEnergyBurned: "4184", activeEnergyBurnedGoal: "2092", activeEnergyBurnedUnit: "kJ" }));
+    expect(e).toMatchObject({ moveKcal: 1000, moveGoalKcal: 500 });
+  });
+  it("fehlendes oder leeres Feld, kaputter Tag, unbekannte Energieeinheit → kein Ereignis (kein halber Ring)", () => {
+    for (const bad of [
+      { ...full, appleStandHours: "" },
+      { ...full, appleExerciseTimeGoal: undefined },
+      { ...full, dateComponents: "2026-06" },
+      { ...full, dateComponents: undefined },
+      { ...full, activeEnergyBurnedUnit: "furlongs" },
+    ]) {
+      const attrs = Object.fromEntries(Object.entries(bad).filter(([, v]) => v !== undefined)) as Record<string, string>;
+      expect(new EventReader().push(summary(attrs))).toBeNull();
+    }
+  });
+});

@@ -31,7 +31,17 @@ export interface WorkoutEvent {
   energyKcal?: number;
 }
 
-export type HealthEvent = RecordEvent | WorkoutEvent;
+/** Ein Tag der Aktivitätsringe (`<ActivitySummary>`). `day` ist ein reines Datum ohne Zeit und
+ *  Zone (`dateComponents`) und geht deshalb nicht durch `localDay()`. */
+export interface SummaryEvent {
+  kind: "summary";
+  day: string;
+  moveKcal: number; moveGoalKcal: number;
+  exerciseMin: number; exerciseGoalMin: number;
+  standHours: number; standGoalHours: number;
+}
+
+export type HealthEvent = RecordEvent | WorkoutEvent | SummaryEvent;
 
 /** Deutet nur `<Record>`; Workouts entstehen im `EventReader`, weil sie Kindelemente brauchen. */
 export function eventFromTag(tag: StartTag): RecordEvent | null {
@@ -59,6 +69,7 @@ export function eventFromTag(tag: StartTag): RecordEvent | null {
 const WORKOUT_TAG = "Workout";
 /** Kennzahl-Kind eines Workouts, z. B. Distanz oder aktive Energie. */
 const STATS_TAG = "WorkoutStatistics";
+const SUMMARY_TAG = "ActivitySummary";
 const ENERGY_TYPE = "HKQuantityTypeIdentifierActiveEnergyBurned";
 
 /**
@@ -92,6 +103,8 @@ export class EventReader {
       if (this.open) addStatistic(this.open, tok);
       return null;
     }
+
+    if (tok.name === SUMMARY_TAG) return summaryFromTag(tok);
 
     // Übrige Kindelemente eines offenen Rahmens (MetadataEntry, WorkoutEvent, ...) sind
     // hier noch stumm — `eventFromTag` kennt bislang nur "Record" und liefert für sie
@@ -142,4 +155,35 @@ function addStatistic(w: WorkoutEvent, tag: StartTag): void {
     const kcal = toKcal(sum, unit);
     if (kcal !== null) w.energyKcal = (w.energyKcal ?? 0) + kcal;
   }
+}
+
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function num(v: string | undefined): number | null {
+  if (v === undefined || v.trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Ohne lesbaren Tag oder ohne eines der sechs Felder kein Ereignis: ein halber Ring wäre eine
+ *  erfundene Null. Energie wird nach kcal umgerechnet (`activeEnergyBurnedUnit`); bei unbekannter
+ *  Einheit entfällt der Tag. */
+function summaryFromTag(tag: StartTag): SummaryEvent | null {
+  const a = tag.attrs;
+  if (!a.dateComponents || !DAY_ONLY.test(a.dateComponents)) return null;
+  const move = num(a.activeEnergyBurned);
+  const moveGoal = num(a.activeEnergyBurnedGoal);
+  const unit = a.activeEnergyBurnedUnit ?? "kcal";
+  const exercise = num(a.appleExerciseTime);
+  const exerciseGoal = num(a.appleExerciseTimeGoal);
+  const stand = num(a.appleStandHours);
+  const standGoal = num(a.appleStandHoursGoal);
+  if (move === null || moveGoal === null || exercise === null || exerciseGoal === null || stand === null || standGoal === null) return null;
+  const moveKcal = toKcal(move, unit);
+  const moveGoalKcal = toKcal(moveGoal, unit);
+  if (moveKcal === null || moveGoalKcal === null) return null;
+  return {
+    kind: "summary", day: a.dateComponents, moveKcal, moveGoalKcal,
+    exerciseMin: exercise, exerciseGoalMin: exerciseGoal, standHours: stand, standGoalHours: standGoal,
+  };
 }

@@ -2,7 +2,7 @@ import { DAILY_FIELDS, dailyValues } from "../../src/core/daily-values";
 import type { HealthCache } from "../../src/core/types";
 
 const cache: HealthCache = {
-  version: 4, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
+  version: 5, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
   workouts: [],
   metrics: {
     HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: { "2026-10-14": { sum: 8432, count: 12 } } },

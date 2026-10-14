@@ -61,6 +61,35 @@ describe("Aggregator", () => {
     expect("durationMin" in w).toBe(false);
   });
 
+  describe("ActivitySummary", () => {
+    const day = (d: string, over: Partial<Extract<HealthEvent, { kind: "summary" }>> = {}): HealthEvent => ({
+      kind: "summary", day: d, moveKcal: 629.456, moveGoalKcal: 500, exerciseMin: 42, exerciseGoalMin: 30,
+      standHours: 11, standGoalHours: 12, ...over,
+    });
+    it("legt je Tag einen Eintrag im Zweig activity an und dehnt den Tagesbereich", () => {
+      const agg = new Aggregator();
+      agg.add(day("2026-06-30"));
+      const c = agg.finalize(META);
+      expect(c.activity?.["2026-06-30"]).toEqual({
+        moveKcal: 629.46, moveGoalKcal: 500, exerciseMin: 42, exerciseGoalMin: 30, standHours: 11, standGoalHours: 12,
+      });
+      expect(c.dateRange).toEqual({ from: "2026-06-30", to: "2026-06-30" });
+    });
+    it("Epoch-Artefakt (1969-12-30, lauter Nullen) und ein Tag mit Ziel 0 tragen keinen Ring", () => {
+      const agg = new Aggregator();
+      agg.add(day("1969-12-30", { moveKcal: 0, moveGoalKcal: 0, exerciseGoalMin: 0, standGoalHours: 0 }));
+      agg.add(day("2026-06-29", { moveGoalKcal: 0 }));
+      const c = agg.finalize(META);
+      expect(c.activity).toBeUndefined();
+      expect(c.dateRange).toBeNull();
+    });
+    it("ohne ActivitySummary im Export gibt es keinen Zweig activity", () => {
+      const agg = new Aggregator();
+      agg.add(rec("HKQuantityTypeIdentifierStepCount", 5, "2022-11-25 08:00:00 +0200"));
+      expect("activity" in agg.finalize(META)).toBe(false);
+    });
+  });
+
   it("Epoch-Artefakt (1969-12-30) dehnt den Tagesbereich nicht auf", () => {
     const agg = new Aggregator();
     agg.add(rec("HKQuantityTypeIdentifierStepCount", 0, "1969-12-30 00:00:00 +0000"));
@@ -159,6 +188,6 @@ describe("Aggregator", () => {
 
   it("Cache traegt Version 3", () => {
     const cache = new Aggregator().finalize({ sourceFile: "x", importedAt: "y" });
-    expect(cache.version).toBe(4);
+    expect(cache.version).toBe(5);
   });
 });

@@ -37,6 +37,8 @@ export interface HealthCache {
    * 1 → Schlaf als aufaddierte Record-Dauern (überzählt, bis zu 33,6 h/Tag).
    * 2 → Schlaf als vereinigte Intervalle je Nacht, in zwei Serien getrennt.
    * 3 → Workouts tragen Distanz und aktive Energie aus ihren WorkoutStatistics.
+   * 4 → Stehstunden zählen die Stood-Records statt der Dauer jedes Stunden-Records.
+   * 5 → `activity`: Ringe und Tagesziele aus den ActivitySummary-Elementen.
    *
    * Die Anhebung ist die eigentliche Migration: Ein alter Cache lässt sich nicht
    * umrechnen, weil die fehlende Information beim Import weggeworfen wurde — bei
@@ -45,7 +47,7 @@ export interface HealthCache {
    * ein stillschweigend weiterverwendeter Alt-Cache zeigte sonst dauerhaft leere
    * Kennzahlen, die wie „keine Distanz aufgezeichnet" aussehen.
    */
-  version: 4;
+  version: 5;
   sourceFile: string;
   importedAt: string;
   recordCount: number;
@@ -55,4 +57,14 @@ export interface HealthCache {
   workouts: WorkoutEntry[];
   /** Key: "YYYY-MM-DD" (Aufwachtag). Fehlt in Caches, die keinen Schlaf enthalten. */
   sleepStages?: Record<string, SleepStageDay>;
+  /** Key: "YYYY-MM-DD". Die drei Ringe samt Tagesziel; fehlt, wenn der Export keine ActivitySummary trägt. */
+  activity?: Record<string, ActivityDay>;
+}
+
+/** Ein Tag der Aktivitätsringe. Das Ziel ist die Vorgabe des Nutzers an diesem Tag — aus den
+ *  Record-Daten allein nicht rekonstruierbar, deshalb ein eigener Zweig statt einer Pseudo-Metrik. */
+export interface ActivityDay {
+  moveKcal: number; moveGoalKcal: number;
+  exerciseMin: number; exerciseGoalMin: number;
+  standHours: number; standGoalHours: number;
 }

@@ -20,7 +20,7 @@ function allText(el: any): string {
   return [el.text ?? "", ...el.children.map(allText)].join(" ");
 }
 const cache: HealthCache = {
-  version: 4, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
+  version: 5, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null,
   metrics: {},
   workouts: [
     { type: "Running", start: "2026-01-05T08:00", durationMin: 30, distanceKm: 5.5, energyKcal: 320 },

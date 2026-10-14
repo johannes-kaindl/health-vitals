@@ -2,7 +2,7 @@ import { policyFor, type Policy } from "./aggregation-policy";
 import { localDay, durationMinutes } from "./apple-date";
 import type { HealthEvent } from "./health-parser";
 import { SleepCollector, SLEEP_TYPE, METRIC_SLEEP_ASLEEP, METRIC_SLEEP_IN_BED } from "./sleep-session";
-import type { DayBucket, HealthCache, MetricSeries, SleepStageDay, WorkoutEntry } from "./types";
+import type { ActivityDay, DayBucket, HealthCache, MetricSeries, SleepStageDay, WorkoutEntry } from "./types";
 
 interface MeasureAcc { min: number; max: number; sum: number; count: number; }
 interface SumAcc { sum: number; count: number; }
@@ -20,6 +20,7 @@ const round = (n: number): number => Math.round(n * 100) / 100;
 export class Aggregator {
   private series = new Map<string, SeriesAcc>();
   private workouts: WorkoutEntry[] = [];
+  private activity: Record<string, ActivityDay> = {};
   private sleep = new SleepCollector();
   private recordCount = 0;
   private skippedCount = 0;
@@ -27,6 +28,18 @@ export class Aggregator {
   private maxDay: string | null = null;
 
   add(e: HealthEvent): void {
+    if (e.kind === "summary") {
+      // Ein Tag vor 2000 ist das Epoch-Artefakt (erstes Element eines echten Exports trägt
+      // 1969-12-30 mit lauter Nullen): kein Tag, und ein Ziel von 0 trägt keinen Ring.
+      if (e.day < EARLIEST_PLAUSIBLE_DAY || e.moveGoalKcal <= 0 || e.exerciseGoalMin <= 0 || e.standGoalHours <= 0) return;
+      this.activity[e.day] = {
+        moveKcal: round(e.moveKcal), moveGoalKcal: round(e.moveGoalKcal),
+        exerciseMin: round(e.exerciseMin), exerciseGoalMin: round(e.exerciseGoalMin),
+        standHours: round(e.standHours), standGoalHours: round(e.standGoalHours),
+      };
+      this.touchDay(e.day);
+      return;
+    }
     if (e.kind === "workout") {
       // Optionale Felder nur setzen, wenn sie da sind: `distanceKm: undefined` landet
       // zwar nicht im JSON, macht aber jeden `toEqual`-Vergleich im Test brüchig.
@@ -158,7 +171,7 @@ export class Aggregator {
     }
 
     return {
-      version: 4,
+      version: 5,
       sourceFile: meta.sourceFile,
       importedAt: meta.importedAt,
       recordCount: this.recordCount,
@@ -167,6 +180,7 @@ export class Aggregator {
       metrics,
       workouts: this.workouts,
       sleepStages: this.sleepStages,
+      ...(Object.keys(this.activity).length > 0 ? { activity: this.activity } : {}),
     };
   }
 

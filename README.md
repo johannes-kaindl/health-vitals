@@ -120,6 +120,12 @@ vault as Markdown or CSV:
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
 
+### Activity rings
+
+If your export carries activity summaries, the Overview starts with the three rings of the
+latest day — Move, Exercise, Stand — each with its goal, and the number of days in the last
+30 on which you closed all three. Value, goal and percentage are written out next to the ring.
+
 ### Charts inside your notes
 
 A `health-vitals` code block puts a chart, the key figures or the value table of one metric

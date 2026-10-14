@@ -19,7 +19,7 @@ const texts = (el: any): string[] => [el.text, ...el.children.flatMap(texts)].fi
 const count = (el: any, cls: string): number => (el.cls.split(" ").includes(cls) ? 1 : 0) + el.children.reduce((n: number, c: any) => n + count(c, cls), 0);
 
 const cache: HealthCache = {
-  version: 4, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
+  version: 5, sourceFile: "", importedAt: "", recordCount: 3, skippedCount: 0,
   dateRange: { from: "2026-06-01", to: "2026-06-03" }, workouts: [],
   metrics: { HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: {
     "2026-06-01": { sum: 100, count: 1 }, "2026-06-02": { sum: 200, count: 1 }, "2026-06-03": { sum: 300, count: 1 } } } },

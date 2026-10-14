@@ -3,7 +3,7 @@ import { dailyNotePath, readDailyNotesConfig, writeDailyValues } from "../../src
 import type { HealthCache } from "../../src/core/types";
 
 const cache: HealthCache = {
-  version: 4, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null, workouts: [],
+  version: 5, sourceFile: "", importedAt: "", recordCount: 0, skippedCount: 0, dateRange: null, workouts: [],
   metrics: { HKQuantityTypeIdentifierStepCount: { unit: "count", policy: "sum", daily: { "2026-10-14": { sum: 8432, count: 1 } } } },
 };
 // Mittag Ortszeit: derselbe Kalendertag in jeder Zone.
