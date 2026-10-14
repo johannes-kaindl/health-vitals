@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-10-14
+
 ### Added
 
 - Detail tab: **Compare with** a second metric. It is drawn over the first one as a dashed line with square markers on its own right-hand axis, and a legend names both series and their axes. The two series differ in shape, not only in colour. "None" is the default.
