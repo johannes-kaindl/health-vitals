@@ -72,8 +72,10 @@ import { join } from "node:path";
 import {
   Cdp,
   attachTo,
+  beimAbbruch,
   bereiteInstanzVor,
   closeExtraLeaves,
+  istAbgebrochen,
   pollUntil,
   requireVisible,
 } from "../../tools/obsidian-cdp/cdp.js";
@@ -820,7 +822,7 @@ async function setzeTheme(cdp: Cdp, dunkel: boolean): Promise<void> {
     document.body.classList.toggle("theme-dark", ${String(dunkel)});
     document.body.classList.toggle("theme-light", ${String(!dunkel)});
     app.workspace.trigger("css-change");
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, ${istAbgebrochen() ? 0 : 500}));
     return true;
   `);
 }
@@ -838,7 +840,7 @@ async function setzeThemeCss(cdp: Cdp, an: boolean): Promise<void> {
     const el = app.customCss?.styleEl;
     if (el) el.disabled = ${String(!an)};
     app.workspace.trigger("css-change");
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, ${istAbgebrochen() ? 0 : 400}));
     return true;
   `);
 }
@@ -1191,25 +1193,12 @@ async function main(): Promise<void> {
     }
   };
 
-  let signalCleanupRunning = false;
-  const onAbortSignal = (signal: NodeJS.Signals) => {
-    if (signalCleanupRunning) return;
-    signalCleanupRunning = true;
-    void (async () => {
-      console.log(`\n\nAbbruch durch ${signal} — raeume Smoke-Zustand auf...`);
-      await cleanupState();
-      cdp.close();
-      process.exit(130);
-    })();
-  };
-  process.on("SIGINT", onAbortSignal);
-  process.on("SIGTERM", onAbortSignal);
+  // Vor der ersten Mutation anmelden; derselbe Schritt laeuft im Normalweg (`zustand.schliesse()` im `finally`).
+  // Ctrl-C/SIGTERM: Abbruch-Modul der Bruecke (Hauptzweig gesperrt, Schritt darf noch senden, danach Bilanz, Exit 130).
+  const zustand = beimAbbruch(cleanupState, "Wirt-Zustand zuruecksetzen");
 
   try {
-    // Fokus-Emulation: bei mehreren offenen Fenstern bekommt unseres den echten
-    // Tastaturfokus oft nicht; Chromium kann ihn dem Renderer vorspielen und die
-    // Hintergrund-Drosselung entfällt, ohne fremde Fenster anzufassen.
-    await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }).catch(() => undefined);
+    // `requireVisible` holt das Fenster dieser Instanz nach vorn und emuliert den Fokus (Bruecke).
     await requireVisible(cdp);
 
     // Ein abgeschaltetes Theme-CSS (`styleEl.disabled === true`) ist unter normaler Nutzung
@@ -1342,11 +1331,9 @@ async function main(): Promise<void> {
     }
   } finally {
     // Aufräumen darf nie am Ergebnis hängen: auch ein abgebrochener Lauf gibt den Vault so
-    // zurück, wie er ihn vorgefunden hat. Dieselbe Funktion wie der SIGINT/SIGTERM-Handler
-    // oben — kein Doppelcode.
-    process.off("SIGINT", onAbortSignal);
-    process.off("SIGTERM", onAbortSignal);
-    await cleanupState();
+    // zurück, wie er ihn vorgefunden hat. Derselbe Schritt wie beim Abbruch (`beimAbbruch` oben).
+    await zustand.schliesse();
+    if (istAbgebrochen()) return;   // das Modul druckt die Bilanz und beendet den Prozess selbst
     cdp.close();
   }
 
