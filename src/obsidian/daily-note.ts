@@ -35,8 +35,9 @@ export function dailyNotePath(config: DailyNotesConfig, date: Date): string {
  * Trägt `values` in `frontmatter` ein — nur, was dort noch fehlt. Ein vorhandener Wert bleibt
  * stehen, auch ein leerer: wer ihn von Hand gesetzt oder korrigiert hat, bekommt ihn nicht
  * zurückgesetzt. Gibt die Schlüssel zurück, die geschrieben wurden.
- * (Nicht exportiert: ein reiner, allgemein brauchbarer Helfer gehört in die Bibliothek — als
- * Kit-Kandidat an den Master gemeldet, siehe Welle-22-Meldung.)
+ * KIT-KANDIDAT (gemeldet an den Master, Dach-Task „Kit-Kandidaten aus Welle 22“): ein reiner, allgemein
+ * brauchbarer Helfer „nur fehlende Schlüssel setzen, vorhandene (auch leere) bleiben“ gehört in die Bibliothek.
+ * Hier nicht exportiert, weil das Bibliotheks-Gate sonst anhält; die nächste Welle zieht ihn ins Kit.
  */
 function mergeMissing(frontmatter: Record<string, unknown>, values: Record<string, number>): string[] {
   const written: string[] = [];
