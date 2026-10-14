@@ -25,6 +25,17 @@ Dateidialog aus.
 - **Cache in `health-cache.json`** (separate Datei im Plugin-Dir, **lazy** beim Öffnen des Dashboards geladen — nicht in `data.json`, das würde bei jedem Start blockieren). Geparste Tages-Aggregate. **Gitignored.**
 - **Reiner Kern / Obsidian-Schicht** Trennung (PROF-OBS-03/04): Parser-Logik ohne obsidian-Import, in Node testbar.
 
+- **Weitere Flächen (seit Welle 22):** Einstellungs-Tab (`obsidian/settings-tab.ts`, zweigleisig:
+  `getSettingDefinitions` + `display()`-Fallback über den Kit-Walker; Hilfe-Zeile zuerst, Export-Ordner und
+  -Format) · Codeblock ```` ```health-vitals ```` (`core/block-spec.ts` parst, `obsidian/codeblock.ts` rendert
+  und zieht nach einem Import nach) · Befehl „Werte in heutige Daily Note schreiben“ (`obsidian/daily-note.ts`,
+  nur eigene `health_*`-Felder, nie vorhandene Werte) · Aktivitätsringe (`ActivitySummary` → Cache-Zweig
+  `activity`, Karte in der Übersicht) · Vergleich zweier Metriken (`buildOverlayGeometry`, zweite Serie
+  gestrichelt mit Marken auf rechter Achse). Cache-Version steht in `main.ts` (`CACHE_VERSION`), `core/types.ts`
+  (`HealthCache.version`) und im Fixture-Generator — alle drei zusammen heben.
+- **Zonenproben:** `vitest.config.ts` setzt `TZ=America/New_York`; ein `TZ=… npx vitest` misst nichts. Zonenabhängige
+  Rechnung außerhalb von vitest prüfen (esbuild-Bündel, `TZ=… node`).
+
 `isDesktopOnly: true` — XML-Import nur auf Desktop sinnvoll.
 
 ## Commands
