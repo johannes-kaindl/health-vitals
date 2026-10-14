@@ -120,6 +120,28 @@ vault as Markdown or CSV:
 Charts are hand-drawn SVG without a charting library and use nothing but Obsidian's
 theme variables — so they adapt to any theme (light/dark/community).
 
+### Charts inside your notes
+
+A `health-vitals` code block puts a chart, the key figures or the value table of one metric
+next to the text that explains it:
+
+````
+```health-vitals
+metric: StepCount
+range: 3M
+```
+````
+
+| Key | Values | Default |
+|---|---|---|
+| `metric` | a short name such as `StepCount`, `HeartRate`, `SleepAsleep`, or the full Apple identifier (required) | — |
+| `range` | `1M`, `3M`, `1Y`, `all` | `3M` |
+| `rollup` | `day`, `week`, `month` | follows the range |
+| `kind` | `chart`, `value`, `table` | `chart` |
+
+A mistake shows up as a readable line inside the block (no data imported yet, unknown metric,
+unknown range), not as a pop-up. After you import a new export, open notes update by themselves.
+
 ### Values in your daily note
 
 The command **Write values to today's daily note** copies today's values into the

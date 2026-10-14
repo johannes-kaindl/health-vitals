@@ -151,7 +151,10 @@ export function buildOverviewVM(cache: HealthCache, favorites: string[], sparkDi
   return { favorites: favTiles, sections };
 }
 
-export function buildDetailVM(cache: HealthCache, metricId: string, range: RangeKey, dims: ChartDims): DetailVM {
+export function buildDetailVM(
+  cache: HealthCache, metricId: string, range: RangeKey, dims: ChartDims,
+  opts: { granularity?: Granularity } = {},
+): DetailVM {
   const series = cache.metrics[metricId];
   if (!series || !cache.dateRange) {
     return {
@@ -161,7 +164,7 @@ export function buildDetailVM(cache: HealthCache, metricId: string, range: Range
     };
   }
   const info = describeMetric(metricId, series.policy);
-  const r = resolveRange(range, cache.dateRange);
+  const r = { ...resolveRange(range, cache.dateRange), ...(opts.granularity ? { granularity: opts.granularity } : {}) };
   const points = rollupDaily(series.daily, series.policy, r);
   const chart = buildChartGeometry(points, info.chartKind, dims, { granularity: r.granularity });
   // Die Prozentumrechnung passiert hier, damit die Obsidian-Schicht keine

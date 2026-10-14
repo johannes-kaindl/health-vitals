@@ -171,7 +171,7 @@ function renderExportRow(parent: HTMLElement, vm: DetailVM, view: DashboardView)
   }
 }
 
-function renderValuesTable(parent: HTMLElement, table: TableVM): void {
+export function renderValuesTable(parent: HTMLElement, table: TableVM): void {
   const wrap = parent.createDiv({ cls: "ah-table-wrap" });
   const el = wrap.createEl("table", { cls: "ah-table" });
   const headRow = el.createEl("thead").createEl("tr");

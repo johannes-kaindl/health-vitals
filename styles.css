@@ -99,6 +99,11 @@
   padding: var(--size-4-1) 0;
   border-bottom: 1px solid var(--background-modifier-border);
 }
+/* Codeblock in einer Notiz: Meldungen stehen als Zeile im Block, nie als Notice. */
+.ah-block { margin: var(--size-4-2) 0; }
+.ah-block-msg { font-size: var(--font-ui-small); padding: var(--size-4-1) 0; }
+.ah-block-msg.is-error { color: var(--text-error); }
+.ah-block-msg.is-warn { color: var(--text-muted); }
 .ah-workout-type {
   color: var(--text-normal);
   min-width: 0;

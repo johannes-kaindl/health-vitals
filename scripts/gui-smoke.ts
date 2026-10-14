@@ -76,6 +76,7 @@ import {
   bereiteInstanzVor,
   closeExtraLeaves,
   istAbgebrochen,
+  openNote,
   pollUntil,
   requireVisible,
 } from "../../tools/obsidian-cdp/cdp.js";
@@ -136,6 +137,8 @@ const PUNKTE = [
   "Workouts — Zeilenwerte gefuellt",
   "Einstellungen — Hilfe-Zeile steht zuerst",
   "Einstellungen — Export-Format bedienbar",
+  "Codeblock — Chart hat Fläche",
+  "Codeblock — Fehler stehen als Zeile im Block",
 ] as const;
 
 /** Prüfpunkte je Abschnitt (Teilmenge von `PUNKTE`). Ein Teillauf mit `--section` bekommt als
@@ -160,6 +163,7 @@ const SEKTION_PUNKTE: Record<string, readonly (typeof PUNKTE)[number][]> = {
   werte: ["Werte-Szene herstellbar", "Werte-Tabelle sichtbar"],
   workouts: ["Workouts-Szene herstellbar", "Workouts — Monatssumme", "Workouts — Zeilenwerte gefuellt"],
   einstellungen: ["Einstellungen — Hilfe-Zeile steht zuerst", "Einstellungen — Export-Format bedienbar"],
+  codeblock: ["Codeblock — Chart hat Fläche", "Codeblock — Fehler stehen als Zeile im Block"],
 };
 
 let bilanz = createBilanz({ punkte: PUNKTE });
@@ -1005,6 +1009,51 @@ async function pruefeEinstellungen(cdp: Cdp): Promise<void> {
   await cdp.evaluate(`app.setting.close(); return true;`);
 }
 
+// --- Abschnitt: Codeblock in einer Notiz ---------------------------------------
+
+const BLOCK_NOTE = "w22-codeblock-smoke.md";
+
+async function pruefeCodeblock(cdp: Cdp): Promise<void> {
+  const body = [
+    "# Block-Smoke", "", "```health-vitals", "metric: StepCount", "range: 1Y", "```", "",
+    "```health-vitals", "metric: GibtEsNicht", "```", "", "```health-vitals", "range: 2W", "```", "",
+  ].join("\n");
+  try {
+    await openNote(cdp, BLOCK_NOTE, body, "preview");
+    const bereit = await pollUntil<boolean>(
+      cdp, `return document.querySelectorAll(".markdown-reading-view .ah-block .ah-block-msg, .markdown-reading-view .ah-block .ah-chart").length >= 3;`, 10_000,
+    );
+    const m = await cdp.evaluate<{ flaeche: number; zeilen: string[]; leere: number } | null>(`
+      const bloecke = Array.from(document.querySelectorAll(".markdown-reading-view .ah-block"));
+      if (bloecke.length === 0) return null;
+      const chart = bloecke[0].querySelector(".ah-chart");
+      const r = chart ? chart.getBoundingClientRect() : null;
+      return {
+        flaeche: r ? Math.round(r.width * r.height) : 0,
+        zeilen: bloecke.slice(1).map((b) => Array.from(b.querySelectorAll(".ah-block-msg")).map((e) => e.textContent ?? "").join(" | ")),
+        leere: bloecke.filter((b) => b.textContent.trim() === "").length,
+      };
+    `);
+    if (!bereit || m === null) {
+      unmeasured("Codeblock — Chart hat Fläche", "Blöcke nicht gerendert");
+      unmeasured("Codeblock — Fehler stehen als Zeile im Block", "Blöcke nicht gerendert");
+      return;
+    }
+    record("Codeblock — Chart hat Fläche", m.flaeche > 0, `${m.flaeche} px²`);
+    record(
+      "Codeblock — Fehler stehen als Zeile im Block",
+      m.leere === 0 && m.zeilen.length === 2 && m.zeilen.every((z) => z.length > 10),
+      `leere Blöcke: ${m.leere}; Zeilen: ${m.zeilen.join(" || ")}`,
+    );
+  } finally {
+    await cdp.evaluate(`
+      const f = app.vault.getAbstractFileByPath(${JSON.stringify(BLOCK_NOTE)});
+      if (f) await app.vault.delete(f);
+      return true;
+    `);
+  }
+}
+
 // --- Abschnitt: Workouts-Kennzahlen ------------------------------------------
 
 async function pruefeWorkouts(cdp: Cdp): Promise<void> {
@@ -1118,6 +1167,11 @@ const SECTIONS: Section[] = [
       if (!(await stelleWorkoutsHer(cdp))) return;
       await pruefeWorkouts(cdp);
     },
+  },
+  {
+    key: "codeblock",
+    title: "Codeblock in einer Notiz",
+    run: pruefeCodeblock,
   },
   {
     key: "einstellungen",

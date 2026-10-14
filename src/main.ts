@@ -7,6 +7,7 @@ import { pickHealthExport } from "./obsidian/file-picker";
 import { DashboardView, VIEW_TYPE_DASHBOARD, type DashboardHost, type ExportFormat } from "./obsidian/dashboard-view";
 import { pickLang, setLang } from "./vendor/kit/i18n";
 import { validateSettings, oneOf, check, arrayThen, isPlainObject } from "./vendor/kit/settings_schema";
+import { registerHealthBlock, type CacheRead } from "./obsidian/codeblock";
 import { writeDailyValues } from "./obsidian/daily-note";
 import { HealthVitalsSettingTab } from "./obsidian/settings-tab";
 import { t, registerI18n } from "./i18n/strings";
@@ -42,6 +43,7 @@ function migrateFavorites(favorites: readonly string[]): string[] {
 }
 
 export default class AppleHealthPlugin extends Plugin implements DashboardHost {
+  private cacheListeners = new Set<() => void>();
   private data: PluginData = validateSettings(DEFAULT_DATA, null);
 
   async onload(): Promise<void> {
@@ -51,6 +53,8 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     registerI18n();
 
     this.registerView(VIEW_TYPE_DASHBOARD, (leaf) => new DashboardView(leaf, this));
+
+    registerHealthBlock(this, this);
 
     this.addCommand({
       id: "open-dashboard",
@@ -67,6 +71,12 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
   }
 
   onunload(): void {}
+
+  /** Block-Host: ein Block meldet sich an, solange er in einer Notiz steht. */
+  onCacheChanged(cb: () => void): () => void {
+    this.cacheListeners.add(cb);
+    return () => { this.cacheListeners.delete(cb); };
+  }
 
   /** Bewusst ausgelöst, nie automatisch: schreibt in eine Notiz, die dem Nutzer gehört. */
   private async writeDailyValuesCommand(): Promise<void> {
@@ -144,29 +154,37 @@ export default class AppleHealthPlugin extends Plugin implements DashboardHost {
     void this.saveData(this.data);
   }
 
-  async loadCache(): Promise<HealthCache | null> {
+  /** Liest den Cache und sagt, WARUM keiner da ist: ein Codeblock in einer Notiz zeigt „noch nichts
+   *  importiert" und „Import veraltet" mit verschiedenen Zeilen, das Dashboard nur eine Notice. */
+  async readCache(): Promise<CacheRead> {
     try {
       const raw = await this.app.vault.adapter.read(this.cachePath());
       const cache = JSON.parse(raw) as HealthCache;
       // Ein Cache aus einer älteren Version kann Felder vermissen oder mit anderer
       // Semantik befüllt sein (bisherige Sprünge: Version 1→2 Schlafphasen-Fix,
-      // 2→3 Workout-Kennzahlen, 3→4 Stehstunden zählen Stood-Records statt Dauer). Umrechnen geht generell nicht: Was fehlt, lässt
-      // sich nicht rekonstruieren. Also verwerfen und neu einlesen lassen —
-      // stillschweigend weiterzuverwenden hieße, den Fehler zu konservieren.
-      if (cache?.version !== CACHE_VERSION) {
-        // Sichtbar machen: Ohne Hinweis stünde der Nutzer vor einem leeren Dashboard
-        // und hielte das für Datenverlust statt für eine nötige Neuberechnung.
-        new Notice(t("notice.cacheOutdated"), 10000);
-        return null;
-      }
-      return cache;
+      // 2→3 Workout-Kennzahlen, 3→4 Stehstunden zählen Stood-Records statt Dauer).
+      // Umrechnen geht generell nicht: Was fehlt, lässt sich nicht rekonstruieren. Also
+      // verwerfen und neu einlesen lassen — stillschweigend weiterzuverwenden hieße, den
+      // Fehler zu konservieren.
+      if (cache?.version !== CACHE_VERSION) return { cache: null, state: "outdated" };
+      return { cache, state: "ok" };
     } catch {
-      return null;
+      return { cache: null, state: "missing" };
     }
+  }
+
+  async loadCache(): Promise<HealthCache | null> {
+    const r = await this.readCache();
+    // Sichtbar machen: Ohne Hinweis stünde der Nutzer vor einem leeren Dashboard
+    // und hielte das für Datenverlust statt für eine nötige Neuberechnung.
+    if (r.state === "outdated") new Notice(t("notice.cacheOutdated"), 10000);
+    return r.cache;
   }
 
   async writeCache(cache: HealthCache): Promise<void> {
     await this.app.vault.adapter.write(this.cachePath(), JSON.stringify(cache));
+    // Offene Notizen mit Codeblöcken zeigen sonst stumm alte Zahlen.
+    for (const cb of [...this.cacheListeners]) cb();
   }
 
   createImportController(onState: (s: ImportState) => void): ImportController {
