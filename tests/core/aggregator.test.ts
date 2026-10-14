@@ -37,6 +37,22 @@ describe("Aggregator", () => {
     expect(b).toEqual({ minutes: 60, count: 1 });
   });
 
+  it("Stehstunden: nur Stood-Records zählen, die Leerlauf-Stunde bleibt 0 (kein 24-Stunden-Tag)", () => {
+    const T = "HKCategoryTypeIdentifierAppleStandHour";
+    const stand = (value: string, start: string, end: string): HealthEvent =>
+      ({ kind: "record", type: T, unit: "", startDate: start, endDate: end, value: null, categoryValue: value });
+    const agg = new Aggregator();
+    agg.add(stand("HKCategoryValueAppleStandHourStood", "2022-11-25 08:00:00 +0200", "2022-11-25 09:00:00 +0200"));
+    agg.add(stand("HKCategoryValueAppleStandHourIdle", "2022-11-25 09:00:00 +0200", "2022-11-25 10:00:00 +0200"));
+    agg.add(stand("HKCategoryValueAppleStandHourStood", "2022-11-25 10:00:00 +0200", "2022-11-25 11:00:00 +0200"));
+    agg.add(stand("HKCategoryValueAppleStandHourIdle", "2022-11-26 09:00:00 +0200", "2022-11-26 10:00:00 +0200"));
+    const m = agg.finalize(META).metrics[T];
+    expect(m.policy).toBe("sum");
+    expect(m.unit).toBe("h");
+    expect(m.daily["2022-11-25"]).toEqual({ sum: 2, count: 3 });
+    expect(m.daily["2022-11-26"]).toEqual({ sum: 0, count: 1 });
+  });
+
   describe("Schlaf verlässt den generischen Weg", () => {
     function sleep(categoryValue: string, start: string, end: string): HealthEvent {
       return {
@@ -128,6 +144,6 @@ describe("Aggregator", () => {
 
   it("Cache traegt Version 3", () => {
     const cache = new Aggregator().finalize({ sourceFile: "x", importedAt: "y" });
-    expect(cache.version).toBe(3);
+    expect(cache.version).toBe(4);
   });
 });

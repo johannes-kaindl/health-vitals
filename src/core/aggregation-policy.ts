@@ -14,6 +14,8 @@ const SUM_TYPES = new Set<string>([
   "HKQuantityTypeIdentifierSwimmingStrokeCount",
   "HKQuantityTypeIdentifierTimeInDaylight",
   "HKQuantityTypeIdentifierDietaryWater",
+  // Kategorie-Typ, aber ein Zähler: der Aggregator macht aus "Stood" eine 1 (siehe STAND_HOUR_TYPE).
+  "HKCategoryTypeIdentifierAppleStandHour",
 ]);
 
 export function policyFor(type: string): Policy {

@@ -11,6 +11,7 @@ type Acc = MeasureAcc | SumAcc | DurAcc;
 
 interface SeriesAcc { unit: string; policy: Policy; daily: Map<string, Acc>; }
 
+const STAND_HOUR_TYPE = "HKCategoryTypeIdentifierAppleStandHour";
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const round = (n: number): number => Math.round(n * 100) / 100;
 
@@ -61,6 +62,11 @@ export class Aggregator {
       return;
     }
 
+    if (e.type === STAND_HOUR_TYPE) {
+      // Jede Stunde trägt einen Record, auch die Leerlauf-Stunde ("Idle"). Als Dauer
+      // gezählt ergäbe das 24 Stunden jeden Tag; gesucht ist die Zahl der Stehstunden.
+      e = { ...e, value: e.categoryValue?.endsWith("Stood") ? 1 : 0, unit: "h", categoryValue: null };
+    }
     const policy = policyFor(e.type);
     if ((policy === "sum" || policy === "measure") && e.value === null) {
       this.skippedCount++;
@@ -150,7 +156,7 @@ export class Aggregator {
     }
 
     return {
-      version: 3,
+      version: 4,
       sourceFile: meta.sourceFile,
       importedAt: meta.importedAt,
       recordCount: this.recordCount,

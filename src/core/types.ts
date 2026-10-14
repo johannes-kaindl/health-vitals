@@ -44,7 +44,7 @@ export interface HealthCache {
    * ein stillschweigend weiterverwendeter Alt-Cache zeigte sonst dauerhaft leere
    * Kennzahlen, die wie „keine Distanz aufgezeichnet" aussehen.
    */
-  version: 3;
+  version: 4;
   sourceFile: string;
   importedAt: string;
   recordCount: number;

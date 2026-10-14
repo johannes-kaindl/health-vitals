@@ -6,8 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Four frequent metrics now have proper names and sit under Activity instead of "Other": Physical Effort, Walking Speed, Walking Step Length and Stand Hours (English and German).
+
 ### Changed
 
+- Stand Hours count the hours you actually stood (one per "stood" hour), not the length of every hourly record. **Import the export once more:** the cache format changed, the old cache is discarded with a notice.
 - Internal only, nothing changes for users: the Kit pins move to obsidian-kit 0.60.0 and code-kit 0.27.0 (the vendored modules are unchanged apart from their headers; none of the skipped Kit releases changes anything for this plugin). The file-name cleaning for value exports (`sanitizeBase`, fallback "Export") now comes from the shared code-kit module `filename-template` and behaves exactly as before. The test setup takes the timer shim and the Obsidian mock from the Kit instead of local copies.
 
 ## [0.7.2] — 2026-10-03

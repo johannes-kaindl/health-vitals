@@ -28,4 +28,19 @@ describe("metric-catalog", () => {
     expect(describeMetric("HKCategoryTypeIdentifierFooBar", "duration"))
       .toEqual({ name: "Foo Bar", category: "other", chartKind: "bar" });
   });
+
+  it("kennt die häufigen Aktivitäts-Metriken (Welle 22): Kategorie activity, Name in beiden Sprachen", () => {
+    const ids: Array<[string, "sum" | "measure", string, string]> = [
+      ["HKQuantityTypeIdentifierPhysicalEffort", "measure", "Physical Effort", "Körperliche Anstrengung"],
+      ["HKQuantityTypeIdentifierWalkingSpeed", "measure", "Walking Speed", "Gehgeschwindigkeit"],
+      ["HKQuantityTypeIdentifierWalkingStepLength", "measure", "Walking Step Length", "Schrittlänge"],
+      ["HKCategoryTypeIdentifierAppleStandHour", "sum", "Stand Hours", "Stehstunden"],
+    ];
+    for (const [id, policy, en, de] of ids) {
+      setLang("en");
+      expect(describeMetric(id, policy)).toMatchObject({ name: en, category: "activity" });
+      setLang("de");
+      expect(describeMetric(id, policy)).toMatchObject({ name: de, category: "activity" });
+    }
+  });
 });
