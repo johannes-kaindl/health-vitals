@@ -1,3 +1,4 @@
+import { parseBlockLines } from "../vendor/kit/block-lines";
 import type { Granularity, RangeKey } from "./rollup";
 import type { HealthCache } from "./types";
 
@@ -25,16 +26,9 @@ export interface BlockParse {
   warnings: BlockProblem[];
 }
 
-const KEY_LINE = /^([A-Za-z][A-Za-z0-9_-]*)\s*:(.*)$/;
 const RANGES: Record<string, RangeKey> = { "1m": "1M", "3m": "3M", "1y": "1Y", all: "all" };
 const ROLLUPS: Record<string, Granularity> = { day: "day", week: "week", month: "month" };
 const KINDS: Record<string, BlockKind> = { chart: "chart", value: "value", table: "table" };
-
-function stripQuotes(value: string): string {
-  const v = value.trim();
-  const quoted = (v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"));
-  return quoted && v.length >= 2 ? v.slice(1, -1).trim() : v;
-}
 
 /** Quelltext eines ```health-vitals-Blocks → Spezifikation. Zeilen `schlüssel: wert`, Leerzeilen
  *  und `#`-Zeilen werden übersprungen; ein Wert, den es nicht gibt, blockiert (statt still den
@@ -47,13 +41,16 @@ export function parseBlockSpec(source: string): BlockParse {
   let rollup: Granularity | undefined;
   let kind: BlockKind = "chart";
 
-  for (const raw of source.split("\n")) {
-    const line = raw.trim();
-    if (line === "" || line.startsWith("#")) continue;
-    const m = KEY_LINE.exec(line);
-    if (!m) { errors.push({ key: "block.badLine", args: [line] }); continue; }
-    const key = m[1].toLowerCase();
-    const value = stripQuotes(m[2]);
+  // Das Kit liest die Zeilen (Schlüssel klein, Anführungszeichen entfernt); was ein Schlüssel bedeutet, bleibt hier.
+  // Fehlerzeilen („loose“) und Einträge kommen in Quelltext-Reihenfolge, damit die Meldungen so stehen wie geschrieben.
+  const { entries, loose } = parseBlockLines(source);
+  const lines = [
+    ...entries.map((e) => ({ line: e.line, entry: e })),
+    ...loose.map((l) => ({ line: l.line, text: l.text })),
+  ].sort((a, b) => a.line - b.line);
+  for (const item of lines) {
+    if (!("entry" in item)) { errors.push({ key: "block.badLine", args: [item.text] }); continue; }
+    const { key, value, rawKey } = item.entry;
     const lower = value.toLowerCase();
     if (key === "metric") {
       metric = value;
@@ -67,7 +64,7 @@ export function parseBlockSpec(source: string): BlockParse {
       const k = KINDS[lower];
       if (k) kind = k; else errors.push({ key: "block.badKind", args: [value] });
     } else {
-      warnings.push({ key: "block.unknownKey", args: [m[1]] });
+      warnings.push({ key: "block.unknownKey", args: [rawKey] });
     }
   }
 

@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The "write values into today's Daily Note" command now also fills a key that is named like an object member (for example `constructor`); before, such a key counted as already present and was skipped. A value you typed or corrected by hand, including `0` and an empty one, still stays.
+
+### Changed
+
+- Internal: the Daily Notes folder and format, the code-block line reader, the "fill only missing keys" step and the `moment` access come from the shared kit (obsidian-kit 0.63.0, code-kit 0.31.0) instead of local copies. No other visible change; the kit releases in between (Claude API, copy button on thinking blocks, slash menu, path and folder helpers) touch modules this plugin does not use.
+
 ## [0.8.0] — 2026-10-14
 
 ### Added

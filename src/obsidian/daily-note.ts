@@ -1,53 +1,9 @@
-import { moment, normalizePath, TFile, type App } from "obsidian";
+import { TFile, type App } from "obsidian";
 import { dailyValues } from "../core/daily-values";
 import type { HealthCache } from "../core/types";
+import { mergeMissing } from "../vendor/kit/merge-missing";
 import { localDate } from "../vendor/kit/local-stamp";
-
-/** Obsidians `moment` ist als Namespace getypt (`import * as Moment`) und damit nicht aufrufbar,
- *  zur Laufzeit aber die Funktion — der Zuschnitt auf das, was hier gebraucht wird, steht an einer Stelle. */
-const formatDate = moment as unknown as (d: Date) => { format: (f: string) => string };
-
-export interface DailyNotesConfig { folder: string; format: string }
-
-/** Ordner und Format des Kern-Plugins „Daily notes". Dessen API ist intern und undokumentiert,
- *  deshalb defensiv gelesen: fehlt sie, gelten die Standardwerte des Plugins (Vault-Wurzel, `YYYY-MM-DD`). */
-export function readDailyNotesConfig(app: App): DailyNotesConfig {
-  let options: { folder?: unknown; format?: unknown } | undefined;
-  try {
-    const internal = (app as unknown as {
-      internalPlugins?: { getPluginById?: (id: string) => { instance?: { options?: { folder?: unknown; format?: unknown } } } | null };
-    }).internalPlugins;
-    options = internal?.getPluginById?.("daily-notes")?.instance?.options;
-  } catch {
-    options = undefined;
-  }
-  const folder = typeof options?.folder === "string" ? options.folder.trim() : "";
-  const format = typeof options?.format === "string" && options.format.trim() !== "" ? options.format.trim() : "YYYY-MM-DD";
-  return { folder, format };
-}
-
-export function dailyNotePath(config: DailyNotesConfig, date: Date): string {
-  const name = formatDate(date).format(config.format);
-  return normalizePath(config.folder === "" ? `${name}.md` : `${config.folder}/${name}.md`);
-}
-
-/**
- * Trägt `values` in `frontmatter` ein — nur, was dort noch fehlt. Ein vorhandener Wert bleibt
- * stehen, auch ein leerer: wer ihn von Hand gesetzt oder korrigiert hat, bekommt ihn nicht
- * zurückgesetzt. Gibt die Schlüssel zurück, die geschrieben wurden.
- * KIT-KANDIDAT (gemeldet an den Master, Dach-Task „Kit-Kandidaten aus Welle 22“): ein reiner, allgemein
- * brauchbarer Helfer „nur fehlende Schlüssel setzen, vorhandene (auch leere) bleiben“ gehört in die Bibliothek.
- * Hier nicht exportiert, weil das Bibliotheks-Gate sonst anhält; die nächste Welle zieht ihn ins Kit.
- */
-function mergeMissing(frontmatter: Record<string, unknown>, values: Record<string, number>): string[] {
-  const written: string[] = [];
-  for (const [key, value] of Object.entries(values)) {
-    if (key in frontmatter) continue;
-    frontmatter[key] = value;
-    written.push(key);
-  }
-  return written;
-}
+import { DAILY_NOTES_DEFAULTS, dailyNotePath, readDailyNotesConfig } from "../vendor/kit-obsidian/daily-notes";
 
 export type DailyWriteResult =
   | { status: "written"; path: string; keys: string[] }
@@ -64,7 +20,7 @@ export async function writeDailyValues(app: App, cache: HealthCache, now: Date):
   const day = localDate(now);
   const values = dailyValues(cache, day);
   if (Object.keys(values).length === 0) return { status: "no-values", day };
-  const path = dailyNotePath(readDailyNotesConfig(app), now);
+  const path = dailyNotePath(readDailyNotesConfig(app) ?? DAILY_NOTES_DEFAULTS, now);
   const file = app.vault.getAbstractFileByPath(path);
   if (!(file instanceof TFile)) return { status: "no-note", path };
   let keys: string[] = [];

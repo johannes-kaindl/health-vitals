@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-import { dailyNotePath, readDailyNotesConfig, writeDailyValues } from "../../src/obsidian/daily-note";
+import { writeDailyValues } from "../../src/obsidian/daily-note";
 import type { HealthCache } from "../../src/core/types";
 
 const cache: HealthCache = {
@@ -20,16 +20,19 @@ function makeApp(opts: { options?: any; notePath?: string; fm?: Record<string, u
   };
 }
 
-describe("Daily-Note-Pfad", () => {
-  it("liest Ordner und Format des Kern-Plugins", () => {
-    expect(readDailyNotesConfig(makeApp({ options: { folder: " Daily ", format: "YYYY-MM-DD" } }))).toEqual({ folder: "Daily", format: "YYYY-MM-DD" });
+describe("Daily-Note-Pfad (Ordner und Format kommen aus dem Kern-Plugin, gelesen vom Kit)", () => {
+  it("liest Ordner und Format des Kern-Plugins", async () => {
+    const app = makeApp({ options: { folder: " Daily ", format: "YYYY-MM-DD" } });
+    expect((await writeDailyValues(app, cache, NOW)).status).toBe("written");
+    expect(app.fm).toEqual({ health_steps: 8432 });
   });
-  it("ohne Kern-Plugin: Vault-Wurzel und YYYY-MM-DD", () => {
-    expect(readDailyNotesConfig(makeApp())).toEqual({ folder: "", format: "YYYY-MM-DD" });
+  it("ohne Kern-Plugin: Vault-Wurzel und YYYY-MM-DD", async () => {
+    const app = makeApp({ notePath: "2026-10-14.md" });
+    expect(await writeDailyValues(app, cache, NOW)).toEqual({ status: "written", path: "2026-10-14.md", keys: ["health_steps"] });
   });
-  it("baut den Pfad aus Format und Ordner", () => {
-    expect(dailyNotePath({ folder: "Daily", format: "YYYY-MM-DD" }, NOW)).toBe("Daily/2026-10-14.md");
-    expect(dailyNotePath({ folder: "", format: "YYYY-MM-DD" }, NOW)).toBe("2026-10-14.md");
+  it("trägt der Pfad Unterordner im Format, entsteht der Pfad mit ihnen", async () => {
+    const app = makeApp({ options: { folder: "Daily", format: "YYYY/MM/YYYY-MM-DD" }, notePath: "Daily/2026/10/2026-10-14.md" });
+    expect(await writeDailyValues(app, cache, NOW)).toMatchObject({ status: "written", path: "Daily/2026/10/2026-10-14.md" });
   });
 });
 
