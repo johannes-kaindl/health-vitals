@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-10-18
+
 ### Fixed
 
 - The "write values into today's Daily Note" command now also fills a key that is named like an object member (for example `constructor`); before, such a key counted as already present and was skipped. A value you typed or corrected by hand, including `0` and an empty one, still stays.
