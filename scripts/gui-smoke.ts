@@ -79,6 +79,7 @@ import {
   openNote,
   pollUntil,
   requireVisible,
+  schliesseEinstellungen,
 } from "../../tools/obsidian-cdp/cdp.js";
 import { createBilanz, parseArgs, runDriver } from "../../tools/obsidian-cdp/bilanz.js";
 import { buildVault, requireEigenerBuild, stagingVaultDir } from "../../tools/obsidian-cdp/vault.js";
@@ -1012,7 +1013,7 @@ async function pruefeEinstellungen(cdp: Cdp): Promise<void> {
     messung.format !== null && gesetzt !== undefined && gesetzt !== messung.format && zurueck === messung.format,
     `Ausgang ${messung.format}, nach Wahl ${gesetzt}, zurückgesetzt ${zurueck}`,
   );
-  await cdp.evaluate(`app.setting.close(); return true;`);
+  await schliesseEinstellungen(cdp);
 }
 
 // --- Abschnitt: Aktivitätsringe (Übersicht) -----------------------------------
