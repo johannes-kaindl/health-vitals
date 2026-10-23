@@ -1,4 +1,4 @@
-// vendored from code-kit@0.31.0, src/ts/pure/merge-missing.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
+// vendored from code-kit@0.34.0, src/ts/pure/merge-missing.ts — do not hand-edit; re-vendor via tools/sync-kit.sh
 /** Sets the keys of `values` that `frontmatter` does not have yet, and leaves every key that is there. Returns the keys it wrote,
  *  in the order of `values`. Mutates `frontmatter` — the shape `processFrontMatter` hands over.
  *

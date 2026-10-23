@@ -1,20 +1,12 @@
 /**
  * Serialisierung von Kopf + Zeilen in die beiden Exportformate.
- * Der Markdown-Teil ist aus `vault-rag/src/reformat_mechanical.ts` übernommen
- * (renderTable/escapeCell); der CSV-Teil ist im Ökosystem das erste Exemplar.
+ * Der Markdown-Teil kommt aus code-kit `markdown-table` (vorher eigene Kopie, ursprünglich aus
+ * `vault-rag/src/reformat_mechanical.ts`); der CSV-Teil ist im Ökosystem das erste Exemplar.
  */
-
-/** Ein literales `|` muss re-escaped werden, sonst zerfällt die Zelle beim
- *  Rendern in zwei und die Datenzeile hat mehr Spalten als der Kopf. */
-function escapeCell(cell: string): string {
-  return cell.replace(/\|/g, "\\|");
-}
+import { renderMarkdownTable } from "../vendor/kit/markdown-table";
 
 export function toMarkdownTable(headers: string[], rows: string[][]): string {
-  const head = `| ${headers.map(escapeCell).join(" | ")} |`;
-  const sep = `| ${headers.map(() => "---").join(" | ")} |`;
-  const body = rows.map((r) => `| ${r.map(escapeCell).join(" | ")} |`);
-  return [head, sep, ...body].join("\n");
+  return renderMarkdownTable(headers, rows);
 }
 
 /** Quoting nach RFC 4180: nur wenn nötig, enthaltene Anführungszeichen verdoppelt.

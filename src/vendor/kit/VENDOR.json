@@ -2,9 +2,9 @@
   "source": "obsidian-kit",
   "version": "0.63.0",
   "sha": "9209efa",
-  "code_kit_version": "0.31.0",
+  "code_kit_version": "0.34.0",
   "vendored": "vault-path.ts",
   "note": "Verbatim snapshot aus ZWEI Quellen (obsidian-kit + code-kit); welche Datei woher stammt, sagt ihr eigener Kopf. Never hand-edit. Re-vendor via tools/sync-kit.sh. version/sha gelten AUSSCHLIESSLICH fuer die unter \"vendored\" gelisteten Dateien. kit-obsidian/ siehe dessen VENDOR.json.",
-  "code_kit_sha": "7e3bdb3",
-  "code_kit_vendored": "block-lines.ts, cooperative-yield.ts, filename-template.ts, i18n.ts, local-stamp.ts, merge-missing.ts, num.ts, run-state.ts, settings_schema.ts, clipboard.ts"
+  "code_kit_sha": "065b068",
+  "code_kit_vendored": "block-lines.ts, cooperative-yield.ts, filename-template.ts, i18n.ts, local-stamp.ts, markdown-table.ts, merge-missing.ts, num.ts, run-state.ts, settings_schema.ts, clipboard.ts"
 }

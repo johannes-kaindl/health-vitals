@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Kit pin `code-kit` 0.31.0 → 0.34.0. Nothing visible changes for this plugin: the 0.31.1 to 0.34.0 releases add modules this plugin does not vendor (word diff, critic markup, folder scope, crop, chat history) and one change to `capabilities`, which it does not vendor either; the vendored modules differ only in their origin stamp.
+- The Markdown export of the detail table now writes through code-kit `markdown-table` (`renderMarkdownTable`); the output is identical (code-kit 0.31.1 shows equality on 9,724 strings and 20 head and row combinations).
+
 ## [0.8.1] — 2026-10-18
 
 ### Fixed
